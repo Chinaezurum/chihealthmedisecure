@@ -2,8 +2,8 @@ name: Deploy to Cloud Run
 
 on:
   push:
-    branches: [ "main" ]   # deploys when you push to main
-  workflow_dispatch:        # allows manual trigger
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,34 +13,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # Step 1: Authenticate with GCP using service account
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    # Step 2: Install gcloud CLI
     - name: Set up gcloud CLI
       uses: google-github-actions/setup-gcloud@v2
       with:
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ env.GCP_PROJECT }}
-        export_default_credentials: true
+        project_id: your-gcp-project-id
+        install_components: cloud-run
 
-    - name: Configure Docker authentication
-      run: gcloud auth configure-docker ${REGION}-docker.pkg.dev
-
+    # Step 3: Build Docker image
     - name: Build and push Docker image
       run: |
-        IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        IMAGE=us-west1-docker.pkg.dev/numeric-skill-379315/cloud-run-source-deploy/chihealthmedisecure:${GITHUB_SHA}
         docker build -t $IMAGE .
         docker push $IMAGE
-      env:
-        REGION: us-central1
-        SERVICE_NAME: chihealth-medisecure
-        GCP_PROJECT: numeric-skill-379315
 
+    # Step 4: Deploy to Cloud Run
     - name: Deploy to Cloud Run
       run: |
-        gcloud run deploy ${{ env.SERVICE_NAME }} \
-          --image=${{ env.REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-          --region=${{ env.REGION }} \
+        gcloud run deploy chihealthmedisecure \
+          --image=us-west1-docker.pkg.dev/numeric-skill-379315/cloud-run-source-deploy/chihealthmedisecure:${GITHUB_SHA} \
+          --region=us-west1 \
           --platform=managed \
           --allow-unauthenticated
-      env:
-        REGION: us-west1
-        SERVICE_NAME: my-cloudrun-service
-        GCP_PROJECT: numeric-skill-379315
