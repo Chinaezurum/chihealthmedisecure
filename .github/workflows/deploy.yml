@@ -30,8 +30,8 @@ jobs:
         docker push $IMAGE
       env:
         REGION: us-central1
-        SERVICE_NAME: my-cloudrun-service
-        GCP_PROJECT: your-gcp-project-id
+        SERVICE_NAME: chihealth-medisecure
+        GCP_PROJECT: numeric-skill-379315
 
     - name: Deploy to Cloud Run
       run: |
@@ -43,4 +43,4 @@ jobs:
       env:
         REGION: us-west1
         SERVICE_NAME: my-cloudrun-service
-        GCP_PROJECT: your-gcp-project-id
+        GCP_PROJECT: numeric-skill-379315
