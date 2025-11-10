@@ -1,0 +1,209 @@
+// Prisma Schema for ChiHealth MediSecure
+// 
+// NOTE: This schema is currently NOT being used by the application.
+// The backend currently uses an in-memory database (see backend/src/db.ts).
+// This schema is provided for reference and future migration to PostgreSQL.
+//
+// To use this schema:
+// 1. Install Prisma: npm install @prisma/client
+// 2. Generate client: npx prisma generate
+// 3. Run migrations: npx prisma migrate dev
+// 4. Update backend/src/db.ts to use Prisma client instead of in-memory arrays
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                  String   @id @default(cuid())
+  name                String
+  type                String   // 'Hospital' | 'Clinic' | 'Pharmacy' | 'Laboratory' | 'Headquarters'
+  planId              String   // 'basic' | 'professional' | 'enterprise'
+  parentOrganizationId String?
+  parentOrganization  Organization? @relation("OrganizationHierarchy", fields: [parentOrganizationId], references: [id])
+  childOrganizations  Organization[] @relation("OrganizationHierarchy")
+  users               User[]
+  departments         Department[]
+  rooms               Room[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model User {
+  id                  String   @id @default(cuid())
+  name                String
+  email               String   @unique
+  role                String   // UserRole enum
+  passwordHash        String?
+  dateOfBirth         String?  // For patients
+  lastVisit           String?  // For patients
+  departmentIds       String[] // Array of department IDs
+  organizations       Organization[]
+  currentOrganizationId String
+  currentOrganization Organization @relation(fields: [currentOrganizationId], references: [id])
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor Appointment[] @relation("DoctorAppointments")
+  prescriptionsAsPatient Prescription[]
+  prescriptionsAsPrescriber Prescription[]
+  labTestsAsPatient   LabTest[] @relation("PatientLabTests")
+  labTestsAsOrderer   LabTest[] @relation("OrdererLabTests")
+  clinicalNotes       ClinicalNote[]
+  messagesAsSender    Message[] @relation("SenderMessages")
+  messagesAsRecipient Message[] @relation("RecipientMessages")
+  bills               Bill[]
+  referralsAsPatient  Referral[]
+  referralsAsDoctor   Referral[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Appointment {
+  id                String   @id @default(cuid())
+  patientId         String
+  patient           User     @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctorId          String
+  doctor            User     @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  doctorName        String
+  date              String
+  time              String
+  specialty         String
+  status            String   // 'Confirmed' | 'Completed' | 'Cancelled' | 'Checked-in'
+  consultingRoomId String?
+  consultingRoomName String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Prescription {
+  id          String   @id @default(cuid())
+  patientId  String
+  patient     User     @relation(fields: [patientId], references: [id])
+  prescriberId String
+  prescriber  User     @relation(fields: [prescriberId], references: [id])
+  medication String
+  dosage     String
+  frequency  String
+  startDate  String
+  status     String   // 'Active' | 'Inactive' | 'Filled'
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model LabTest {
+  id          String   @id @default(cuid())
+  patientId  String
+  patient     User     @relation("PatientLabTests", fields: [patientId], references: [id])
+  patientName String
+  orderedById String
+  orderer     User     @relation("OrdererLabTests", fields: [orderedById], references: [id])
+  testName    String
+  dateOrdered String
+  result      String?
+  status      String   // 'Ordered' | 'In-progress' | 'Completed' | 'Awaiting Pickup' | 'In Transit' | 'Delivered'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ClinicalNote {
+  id          String   @id @default(cuid())
+  patientId  String
+  doctorId   String
+  doctor     User     @relation(fields: [doctorId], references: [id])
+  doctorName String
+  date       String
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("SenderMessages", fields: [senderId], references: [id])
+  senderName  String?
+  recipientId String
+  recipient   User     @relation("RecipientMessages", fields: [recipientId], references: [id])
+  patientId   String?
+  content     String   @db.Text
+  timestamp   DateTime @default(now())
+}
+
+model Bill {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   User     @relation(fields: [patientId], references: [id])
+  date      String
+  service   String
+  amount    Float
+  status    String   // 'Paid' | 'Due'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  patientId  String
+  patient     User     @relation(fields: [patientId], references: [id])
+  fromDoctorId String
+  fromDoctor  User     @relation(fields: [fromDoctorId], references: [id])
+  toSpecialty String
+  reason      String   @db.Text
+  date        String
+  status      String   // 'Pending' | 'Accepted' | 'Completed'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Department {
+  id            String   @id @default(cuid())
+  name          String
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Room {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   // 'Patient Room' | 'Consulting Room' | 'Operating Theater' | 'Utility'
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  beds          Bed[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Bed {
+  id          String   @id @default(cuid())
+  name        String
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id])
+  isOccupied  Boolean  @default(false)
+  patientId   String?
+  patientName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TransportRequest {
+  id        String   @id @default(cuid())
+  type      String   // 'Sample' | 'Equipment' | 'Patient'
+  from      String
+  to        String
+  status    String   // 'Pending' | 'In-Transit' | 'Delivered' | 'Cancelled'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  type      String   // 'ADMISSION' | 'DISCHARGE' | 'ALERT' | 'INFO'
+  details   String   @db.Text
+}

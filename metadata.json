@@ -1,0 +1,8 @@
+{
+  "name": "ChiHealth MediSecure",
+  "description": "A comprehensive, secure, and intelligent healthcare platform designed to serve a complete clinical ecosystem with multi-role support and AI-powered features.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

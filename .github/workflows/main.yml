@@ -1,0 +1,121 @@
+name: ChiHealth MediSecure CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Environment variables available to all jobs
+env:
+  # These values are securely fetched from GitHub Secrets, which must be configured in the repository settings.
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+  # Defines the path in Google Artifact Registry where images will be stored.
+  ARTIFACT_REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/chihealth-repo
+  FRONTEND_SERVICE_NAME: chihealth-frontend
+  BACKEND_SERVICE_NAME: chihealth-backend
+
+jobs:
+  # This job runs on every push and pull request to ensure the code builds and passes tests.
+  build_and_test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js v18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install Frontend Dependencies & Run Tests
+      run: |
+        npm install
+        npm run test
+    
+    - name: Build Frontend
+      run: npm run build
+
+    - name: Install Backend Dependencies
+      run: npm install
+      working-directory: ./backend
+
+    - name: Generate Prisma Client
+      # This step is crucial for the backend build to succeed.
+      run: npx prisma generate
+      working-directory: ./backend
+
+    - name: Build Backend
+      run: npm run build
+      working-directory: ./backend
+      
+  # This job only runs on pushes to the 'main' branch, deploying the application to production.
+  deploy_to_cloud_run:
+    name: Deploy to Cloud Run
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    # These permissions are required for authenticating with Google Cloud via OIDC.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      # Uses Workload Identity Federation to securely authenticate without long-lived keys.
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+    - name: Set up Cloud SDK
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Configure Docker to push to Google Artifact Registry
+      run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+    - name: Get Deployed Backend URL
+      # Fetches the URL of the already deployed backend service to inject into the frontend build.
+      id: get_backend_url
+      run: |
+        URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} --platform managed --region ${{ env.GCP_REGION }} --format 'value(status.url)')
+        echo "BACKEND_URL=$URL" >> $GITHUB_OUTPUT
+
+    - name: Build and Push Frontend Image
+      run: |
+        docker build -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.FRONTEND_SERVICE_NAME }}:${{ github.sha }} \
+          --build-arg VITE_API_BASE_URL=${{ steps.get_backend_url.outputs.BACKEND_URL }} \
+          -f Dockerfile .
+        docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.FRONTEND_SERVICE_NAME }}:${{ github.sha }}
+        
+    - name: Build and Push Backend Image
+      run: |
+        docker build -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }} -f backend/Dockerfile ./backend
+        docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }}
+
+    - name: Deploy Backend to Cloud Run
+      # Deploys the new backend image and connects it to the production database via secrets.
+      run: |
+        gcloud run deploy ${{ env.BACKEND_SERVICE_NAME }} \
+          --image ${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }} \
+          --region ${{ env.GCP_REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-secrets="DATABASE_URL=chihealth-db-url:latest,JWT_SECRET=chihealth-jwt-secret:latest"
+
+    - name: Deploy Frontend to Cloud Run
+      # Deploys the new frontend image.
+      run: |
+        gcloud run deploy ${{ env.FRONTEND_SERVICE_NAME }} \
+          --image ${{ env.ARTIFACT_REGISTRY }}/${{ env.FRONTEND_SERVICE_NAME }}:${{ github.sha }} \
+          --region ${{ env.GCP_REGION }} \
+          --platform managed \
+          --allow-unauthenticated

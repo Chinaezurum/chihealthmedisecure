@@ -1,0 +1,64 @@
+version: '3.8'
+
+# This Docker Compose file is intended for local development and end-to-end testing.
+# For a production deployment on a platform like GCP Cloud Run, each service would be
+# built and deployed as a separate container, and the database would be a managed
+# service like GCP Cloud SQL.
+
+services:
+  # The PostgreSQL database service
+  db:
+    image: postgres:14-alpine
+    container_name: chihealth_db
+    environment:
+      POSTGRES_USER: chiuser
+      POSTGRES_PASSWORD: chipassword
+      POSTGRES_DB: chihealth
+    volumes:
+      # This volume ensures that your database data persists across container restarts.
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Exposes the database on port 5432 for local connections if needed.
+      - "5432:5432"
+    networks:
+      - chihealth-net
+
+  # The Node.js backend service
+  backend:
+    container_name: chihealth_backend
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # This URL points to the 'db' service defined in this file.
+      DATABASE_URL: "postgresql://chiuser:chipassword@db:5432/chihealth"
+      JWT_SECRET: "YOUR_SUPER_SECRET_JWT_KEY_CHANGE_ME"
+    depends_on:
+      - db
+    networks:
+      - chihealth-net
+
+  # The Nginx frontend service
+  frontend:
+    container_name: chihealth_frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # Exposes the main application on port 80.
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - chihealth-net
+
+volumes:
+  # In production, this local volume would be replaced by a managed database solution
+  # (like GCP Cloud SQL) with its own automated backup and recovery strategy.
+  postgres_data:
+
+networks:
+  chihealth-net:
+    driver: bridge
