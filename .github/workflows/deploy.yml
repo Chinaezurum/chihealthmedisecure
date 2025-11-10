@@ -41,6 +41,6 @@ jobs:
           --platform=managed \
           --allow-unauthenticated
       env:
-        REGION: us-central1
+        REGION: us-west1
         SERVICE_NAME: my-cloudrun-service
         GCP_PROJECT: your-gcp-project-id
