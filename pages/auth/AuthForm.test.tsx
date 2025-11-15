@@ -36,28 +36,39 @@ describe('AuthForm', () => {
     vi.clearAllMocks();
   });
 
+  // Helper to find the form submit button by accessible name (ensures it's inside a <form>)
+  const findSubmitButtonByName = (name: RegExp | string) => {
+    return screen.getAllByRole('button', { name }).find(b => b.closest('form') !== null);
+  };
+
+  // Helper to find the tab button (auth-tab) by accessible name
+  const findTabButtonByName = (name: RegExp | string) => {
+    return screen.getAllByRole('button', { name }).find(b => b.classList.contains('auth-tab'));
+  };
+
   it('renders the Sign In form by default', () => {
     renderWithProvider(<AuthForm onSsoSuccess={onSsoSuccess} onForgotPassword={onForgotPassword} onAuthSuccess={onAuthSuccess} />);
-    // There are multiple buttons with the text "Sign In" (tab and submit). Ensure the submit button exists.
-    const signInSubmit = screen.getAllByRole('button', { name: /sign in/i }).find(b => (b as HTMLButtonElement).type === 'submit');
-    expect(signInSubmit).toBeInTheDocument();
-    // Check for the absence of a submit button labeled 'Create Account'
-    const submitButtons = screen.getAllByRole('button');
-    expect(submitButtons.find(b => b.textContent === 'Create Account' && (b as HTMLButtonElement).type === 'submit')).toBeUndefined();
+  // There are multiple buttons with the text "Sign In" (tab and submit). Ensure the submit button exists.
+  const signInSubmit = findSubmitButtonByName(/sign in/i);
+  expect(signInSubmit).toBeInTheDocument();
+  // Check for the absence of a submit button labeled 'Create Account'
+  const createAccountSubmit = findSubmitButtonByName(/create account/i);
+  expect(createAccountSubmit).toBeUndefined();
   });
 
   it('switches to the Create Account form when tab is clicked', async () => {
     const user = userEvent.setup();
     renderWithProvider(<AuthForm onSsoSuccess={onSsoSuccess} onForgotPassword={onForgotPassword} onAuthSuccess={onAuthSuccess} />);
 
-  // Click the tab (there is also a submit with the same text) — choose the non-submit button
-  const createTab = screen.getAllByRole('button', { name: /create account/i }).find(b => (b as HTMLButtonElement).type !== 'submit');
+  // Click the Create Account tab (there is also a submit with the same text)
+  const createTab = findTabButtonByName(/create account/i);
   await user.click(createTab as HTMLElement);
 
-  // Check for the submit button specifically
-  const submitButtons = screen.getAllByRole('button');
-  expect(submitButtons.find(b => b.textContent === 'Create Account' && (b as HTMLButtonElement).type === 'submit')).toBeInTheDocument();
-  expect(submitButtons.find(b => b.textContent === 'Sign In' && (b as HTMLButtonElement).type === 'submit')).toBeUndefined();
+  // Check for the submit button specifically (submit lives inside a form)
+  const createSubmit = findSubmitButtonByName(/create account/i);
+  expect(createSubmit).toBeInTheDocument();
+  const signInSubmitAfter = findSubmitButtonByName(/sign in/i);
+  expect(signInSubmitAfter).toBeUndefined();
   });
 
   it('handles successful login', async () => {
@@ -68,7 +79,7 @@ describe('AuthForm', () => {
 
     await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
     await user.type(screen.getByLabelText(/password/i), 'password123');
-  const signInSubmitBtn = screen.getAllByRole('button', { name: /sign in/i }).find(b => (b as HTMLButtonElement).type === 'submit');
+  const signInSubmitBtn = findSubmitButtonByName(/sign in/i);
   await user.click(signInSubmitBtn as HTMLElement);
 
     expect(authService.signInWithEmail).toHaveBeenCalledWith('test@example.com', 'password123');
@@ -85,7 +96,7 @@ describe('AuthForm', () => {
   await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
   // Password input is labeled 'Password'
   await user.type(screen.getByLabelText(/password/i), 'wrongpassword');
-  const signInSubmitBtn2 = screen.getAllByRole('button', { name: /sign in/i }).find(b => (b as HTMLButtonElement).type === 'submit');
+  const signInSubmitBtn2 = findSubmitButtonByName(/sign in/i);
   await user.click(signInSubmitBtn2 as HTMLElement);
 
     expect(await screen.findByText('Invalid email or password.')).toBeInTheDocument();
@@ -98,22 +109,21 @@ describe('AuthForm', () => {
 
     renderWithProvider(<AuthForm onSsoSuccess={onSsoSuccess} onForgotPassword={onForgotPassword} onAuthSuccess={onAuthSuccess} />);
     
-  // Click the Create Account tab (choose the non-submit tab element)
-  const createTab2 = screen.getAllByRole('button', { name: /create account/i }).find(b => (b as HTMLButtonElement).type !== 'submit');
+  // Click the Create Account tab (choose the tab element)
+  const createTab2 = findTabButtonByName(/create account/i);
   await user.click(createTab2 as HTMLElement);
     
     await user.type(screen.getByLabelText(/full name/i), 'Test User');
     await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
     await user.type(screen.getByLabelText('Password'), 'StrongPass1!');
     await user.type(screen.getByLabelText(/confirm password/i), 'StrongPass1!');
-  const createSubmitBtn = screen.getAllByRole('button', { name: /create account/i }).find(b => (b as HTMLButtonElement).type === 'submit');
+  const createSubmitBtn = findSubmitButtonByName(/create account/i);
   await user.click(createSubmitBtn as HTMLElement);
 
     expect(authService.registerWithEmail).toHaveBeenCalledWith('Test User', 'test@example.com', 'StrongPass1!');
     
-    // Check if it switches back to login view. The original test looked for an alert,
-    // but the actual implementation uses toasts, so we'll check for the view switch.
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  // Check if it switches back to login view by confirming the sign-in submit exists
+  expect(findSubmitButtonByName(/sign in/i)).toBeInTheDocument();
   });
 
 });
