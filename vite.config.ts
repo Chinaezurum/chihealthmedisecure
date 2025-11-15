@@ -47,6 +47,10 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./setupTests.ts",
-    exclude: ["e2e/**/*", "backend/**/*"]
+  // Exclude e2e, backend, and node_modules to avoid picking up tests shipped with deps
+  exclude: ["e2e/**/*", "backend/**/*", "node_modules/**"],
+  // Run tests in-process (no worker forks) to avoid fork startup timeouts in restricted environments
+  threads: false,
+  isolate: false
   },
 });

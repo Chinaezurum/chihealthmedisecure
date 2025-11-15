@@ -30,16 +30,18 @@ describe('AppointmentsView', () => {
   it('renders upcoming and past appointments correctly', () => {
     renderWithProvider(<AppointmentsView appointments={mockAppointments} rooms={[]} onBookAppointment={onBookAppointment} onSuggestionHandled={onSuggestionHandled} />);
     
-    // Check for Upcoming Appointments section
-    const upcomingSection = screen.getByText('Upcoming Appointments').closest('div');
-    expect(upcomingSection).toHaveTextContent('Dr. House'); // Tomorrow's appt
-    expect(upcomingSection).toHaveTextContent('Dr. Cuddy'); // Today's appt
-    expect(upcomingSection).not.toHaveTextContent('Dr. Wilson');
+  // Check for Upcoming Appointments section - find the title and then the containing section
+  const upcomingTitle = screen.getByRole('heading', { name: 'Upcoming Appointments', level: 3 }) || screen.getByText('Upcoming Appointments');
+  const upcomingSection = upcomingTitle.closest('.appointments-section') || upcomingTitle.closest('div');
+  expect(upcomingSection).toHaveTextContent('Dr. House'); // Tomorrow's appt
+  expect(upcomingSection).toHaveTextContent('Dr. Cuddy'); // Today's appt
+  expect(upcomingSection).not.toHaveTextContent('Dr. Wilson');
 
     // Check for Past Appointments section
-    const pastSection = screen.getByText('Past Appointments').closest('div');
-    expect(pastSection).toHaveTextContent('Dr. Wilson');
-    expect(pastSection).not.toHaveTextContent('Dr. House');
+  const pastTitle = screen.getByRole('heading', { name: 'Past Appointments', level: 3 }) || screen.getByText('Past Appointments');
+  const pastSection = pastTitle.closest('.appointments-section') || pastTitle.closest('div');
+  expect(pastSection).toHaveTextContent('Dr. Wilson');
+  expect(pastSection).not.toHaveTextContent('Dr. House');
   });
 
   it('shows no appointments message when lists are empty', () => {
