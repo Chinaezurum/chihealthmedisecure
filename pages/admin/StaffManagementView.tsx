@@ -40,7 +40,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<User | null>(null);
-  const { addToast } = useToasts();
+  // ...existing code...
 
   const handleEdit = (user: User) => {
     setSelectedStaff(user);
@@ -60,7 +60,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
     role: UserRole;
     departmentIds?: string[];
     organizationIds?: string[];
-  }) => {
+  }): Promise<void> => {
     try {
       await api.createStaff(staffData);
       // Refresh the staff list

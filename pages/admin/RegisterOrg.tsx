@@ -50,8 +50,9 @@ const RegisterOrg: React.FC<RegisterOrgProps> = ({ onNavigate }) => {
 
   const passwordStrength = useMemo(() => checkPasswordStrength(formData.password), [formData.password]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    setFormData({ ...formData, [target.name]: (target as any).value });
     if (errors[e.target.name] || errors.form) {
         setErrors(prev => {
             const newErrors = {...prev};

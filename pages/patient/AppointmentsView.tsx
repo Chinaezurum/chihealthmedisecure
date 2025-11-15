@@ -10,7 +10,7 @@ import { RescheduleModal } from '../../components/common/RescheduleModal.tsx';
 interface AppointmentsViewProps {
   appointments: Appointment[];
   rooms: Room[];
-  onBookAppointment: (newAppointment: Omit<Appointment, 'id' | 'status' | 'patientId'>) => void;
+  onBookAppointment: (newAppointment: Omit<Appointment, 'id' | 'status' | 'patientId'>) => Promise<void>;
   suggestedSpecialty?: string | null;
   onSuggestionHandled: () => void;
   onRefresh?: () => void;
@@ -109,7 +109,6 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ appointments
                 return dateA - dateB;
               }).map(appt => {
                 const appointmentDateTime = new Date(`${appt.date}T${appt.time}`);
-                const isUpcoming = appointmentDateTime > new Date();
                 
                 return (
                   <div key={appt.id} className="appointment-card appointment-card-upcoming">

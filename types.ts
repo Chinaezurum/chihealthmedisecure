@@ -45,6 +45,7 @@ export interface Appointment {
   patientId: string;
   doctorId: string;
   doctorName: string;
+  patientName?: string;
   date: string;
   time: string;
   specialty: string;
@@ -72,7 +73,7 @@ export interface LabTest {
   testName: string;
   dateOrdered: string;
   result?: string;
-  status: 'Ordered' | 'In-progress' | 'Completed' | 'Awaiting Pickup' | 'In Transit' | 'Delivered';
+  status: 'Ordered' | 'In-progress' | 'Pending' | 'Completed' | 'Awaiting Pickup' | 'In Transit' | 'Delivered';
 }
 
 export interface ClinicalNote {

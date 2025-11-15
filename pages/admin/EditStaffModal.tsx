@@ -3,7 +3,7 @@ import { Modal } from '../../components/common/Modal.tsx';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
 import { Select } from '../../components/common/Select.tsx';
-import { User, Organization, UserRole, Department } from '../../types.ts';
+import { User, Organization, Department } from '../../types.ts';
 import { canAccessFeature } from '../../services/permissionService.ts';
 
 interface EditStaffModalProps {

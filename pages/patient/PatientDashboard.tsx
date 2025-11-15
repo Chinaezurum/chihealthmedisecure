@@ -76,7 +76,7 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
       if (error?.status === 401) {
         // Session might have expired, but don't force sign out
         // Let the user continue working - they can manually sign out if needed
-        addToast('Session may have expired. Please refresh if issues persist.', 'warning');
+  addToast('Session may have expired. Please refresh if issues persist.', 'info');
       } else {
         addToast('Failed to load dashboard data. Please try again.', 'error');
       }

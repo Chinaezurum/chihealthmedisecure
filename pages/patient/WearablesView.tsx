@@ -94,11 +94,11 @@ export const WearablesView: React.FC<WearablesViewProps> = ({ patient, onSimulat
     const stepHistory = data.map(d => d.steps || 0).slice(-7);
 
     const hasData = data.length > 0;
-    const heartRateChartData = data.slice(-7).map((d, i) => ({
+    const heartRateChartData = data.slice(-7).map((d) => ({
         value: d.heartRate || 0,
         label: new Date(d.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }));
-    const stepsChartData = data.slice(-7).map((d, i) => ({
+    const stepsChartData = data.slice(-7).map((d) => ({
         value: d.steps || 0,
         label: new Date(d.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }));
