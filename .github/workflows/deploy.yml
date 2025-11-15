@@ -2,68 +2,35 @@ name: Deploy to Cloud Run
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        # Accepts either the raw JSON service account key or a base64-encoded key
-        # The step below writes the secret to a file and attempts to parse it as JSON.
-        # If parsing fails, it will attempt to base64-decode the secret into a JSON file.
-      - name: Prepare GCP service account key
-        run: |
-          set -euo pipefail
-          echo "Preparing GCP service account key"
-          # write the secret to a temporary file
-          printf '%s' "${{ secrets.GCP_SA_KEY }}" > gcp_sa_key.tmp
-
-          # if the file is valid JSON, leave it as-is; otherwise try base64 decode
-          if jq -e . < gcp_sa_key.tmp > /dev/null 2>&1; then
-            mv gcp_sa_key.tmp gcp_sa_key.json
-            echo "GCP key is valid JSON"
-          else
-            echo "GCP key is not valid JSON, attempting base64 decode"
-            if base64 --decode gcp_sa_key.tmp > gcp_sa_key.json 2>/dev/null; then
-              # verify decoded content is JSON
-              if jq -e . < gcp_sa_key.json > /dev/null 2>&1; then
-                echo "Successfully base64-decoded service account key"
-              else
-                echo "Decoded content is not valid JSON" >&2
-                cat gcp_sa_key.json >&2
-                exit 1
-              fi
-            else
-              echo "Base64 decode failed; ensure you stored either the raw JSON key or a base64-encoded JSON key in the secret." >&2
-              exit 1
-            fi
-          fi
-          echo "GCP_SA_KEY_FILE=$PWD/gcp_sa_key.json" >> $GITHUB_ENV
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      # Authenticate with GCP using service account JSON
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
         with:
-          credentials_file_path: ${{ env.GCP_SA_KEY_FILE }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Set up Google Cloud SDK
+      # Set up gcloud CLI
+      - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Build and push Docker image
-        run: |
-          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
-          gcloud builds submit --tag $IMAGE
-
+      # Deploy to Cloud Run directly from source
       - name: Deploy to Cloud Run
         run: |
-          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
-          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
-            --image $IMAGE \
+          gcloud run deploy chihealthmedisecure \
+            --source . \
             --region ${{ secrets.CLOUD_RUN_REGION }} \
             --platform managed \
             --allow-unauthenticated
