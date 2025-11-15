@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig } from 'vitest/config';
 import react from "@vitejs/plugin-react";
 import { resolve } from 'path';
@@ -47,10 +48,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./setupTests.ts",
-  // Exclude e2e, backend, and node_modules to avoid picking up tests shipped with deps
-  exclude: ["e2e/**/*", "backend/**/*", "node_modules/**"],
-  // Run tests in-process (no worker forks) to avoid fork startup timeouts in restricted environments
-  threads: false,
-  isolate: false
+    // Exclude e2e, backend, and node_modules to avoid picking up tests shipped with deps
+    exclude: ["e2e/**/*", "backend/**/*", "node_modules/**"],
   },
 });

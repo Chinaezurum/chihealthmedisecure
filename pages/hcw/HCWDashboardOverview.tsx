@@ -5,8 +5,6 @@ import {
   MessageSquareIcon, 
   FlaskConicalIcon,
   ClockIcon,
-  UserIcon,
-  ArrowRightIcon,
   ActivityIcon,
   CheckCircleIcon,
   AlertCircleIcon

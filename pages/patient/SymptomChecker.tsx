@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ChatMessage, MessageRole, TriageSuggestion } from '../../types.ts';
 import { runChat, getTriageSuggestion } from '../../services/geminiService.ts';
 import { AISuggestionCard } from '../../components/patient/AISuggestionCard.tsx';
-import { Button } from '../../components/common/Button.tsx';
 import { HealthAssistantIcon, UserIcon, SendIcon as SendIconSVG, SparklesIcon } from '../../components/icons/index.tsx';
 
 interface SymptomCheckerProps {

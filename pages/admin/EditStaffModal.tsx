@@ -42,15 +42,17 @@ export const EditStaffModal: React.FC<EditStaffModalProps> = ({ isOpen, onClose,
     return allRoles.filter(role => canAccessFeature(currentUser, role.feature));
   }, [currentUser]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, options } = e.target as HTMLSelectElement;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    const { name, value } = target;
+    const options = (target as HTMLSelectElement).options as unknown as HTMLOptionsCollection | undefined;
     if (name === 'departmentIds') {
-        const selectedDepartmentIds = Array.from(options)
-            .filter(option => option.selected)
-            .map(option => option.value);
+        const selectedDepartmentIds = Array.from(options || [])
+            .filter((option: any) => option.selected)
+            .map((option: any) => option.value);
         setFormData(prev => ({ ...prev, departmentIds: selectedDepartmentIds }));
     } else {
-      setFormData({ ...formData, [name]: value as UserRole });
+      setFormData({ ...formData, [name]: value as any });
     }
   };
 

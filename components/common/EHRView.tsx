@@ -431,7 +431,6 @@ export const EHRView: React.FC<EHRViewProps> = (props) => {
             {props.labTests.length > 0 ? (
               props.labTests.map(test => {
                 const isCompleted = test.status === 'Completed';
-                const isPending = test.status === 'Pending';
                 const isAbnormal = test.result && (
                   test.result.toLowerCase().includes('high') || 
                   test.result.toLowerCase().includes('low') ||

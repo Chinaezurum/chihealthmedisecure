@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { Patient } from '../../types.ts';
-import { HeartPulseIcon, StepIcon, MoonIcon, RefreshCwIcon, HeartIcon, ActivityIcon, BedIcon, ClockIcon } from '../../components/icons/index.tsx';
-import { Button } from '../../components/common/Button.tsx';
+import { HeartPulseIcon, RefreshCwIcon, HeartIcon, ActivityIcon, BedIcon, ClockIcon } from '../../components/icons/index.tsx';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal.tsx';
 import { ConnectWearableModal } from './ConnectWearableModal.tsx';
 import { HealthChart } from '../../components/common/HealthChart.tsx';

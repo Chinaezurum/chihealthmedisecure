@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, Room } from '../../types.ts';
-import { Button } from '../../components/common/Button.tsx';
 import { BookingModal } from './BookingModal.tsx';
 import { EmptyState } from '../../components/common/EmptyState.tsx';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from '../../components/icons/index.tsx';
