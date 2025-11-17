@@ -33,10 +33,12 @@ COPY backend/src/ ./src/
 COPY backend/prisma/ ./prisma/
 COPY types.ts ./types.ts
 
+# Create types.js before building (TypeScript imports reference ../../types.js)
+RUN cp types.ts types.js
+
 # Install TypeScript temporarily and build backend
 RUN npm install typescript && \
     npm run build && \
-    cp types.ts types.js && \
     npm uninstall typescript && \
     npm prune --production
 
