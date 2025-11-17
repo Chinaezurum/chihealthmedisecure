@@ -19,6 +19,8 @@ try {
 } catch (err) {
   console.warn('Optional dependency "multer" is not installed - avatar upload endpoints will be disabled.');
 }
+// Google Cloud Storage for avatar uploads
+import { Storage } from '@google-cloud/storage';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import process from 'process';
@@ -49,28 +51,24 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
 
-// Ensure uploads dir exists
+// Google Cloud Storage setup for avatar uploads
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME || 'chihealth-avatars-5068';
+const bucket = storage.bucket(bucketName);
+
+// Ensure local uploads dir exists (fallback for development without GCS)
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
 const avatarDir = path.join(uploadsDir, 'avatars');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
-if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir);
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
 
 // Multer setup for avatar uploads (only if multer is available)
 let upload: any = null;
 if (multer) {
-  const storage = multer.diskStorage({
-    // use typed params for the multer callbacks
-    destination: function (req: Request, file: any, cb: (err: any, dest?: string) => void) {
-      cb(null, avatarDir);
-    },
-    filename: function (req: Request, file: any, cb: (err: any, filename?: string) => void) {
-      const ext = path.extname((file && file.originalname) || '') || '.png';
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`);
-    }
-  });
-  upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+  // Use memory storage so we can upload directly to GCS
+  const memoryStorage = multer.memoryStorage();
+  upload = multer({ storage: memoryStorage, limits: { fileSize: 2 * 1024 * 1024 } });
 }
-
 
 // WebSocket connections map
 const clients = new Map<string, WebSocket>();
@@ -590,11 +588,40 @@ if (upload) {
   app.post('/api/users/avatar', authenticate, upload.single('avatar'), async (req: Request, res: Response) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-      // Build a URL for the uploaded file. In development we can serve from /uploads
-      const fileUrl = `/uploads/avatars/${path.basename(req.file.path)}`;
-  // Update user record
-  const updated = await db.updateUser((req.user as User).id, { avatarUrl: fileUrl } as any);
-  return res.json({ avatarUrl: fileUrl, user: updated });
+      
+      // Generate unique filename
+      const ext = path.extname(req.file.originalname) || '.png';
+      const filename = `avatars/${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
+      
+      // Upload to Google Cloud Storage
+      const blob = bucket.file(filename);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        metadata: {
+          contentType: req.file.mimetype,
+          cacheControl: 'public, max-age=31536000',
+        }
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        blobStream.on('error', (err) => {
+          console.error('GCS upload error:', err);
+          reject(err);
+        });
+        
+        blobStream.on('finish', () => {
+          resolve();
+        });
+        
+        blobStream.end(req.file!.buffer);
+      });
+
+      // Construct public URL for the uploaded file
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
+      
+      // Update user record
+      const updated = await db.updateUser((req.user as User).id, { avatarUrl: publicUrl } as any);
+      return res.json({ avatarUrl: publicUrl, user: updated });
     } catch (err: any) {
       console.error('Failed to upload avatar', err);
       return res.status(500).json({ message: err.message || 'Failed to upload avatar' });
