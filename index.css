@@ -9056,6 +9056,54 @@ html.dark .ehr-lab-test-status-cancelled {
   flex-shrink: 0;
 }
 
+.health-metrics-simulate-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.health-metrics-simulate-button:hover:not(:disabled) {
+  background: var(--background-tertiary);
+  border-color: var(--teal-500);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.health-metrics-simulate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.health-metrics-simulate-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.health-metrics-simulate-button svg.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 /* Metric Cards */
 .health-metrics-grid {
   display: grid;

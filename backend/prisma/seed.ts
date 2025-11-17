@@ -33,8 +33,23 @@ export const seedData = () => {
             organizations: [organizations[0]],
             currentOrganization: organizations[0],
             wearableData: [
+                // 7 days of historical data for proper chart rendering
+                { timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), heartRate: 68, steps: 8234, sleepHours: 7.2 },
+                { timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), heartRate: 72, steps: 9821, sleepHours: 6.8 },
+                { timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), heartRate: 65, steps: 7456, sleepHours: 8.1 },
+                { timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), heartRate: 70, steps: 10234, sleepHours: 7.5 },
+                { timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), heartRate: 69, steps: 8945, sleepHours: 7.0 },
                 { timestamp: `${yesterday}T22:00:00Z`, heartRate: 65, steps: 8021, sleepHours: 7.5 },
                 { timestamp: `${today}T09:00:00Z`, heartRate: 72, steps: 1234 },
+            ],
+            wearableDevices: [
+                {
+                    id: 'device-fitbit-01',
+                    name: 'Fitbit Charge 5',
+                    type: 'Fitness Tracker',
+                    addedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    lastSync: new Date().toISOString()
+                }
             ],
             inpatientStay: undefined
         },

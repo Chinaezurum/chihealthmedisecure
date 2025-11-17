@@ -115,12 +115,23 @@ export const WearablesView: React.FC<WearablesViewProps> = ({ patient, onSimulat
                         <p className="health-metrics-subtitle">Real-time data from your connected wearable devices</p>
                 </div>
                 </div>
-                <button onClick={() => setModalOpen(true)} className="health-metrics-connect-button">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Connect Device</span>
-                </button>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={handleSimulation} 
+                        disabled={isSimulating}
+                        className="health-metrics-simulate-button"
+                        title="Generate new simulated wearable data"
+                    >
+                        <RefreshCwIcon className={`w-5 h-5 ${isSimulating ? 'animate-spin' : ''}`} />
+                        <span>{isSimulating ? 'Simulating...' : 'Simulate Data'}</span>
+                    </button>
+                    <button onClick={() => setModalOpen(true)} className="health-metrics-connect-button">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Connect Device</span>
+                    </button>
+                </div>
             </div>
             
             {hasData ? (
