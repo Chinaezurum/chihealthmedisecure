@@ -58,4 +58,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/api/users/me', (r) => {process.exit(r.statusCode === 401 ? 0 : 1)})"
 
 # Run backend server
-CMD ["sh", "-c", "echo 'Working dir:' && pwd && echo 'All files:' && ls -laR && echo 'Trying to start server...' && node lib/server.js"]
+CMD ["node", "lib/backend/src/server.js"]
