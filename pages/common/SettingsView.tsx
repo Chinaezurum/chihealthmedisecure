@@ -159,6 +159,7 @@ const ProfileSettings: React.FC<{
               accept="image/*"
               style={{ display: 'none' }}
               onChange={async (e) => {
+                console.log('File input changed', e.target.files);
                 const file = e.target.files && e.target.files[0];
                 if (!file) return;
                 if (file.size > 2 * 1024 * 1024) {
@@ -210,19 +211,19 @@ const ProfileSettings: React.FC<{
                 }
               }}
             />
-            <label htmlFor="avatarInput" style={{ cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-              <button
-                type="button"
-                disabled={isSaving}
-                className="profile-change-photo-button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('avatarInput')?.click();
-                }}
-              >
-                {isSaving ? 'Uploading...' : 'Change Photo'}
-              </button>
-            </label>
+            <button
+              type="button"
+              disabled={isSaving}
+              className="profile-change-photo-button"
+              onClick={(e) => {
+                e.preventDefault();
+                const input = document.getElementById('avatarInput') as HTMLInputElement;
+                console.log('Change Photo button clicked', { input, isSaving });
+                input?.click();
+              }}
+            >
+              {isSaving ? 'Uploading...' : 'Change Photo'}
+            </button>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>JPG, PNG or GIF. Max size 2MB</p>
           </div>
         </div>
