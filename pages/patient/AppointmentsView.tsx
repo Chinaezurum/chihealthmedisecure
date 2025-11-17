@@ -108,8 +108,6 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ appointments
                 const dateB = new Date(`${b.date}T${b.time}`).getTime();
                 return dateA - dateB;
               }).map(appt => {
-                const appointmentDateTime = new Date(`${appt.date}T${appt.time}`);
-                
                 return (
                   <div key={appt.id} className="appointment-card appointment-card-upcoming">
                     <div className="appointment-card-header">

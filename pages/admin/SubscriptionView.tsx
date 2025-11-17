@@ -5,7 +5,6 @@ import {
   CreditCardIcon, 
   CalendarIcon, 
   ShieldCheckIcon,
-  DollarSignIcon,
   SparklesIcon,
   UsersIcon,
   BuildingIcon,

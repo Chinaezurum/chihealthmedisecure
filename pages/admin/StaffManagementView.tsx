@@ -6,7 +6,6 @@ import { AddStaffModal } from './AddStaffModal.tsx';
 import { EmptyState } from '../../components/common/EmptyState.tsx';
 import { UsersIcon } from '../../components/icons/index.tsx';
 import * as api from '../../services/apiService.ts';
-import { useToasts } from '../../hooks/useToasts.ts';
 
 interface StaffManagementViewProps {
   staff: User[];
