@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { User, Organization } from '../../types.js';
+import { Organization } from '../../types.js';
 
 // Fix: Add declaration for custom property on Express Request
 declare global {
