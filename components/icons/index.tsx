@@ -29,7 +29,7 @@ export const CalendarIcon = createIcon(
 export const UsersIcon = createIcon(
   "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zM17 8a4 4 0 100-8 4 4 0 000 8z"
 );
-export const ActivityIcon = createIcon("M3 12h4l2-4 2 8 2-4 4 0");
+export const ActivityIcon = createIcon("M22 12h-4l-3 9L9 3l-3 9H2");
 export const MessageSquareIcon = createIcon(
   "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
 );
@@ -126,14 +126,14 @@ export const AlertTriangleIcon = createIcon(
 export const ArrowRightIcon = createIcon("M14 5l7 7m0 0l-7 7m7-7H3");
 // Health Metrics icon - activity/heart with pulse line
 export const HeartPulseIcon = createIcon(
-  "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0zM15 11l-3-3m0 0l-3 3m3-3v8"
+  "M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3 M12 17h.01"
 );
 export const StepIcon = createIcon(
-  "M16 12V6a2 2 0 00-2-2h-4a2 2 0 00-2 2v6m0 0v6a2 2 0 002 2h4a2 2 0 002-2v-6"
+  "M13 10V3L4 14h7v7l9-11h-7z"
 );
 // Better health icons
 export const HeartIcon = createIcon(
-  "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+  "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
 );
 // Footprints icon - walking/steps representation
 export const FootprintsIcon: React.FC<React.SVGProps<SVGSVGElement>> = (
