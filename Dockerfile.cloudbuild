@@ -39,6 +39,9 @@ RUN cp /workspace/types.ts /workspace/types.js
 # Install TypeScript temporarily and build backend
 RUN npm install typescript && \
     npm run build && \
+    ls -la && \
+    echo "Checking lib directory:" && \
+    ls -la lib/ && \
     npm uninstall typescript && \
     npm prune --production
 
