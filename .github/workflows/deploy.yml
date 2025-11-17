@@ -30,10 +30,37 @@ jobs:
         run: |
           IMAGE=us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/chihealthmedisecure:${{ github.sha }}
           echo "Building and pushing image $IMAGE"
-          gcloud builds submit \
+          
+          # Submit build and get build ID
+          BUILD_ID=$(gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=_IMAGE_NAME="$IMAGE" \
-            --timeout=20m
+            --timeout=20m \
+            --format="value(id)" 2>&1 | tee /tmp/build_output.log | grep -oP '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1 || true)
+          
+          # If we couldn't stream logs, wait and check build status
+          if [ -z "$BUILD_ID" ]; then
+            BUILD_ID=$(cat /tmp/build_output.log | grep -oP 'builds/\K[a-f0-9-]+' | head -1)
+          fi
+          
+          echo "Build ID: $BUILD_ID"
+          
+          # Wait for build to complete and check status
+          for i in {1..60}; do
+            STATUS=$(gcloud builds describe "$BUILD_ID" --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+            echo "Build status: $STATUS"
+            
+            if [ "$STATUS" = "SUCCESS" ]; then
+              echo "Build completed successfully!"
+              break
+            elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
+              echo "Build failed with status: $STATUS"
+              gcloud builds log "$BUILD_ID" || true
+              exit 1
+            fi
+            
+            sleep 10
+          done
 
       # Deploy to Cloud Run from the built image
       - name: Deploy to Cloud Run (from image)
