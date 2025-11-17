@@ -24,10 +24,7 @@ WORKDIR /workspace/backend
 # Copy backend package files
 COPY backend/package.json backend/package-lock.json* ./
 
-# Install backend dependencies (use npm install to avoid lockfile issues)
-RUN npm install --only=production && npm cache clean --force
-
-# Copy backend TypeScript config and source
+# Copy backend TypeScript config and source first
 COPY backend/tsconfig.json ./
 COPY backend/src/ ./src/
 COPY backend/prisma/ ./prisma/
@@ -36,14 +33,15 @@ COPY backend/prisma/ ./prisma/
 COPY types.ts /workspace/types.ts
 RUN cp /workspace/types.ts /workspace/types.js
 
-# Install TypeScript temporarily and build backend
-RUN npm install typescript && \
+# Install all dependencies (including dev deps) and build
+RUN npm install && \
     npm run build && \
+    echo "Build completed. Checking output:" && \
     ls -la && \
-    echo "Checking lib directory:" && \
+    echo "Contents of lib directory:" && \
     ls -la lib/ && \
-    npm uninstall typescript && \
-    npm prune --production
+    npm prune --production && \
+    npm cache clean --force
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/dist /workspace/backend/public
