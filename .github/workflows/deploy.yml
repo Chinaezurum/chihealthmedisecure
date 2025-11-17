@@ -34,7 +34,7 @@ jobs:
           # Submit build and get build ID
           BUILD_ID=$(gcloud builds submit \
             --config=cloudbuild.yaml \
-            --substitutions=_IMAGE_NAME="$IMAGE" \
+            --substitutions=COMMIT_SHA="${{ github.sha }}" \
             --timeout=20m \
             --format="value(id)" 2>&1 | tee /tmp/build_output.log | grep -oP '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1 || true)
           
