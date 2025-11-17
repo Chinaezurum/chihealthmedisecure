@@ -25,12 +25,15 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-      # Build container image with Cloud Build and push to Artifact Registry
+      # Build container image with Cloud Build using custom config
       - name: Build and push container image
         run: |
           IMAGE=us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/chihealthmedisecure:${{ github.sha }}
           echo "Building and pushing image $IMAGE"
-          gcloud builds submit --tag "$IMAGE" --timeout=20m
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=_IMAGE_NAME="$IMAGE" \
+            --timeout=20m
 
       # Deploy to Cloud Run from the built image
       - name: Deploy to Cloud Run (from image)

@@ -1,0 +1,58 @@
+# Multi-stage Dockerfile for Cloud Build
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+
+# Use npm install (not npm ci) to allow lockfile mismatch resolution
+RUN npm install
+
+# Copy frontend source
+COPY . .
+
+# Build frontend
+RUN npm run build
+
+# Stage 2: Backend runtime
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy backend package files
+COPY backend/package.json backend/package-lock.json* ./
+
+# Install backend dependencies (use npm install to avoid lockfile issues)
+RUN npm install --only=production && npm cache clean --force
+
+# Copy backend TypeScript config and source
+COPY backend/tsconfig.json ./
+COPY backend/src/ ./src/
+COPY backend/prisma/ ./prisma/
+COPY types.ts ./types.ts
+
+# Install TypeScript temporarily and build backend
+RUN npm install typescript && \
+    npm run build && \
+    cp types.ts types.js && \
+    npm uninstall typescript && \
+    npm prune --production
+
+# Copy built frontend from stage 1
+COPY --from=frontend-builder /app/dist /app/public
+
+# Expose port
+EXPOSE 8080
+
+# Environment
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/api/users/me', (r) => {process.exit(r.statusCode === 401 ? 0 : 1)})"
+
+# Run backend server
+CMD ["node", "lib/server.js"]
