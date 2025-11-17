@@ -43,8 +43,9 @@ RUN npm install && \
     npm prune --production && \
     npm cache clean --force
 
-# Copy built frontend from stage 1
-COPY --from=frontend-builder /app/dist /workspace/backend/public
+# Copy built frontend from stage 1 to where server expects it
+# Server looks for dist at __dirname/../../dist which is /workspace/backend/lib/dist
+COPY --from=frontend-builder /app/dist /workspace/backend/lib/dist
 
 # Expose port
 EXPOSE 8080
