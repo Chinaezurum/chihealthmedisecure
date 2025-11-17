@@ -47,6 +47,9 @@ RUN npm install && \
 # Server looks for dist at __dirname/../../dist which is /workspace/backend/lib/dist
 COPY --from=frontend-builder /app/dist /workspace/backend/lib/dist
 
+# Create uploads directory for avatar uploads
+RUN mkdir -p /workspace/backend/uploads/avatars
+
 # Expose port
 EXPOSE 8080
 

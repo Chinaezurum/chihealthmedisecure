@@ -210,10 +210,18 @@ const ProfileSettings: React.FC<{
                 }
               }}
             />
-            <label htmlFor="avatarInput">
-              <Button type="button" disabled={isSaving}>
+            <label htmlFor="avatarInput" style={{ cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+              <button
+                type="button"
+                disabled={isSaving}
+                className="profile-change-photo-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('avatarInput')?.click();
+                }}
+              >
                 {isSaving ? 'Uploading...' : 'Change Photo'}
-              </Button>
+              </button>
             </label>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>JPG, PNG or GIF. Max size 2MB</p>
           </div>

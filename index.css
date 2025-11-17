@@ -7620,6 +7620,35 @@ html.dark .hcw-labs-card {
   object-fit: cover;
 }
 
+.profile-change-photo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--teal-600) 0%, var(--teal-500) 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+  font-family: inherit;
+}
+
+.profile-change-photo-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--teal-500) 0%, var(--teal-400) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
+}
+
+.profile-change-photo-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Appointments Page Redesign */
 .appointments-page-header {
   display: flex;
