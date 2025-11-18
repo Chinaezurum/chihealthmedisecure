@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { User, Encounter, Bill, InsuranceClaim, PaymentTransaction, BillingCode } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
-import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { Button } from '../../components/common/Button.tsx';
 import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon } from '../../components/icons/index.tsx';
@@ -38,7 +37,7 @@ interface DashboardData {
   };
 }
 
-export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) => {
+export const AccountantDashboard: React.FC<AccountantDashboardProps> = () => {
   const [activeView, setActiveView] = useState<AccountantView>('overview');
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,7 +160,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                     </td>
                     <td className="font-mono">₦{encounter.totalAmount.toLocaleString()}</td>
                     <td>
-                      <Button onClick={() => handleGenerateBill(encounter)} size="sm">
+                      <Button onClick={() => handleGenerateBill(encounter)}>
                         Generate Bill
                       </Button>
                     </td>
@@ -214,11 +213,11 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                       <td>{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <div className="flex gap-2">
-                          <Button onClick={() => handleProcessPayment(bill)} size="sm">
+                          <Button onClick={() => handleProcessPayment(bill)}>
                             Process Payment
                           </Button>
                           {bill.paymentType !== 'Cash' && !bill.insuranceClaimId && (
-                            <Button onClick={() => handleSubmitClaim(bill)} size="sm" variant="secondary">
+                            <Button onClick={() => handleSubmitClaim(bill)}>
                               Submit Claim
                             </Button>
                           )}
@@ -279,7 +278,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
       case 'overview':
         return renderOverview();
       case 'pricing':
-        return <PricingCatalogView billingCodes={data.billingCodes} onRefresh={fetchData} />;
+        return <PricingCatalogView billingCodes={data.billingCodes} />;
       default:
         return renderOverview();
     }
@@ -295,13 +294,30 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   }
 
   return (
-    <DashboardLayout
-      user={props.user}
-      activeView={activeView}
-      onViewChange={(view) => setActiveView(view as AccountantView)}
-      navItems={navItems}
-    >
-      {renderContent()}
+    <div className="dashboard">
+      <div className="dashboard-content">
+        <div className="content-wrapper">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-text-primary">Billing & Accounting</h1>
+            <div className="flex gap-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveView(item.id as AccountantView)}
+                  className={`px-4 py-2 rounded-lg ${
+                    activeView === item.id
+                      ? 'bg-primary text-white'
+                      : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {renderContent()}
+        </div>
+      </div>
 
       {/* Modals */}
       {showBillModal && selectedEncounter && (
@@ -356,6 +372,6 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           }}
         />
       )}
-    </DashboardLayout>
+    </div>
   );
 };

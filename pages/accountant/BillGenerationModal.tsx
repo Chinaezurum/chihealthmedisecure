@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../../components/common/Modal.tsx';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
-import { Encounter, Bill, BillingCode, User } from '../../types.ts';
+import { Encounter, BillingCode, User } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 
 interface BillGenerationModalProps {
@@ -157,7 +157,7 @@ export const BillGenerationModal: React.FC<BillGenerationModalProps> = ({
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>

@@ -21,6 +21,7 @@ export interface User {
   currentOrganization: Organization;
   inpatientStay?: InpatientStay;
   departmentIds?: string[];
+  insurance?: PatientInsurance;
 }
 
 export interface Patient extends User {

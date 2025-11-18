@@ -192,7 +192,7 @@ export const EncounterFormModal: React.FC<EncounterFormModalProps> = ({
         />
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border-primary">
-          <Button variant="secondary" onClick={onClose} disabled={isSubmitting}>
+          <Button onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting || selectedCodes.length === 0}>

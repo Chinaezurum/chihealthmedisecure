@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
 import { BillingCode } from '../../types.ts';
-import * as api from '../../services/apiService.ts';
 
 interface PricingCatalogViewProps {
   billingCodes: BillingCode[];
-  onRefresh: () => void;
 }
 
-export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingCodes, onRefresh }) => {
+export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingCodes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
 
@@ -33,6 +31,7 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
 
       <div className="flex gap-4">
         <Input
+          label=""
           placeholder="Search by code or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -74,7 +73,7 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
                 <td className="font-mono">₦{code.price.toLocaleString()}</td>
                 <td>{code.insuranceCoverage}%</td>
                 <td>
-                  <Button size="sm" variant="secondary" onClick={() => alert('Edit functionality')}>
+                  <Button onClick={() => alert('Edit functionality')}>
                     Edit
                   </Button>
                 </td>

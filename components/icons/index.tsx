@@ -312,3 +312,6 @@ export const DoorOpenIcon = createIcon("M3 21h18V3H3v18zm6-9h2v6H9v-6z");
 export const TrendingUpIcon = createIcon("M13 7h8m0 0v8m0-8l-8 8-4-4-6 6");
 export const ArrowUpIcon = createIcon("M5 15l7-7 7 7");
 export const ArrowDownIcon = createIcon("M19 9l-7 7-7-7");
+export const DocumentTextIcon = createIcon(
+  "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+);
