@@ -264,3 +264,27 @@ export const createBed = (name: string, roomId: string) => {
 export const searchPatients = (query: string): Promise<User[]> => {
     return apiFetch(`/users/search?q=${encodeURIComponent(query)}`);
 };
+
+// --- Billing System ---
+export const fetchAccountantData = () => apiFetch('/accountant/dashboard');
+export const getBillingCodes = () => apiFetch('/billing-codes');
+export const createBillingCode = (data: any) => apiFetch('/billing-codes', { method: 'POST', body: JSON.stringify(data) });
+export const updateBillingCode = (id: string, data: any) => apiFetch(`/billing-codes/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const createEncounter = (data: any) => apiFetch('/encounters', { method: 'POST', body: JSON.stringify(data) });
+export const getEncounter = (id: string) => apiFetch(`/encounters/${id}`);
+export const updateEncounter = (id: string, data: any) => apiFetch(`/encounters/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const createBill = (data: any) => apiFetch('/bills', { method: 'POST', body: JSON.stringify(data) });
+export const getBill = (id: string) => apiFetch(`/bills/${id}`);
+export const processPayment = (billId: string, data: any) => apiFetch(`/bills/${billId}/pay`, { method: 'POST', body: JSON.stringify(data) });
+
+export const getInsuranceProviders = () => apiFetch('/insurance/providers');
+export const createInsuranceProvider = (data: any) => apiFetch('/insurance/providers', { method: 'POST', body: JSON.stringify(data) });
+export const getPatientInsurance = (patientId: string) => apiFetch(`/patients/${patientId}/insurance`);
+export const createPatientInsurance = (patientId: string, data: any) => apiFetch(`/patients/${patientId}/insurance`, { method: 'POST', body: JSON.stringify(data) });
+export const verifyInsurance = (patientId: string) => apiFetch(`/patients/${patientId}/insurance/verify`, { method: 'POST' });
+
+export const createInsuranceClaim = (data: any) => apiFetch('/insurance/claims', { method: 'POST', body: JSON.stringify(data) });
+export const updateInsuranceClaimStatus = (claimId: string, status: string, updates?: any) => apiFetch(`/insurance/claims/${claimId}/status`, { method: 'PUT', body: JSON.stringify({ status, updates }) });
+

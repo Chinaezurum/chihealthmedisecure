@@ -15,6 +15,7 @@ import LabTechnicianDashboard from './pages/lab/LabTechnicianDashboard';
 import ReceptionistDashboard from './pages/receptionist/ReceptionistDashboard';
 import LogisticsDashboard from './pages/logistics/LogisticsDashboard';
 import CommandCenterDashboard from './pages/command-center/CommandCenterDashboard.tsx';
+import { AccountantDashboard } from './pages/accountant/AccountantDashboard.tsx';
 
 import { FullScreenLoader } from './components/common/FullScreenLoader';
 import { SessionTimeoutModal } from './components/common/SessionTimeoutModal';
@@ -237,6 +238,8 @@ const App: React.FC = () => {
         return <NurseDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'pharmacist':
         return <PharmacistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+      case 'accountant':
+        return <AccountantDashboard user={user} />;
       case 'lab_technician':
         return <LabTechnicianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'receptionist':
