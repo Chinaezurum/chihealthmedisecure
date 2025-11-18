@@ -135,7 +135,7 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
     switch (activeView) {
       case 'overview': return <DashboardOverview user={props.user} appointments={data.appointments} prescriptions={data.prescriptions} messages={data.messages} contacts={data.contacts} carePlan={data.carePlan} t={t} setActiveView={setActiveView} />;
   case 'appointments': return <AppointmentsView appointments={data.appointments} rooms={data.rooms} onBookAppointment={handleBookAppointment} suggestedSpecialty={suggestedSpecialty} onSuggestionHandled={() => setSuggestedSpecialty(null)} onRefresh={fetchData} />;
-      case 'messages': return <MessagingView messages={data.messages} currentUser={props.user} contacts={data.contacts} onSendMessage={async (recId, content) => { await api.sendMessage({recipientId: recId, content, senderId: props.user.id}); fetchData(); }} onStartCall={() => {}} />;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={data.contacts || data.doctors || []} onSendMessage={async (recId, content) => { await api.sendMessage({recipientId: recId, content, senderId: props.user.id}); fetchData(); }} onStartCall={() => {}} />;
       case 'prescriptions': return <PrescriptionsView prescriptions={data.prescriptions} />;
       case 'billing': return <BillingView bills={data.bills} onPayBill={async () => { addToast('Payment successful!', 'success'); fetchData();}} />;
       case 'records': return <EHRView
@@ -167,14 +167,14 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
       />;
       case 'symptom-checker': return <SymptomChecker onBookAppointmentWithSuggestion={handleBookAppointmentWithSuggestion} />;
       case 'wearables': return <WearablesView patient={props.user} onSimulateData={handleSimulateWearableData} />;
-      case 'telemedicine': return <TelemedicineView 
+      case 'telemedicine': return data ? <TelemedicineView 
         currentUser={props.user} 
-        availableContacts={data.doctors || []} 
+        availableContacts={data.doctors || data.contacts || []} 
         onEndCall={() => {
           addToast('Consultation ended', 'info');
           setActiveView('overview');
         }}
-      />;
+      /> : <FullScreenLoader />;
       case 'settings': return <SettingsView user={props.user} onUpdateUser={async (updatedUser) => {
         // Update the user state and refresh data
         setData((prev: any) => ({ ...prev, user: updatedUser }));

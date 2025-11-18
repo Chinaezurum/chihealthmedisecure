@@ -22,7 +22,7 @@ Doctor: Okay, let's take a look. Please open your mouth and say 'ah'. It looks a
 Patient: Thank you, doctor.`;
 
 
-export const TelemedicineView: React.FC<TelemedicineViewProps> = ({ onEndCall, currentUser, availableContacts, onStartCall }) => {
+export const TelemedicineView: React.FC<TelemedicineViewProps> = ({ onEndCall, currentUser, availableContacts = [], onStartCall }) => {
   const [callMode, setCallMode] = useState<CallMode>('video');
   const [isInCall, setIsInCall] = useState(false);
   const [selectedContact, setSelectedContact] = useState<User | null>(null);
