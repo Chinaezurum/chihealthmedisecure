@@ -77,15 +77,7 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
     const { name, value } = target;
-    const options = (target as HTMLSelectElement).options as unknown as HTMLOptionsCollection | undefined;
-    if (name === 'departmentIds') {
-        const selectedDepartmentIds = Array.from(options || [])
-            .filter((option: any) => option.selected)
-            .map((option: any) => option.value);
-        setFormData(prev => ({ ...prev, departmentIds: selectedDepartmentIds }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => {
@@ -256,25 +248,38 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         
         {['hcw', 'nurse'].includes(formData.role) && (
             <div className="w-full">
-                <label htmlFor="departmentIds" className="form-label">
+                <label className="form-label">
                     Assigned Departments {['hcw', 'nurse'].includes(formData.role) && <span className="text-red-500">*</span>}
                 </label>
-                <select
-                    id="departmentIds"
-                    name="departmentIds"
-                    multiple
-                    value={formData.departmentIds}
-                    onChange={handleChange}
-                    className={`form-input h-32 ${errors.departmentIds ? 'form-input-error' : ''}`}
-                >
-                    {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                </select>
                 {errors.departmentIds && (
                   <p className="form-error-text">{errors.departmentIds}</p>
                 )}
-                <p className="mt-1 text-xs text-text-secondary">Hold Ctrl/Cmd to select multiple.</p>
+                <div className="max-h-40 overflow-y-auto space-y-2 rounded-md border border-border-primary p-3 bg-background-tertiary">
+                    {departments.length > 0 ? departments.map(dept => (
+                        <div key={dept.id} className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id={`dept-${dept.id}`}
+                                checked={formData.departmentIds.includes(dept.id)}
+                                onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        departmentIds: isChecked
+                                            ? [...prev.departmentIds, dept.id]
+                                            : prev.departmentIds.filter(id => id !== dept.id)
+                                    }));
+                                }}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor={`dept-${dept.id}`} className="ml-3 text-sm text-text-primary">
+                                {dept.name}
+                            </label>
+                        </div>
+                    )) : (
+                        <p className="text-sm text-text-secondary">No departments available</p>
+                    )}
+                </div>
             </div>
         )}
         
