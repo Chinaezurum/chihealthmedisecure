@@ -8,6 +8,7 @@ import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { CheckInView } from './CheckInView.tsx';
+import { WalkInRegistrationView } from './WalkInRegistrationView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
 type ReceptionistView = 'checkin' | 'walkin' | 'settings';
@@ -23,7 +24,7 @@ interface ReceptionistDashboardProps {
 const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: ReceptionistView) => void }> = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: 'checkin', label: 'Patient Check-In', icon: Icons.ClipboardListIcon },
-    { id: 'walkin', label: 'Register Walk-In (Soon)', icon: Icons.UsersIcon },
+    { id: 'walkin', label: 'Register Walk-In', icon: Icons.UsersIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -73,7 +74,10 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     
     switch (activeView) {
       case 'checkin': return <CheckInView appointments={data.appointments} patients={data.patients} onCheckIn={handleCheckIn} />;
-      case 'walkin': return <div>Walk-in registration coming soon.</div>;
+      case 'walkin': return <WalkInRegistrationView onRegistrationComplete={() => {
+        fetchData();
+        addToast('Patient registered successfully!', 'success');
+      }} />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Check-In</div>;
     }

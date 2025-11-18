@@ -196,6 +196,9 @@ export const MapPinIcon = createIcon(
 export const UserIcon = createIcon(
   "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
 );
+export const UserPlusIcon = createIcon(
+  "M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M12.5 11.5a4 4 0 100-8 4 4 0 000 8zM20 8v6M23 11h-6"
+);
 export const FileTextIcon = createIcon(
   "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8"
 );
