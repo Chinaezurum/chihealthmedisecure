@@ -4,7 +4,6 @@ import * as geminiService from '../../services/geminiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
 import { User } from '../../types.ts';
 import { Button } from '../../components/common/Button.tsx';
-import { Input } from '../../components/common/Input.tsx';
 
 type CallMode = 'audio' | 'video' | 'chat';
 
@@ -169,14 +168,13 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({ onEndCall, c
         {/* Search Bar */}
         <div className="content-card p-4">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
-            <Input
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary pointer-events-none z-10" />
+            <input
               type="text"
               placeholder={currentUser.role === 'patient' ? 'Search for a doctor...' : 'Search for a patient...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              label=""
+              className="w-full pl-10 pr-4 py-2 border border-border-primary rounded-lg bg-background-secondary text-text-primary focus:outline-none focus:border-primary"
             />
           </div>
         </div>
@@ -290,7 +288,7 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({ onEndCall, c
               onChange={(e) => setChatInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-border-primary rounded-lg focus:outline-none focus:border-primary"
+              className="flex-1 px-4 py-2 border border-border-primary rounded-lg bg-background-secondary text-text-primary focus:outline-none focus:border-primary"
             />
             <Button onClick={handleSendMessage}>Send</Button>
           </div>
