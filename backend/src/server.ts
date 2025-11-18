@@ -446,8 +446,10 @@ app.post('/api/encounters', authenticate, async (req, res) => {
 
 app.get('/api/encounters/:id', authenticate, async (req, res) => {
   const encounter = await db.getEncounterById(req.params.id);
-  if (!encounter) return res.status(404).json({ message: 'Encounter not found' });
-  res.json(encounter);
+  if (!encounter) {
+    return res.status(404).json({ message: 'Encounter not found' });
+  }
+  return res.json(encounter);
 });
 
 app.get('/api/encounters/pending/list', authenticate, async (req, res) => {
@@ -470,8 +472,10 @@ app.post('/api/bills', authenticate, async (req, res) => {
 
 app.get('/api/bills/:id', authenticate, async (req, res) => {
   const bill = await db.getBillById(req.params.id);
-  if (!bill) return res.status(404).json({ message: 'Bill not found' });
-  res.json(bill);
+  if (!bill) {
+    return res.status(404).json({ message: 'Bill not found' });
+  }
+  return res.json(bill);
 });
 
 app.get('/api/bills', authenticate, async (req, res) => {
@@ -489,12 +493,12 @@ app.post('/api/bills/:id/pay', authenticate, async (req, res) => {
   try {
     const result = await db.processPayment(req.params.id, {
       ...req.body,
-      processedBy: req.user!.id
+      processedBy: (req.user as any).id
     });
     notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.json(result);
+    return res.json(result);
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 });
 

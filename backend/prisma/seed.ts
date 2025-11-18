@@ -120,11 +120,6 @@ export const seedData = () => {
         { id: 'msg-001', senderId: 'user-hcw-01', senderName: 'Dr. Adebayo', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Your lab results are in and look good. We can discuss them at your next visit.', timestamp: new Date(Date.now() - 3600000).toISOString() },
     ];
 
-    const bills = [
-        { id: 'bill-001', patientId: 'user-patient-01', date: yesterday, service: 'Dermatology Consultation', amount: 15000, status: 'Paid' as const },
-        { id: 'bill-002', patientId: 'user-patient-01', date: today, service: 'General Checkup', amount: 10000, status: 'Due' as const },
-    ];
-
     const triageQueue: any[] = [];
     
     const transportRequests = [

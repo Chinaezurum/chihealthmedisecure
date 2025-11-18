@@ -113,7 +113,6 @@ export const searchPatients = async (query: string, organizationId: string): Pro
         const emailMatch = user.email?.toLowerCase().includes(searchTerm);
         
         return nameMatch || emailMatch;
-        return nameMatch || emailMatch || phoneMatch;
     }).slice(0, 20); // Limit to 20 results
 };
 
@@ -555,7 +554,7 @@ export const updateEncounter = async (id: string, updates: Partial<Encounter>) =
 };
 
 // Bill Management
-export const createBill = async (data: Omit<Bill, 'id'>) => {
+export const createBill = async (data: Omit<Bill, 'id' | 'invoiceNumber'>) => {
     const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
     const newBill: Bill = { 
         id: `bill-${Date.now()}`,
@@ -706,7 +705,7 @@ export const updateInsuranceClaimStatus = async (claimId: string, status: Insura
     // Update bill
     const bill = bills.find(b => b.id === claim.billId);
     if (bill) {
-        bill.insuranceClaimStatus = status;
+        bill.insuranceClaimStatus = status as 'Pending' | 'Approved' | 'Denied' | 'Partial';
         if (status === 'Approved' && claim.approvedAmount) {
             bill.insuranceCoverage = claim.approvedAmount;
             bill.patientResponsibility = bill.amount - claim.approvedAmount;
