@@ -129,10 +129,10 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose, p
           <label className="block text-sm font-medium text-text-primary mb-2">Reason for Referral <span className="text-red-500">*</span></label>
           <textarea
             name="reason"
-            rows={4}
-            placeholder="e.g., Patient experiencing persistent arrhythmia requiring specialist evaluation..."
+            rows={6}
+            placeholder="Provide a detailed reason for this referral. Include relevant symptoms, test results, and specific concerns that require specialist attention..."
             required
-            className="w-full px-3 py-2 bg-background-secondary border border-border-primary rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-4 py-3 bg-background-secondary border-2 border-border-primary rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 resize-y min-h-[150px]"
           />
         </div>
       </form>
