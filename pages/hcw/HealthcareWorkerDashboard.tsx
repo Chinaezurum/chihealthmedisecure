@@ -158,7 +158,15 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
       case 'prescriptions': return <PrescriptionsView prescriptions={data.prescriptions} patients={data.patients} onCreatePrescription={async (rx) => { await api.createPrescription(rx); addToast('Prescription created.', 'success'); fetchData(); }} />;
       case 'labs': return <LabRequestsView labTests={data.labTests} />;
       case 'messages': return <MessagingView messages={data.messages} currentUser={props.user} contacts={data.patients} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => handleStartCall(contact.id)} onAiChannelCommand={handleAiCommand} />;
-      case 'telemedicine': return selectedPatient ? <TelemedicineView onEndCall={handleEndCall} patientName={selectedPatient.name} doctorName={props.user.name} /> : <div>No call active.</div>
+      case 'telemedicine': return <TelemedicineView 
+        currentUser={props.user} 
+        availableContacts={data.patients} 
+        onEndCall={handleEndCall} 
+        onStartCall={(patientId) => {
+          const patient = data.patients.find((p: any) => p.id === patientId);
+          if (patient) setSelectedPatient(patient);
+        }}
+      />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Overview</div>;
     }

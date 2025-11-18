@@ -16,10 +16,11 @@ import { EHRView } from '../../components/common/EHRView.tsx';
 import { generatePdfFromHtml } from '../../utils/generatePdf.ts';
 import { SymptomChecker } from './SymptomChecker.tsx';
 import { WearablesView } from './WearablesView.tsx';
+import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 import { translations } from '../../translations.ts';
 
-export type PatientView = 'overview' | 'appointments' | 'messages' | 'prescriptions' | 'billing' | 'records' | 'symptom-checker' | 'wearables' | 'settings';
+export type PatientView = 'overview' | 'appointments' | 'telemedicine' | 'messages' | 'prescriptions' | 'billing' | 'records' | 'symptom-checker' | 'wearables' | 'settings';
 
 interface PatientDashboardProps {
   user: Patient;
@@ -32,6 +33,7 @@ const Sidebar: React.FC<{ activeView: PatientView; setActiveView: (view: Patient
   const navItems = [
     { id: 'overview', label: t('dashboard'), icon: Icons.LayoutDashboardIcon },
     { id: 'appointments', label: t('appointments'), icon: Icons.CalendarIcon },
+    { id: 'telemedicine', label: 'Telemedicine', icon: Icons.VideoIcon },
     { id: 'symptom-checker', label: t('symptomChecker'), icon: Icons.BotMessageSquareIcon },
     { id: 'messages', label: t('messages'), icon: Icons.MessageSquareIcon },
     { id: 'prescriptions', label: t('prescriptions'), icon: Icons.PillIcon },
@@ -165,6 +167,14 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
       />;
       case 'symptom-checker': return <SymptomChecker onBookAppointmentWithSuggestion={handleBookAppointmentWithSuggestion} />;
       case 'wearables': return <WearablesView patient={props.user} onSimulateData={handleSimulateWearableData} />;
+      case 'telemedicine': return <TelemedicineView 
+        currentUser={props.user} 
+        availableContacts={data.doctors || []} 
+        onEndCall={() => {
+          addToast('Consultation ended', 'info');
+          setActiveView('overview');
+        }}
+      />;
       case 'settings': return <SettingsView user={props.user} onUpdateUser={async (updatedUser) => {
         // Update the user state and refresh data
         setData((prev: any) => ({ ...prev, user: updatedUser }));
