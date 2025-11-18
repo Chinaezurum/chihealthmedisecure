@@ -108,11 +108,11 @@ export const searchPatients = async (query: string, organizationId: string): Pro
         if (user.role !== 'patient') return false;
         if (!user.organizations.some((org: any) => org.id === organizationId)) return false;
         
-        // Search by name, email, or phone number
+        // Search by name or email
         const nameMatch = user.name?.toLowerCase().includes(searchTerm);
         const emailMatch = user.email?.toLowerCase().includes(searchTerm);
-        const phoneMatch = user.phoneNumber?.toLowerCase().includes(searchTerm);
         
+        return nameMatch || emailMatch;
         return nameMatch || emailMatch || phoneMatch;
     }).slice(0, 20); // Limit to 20 results
 };

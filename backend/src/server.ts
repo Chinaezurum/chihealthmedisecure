@@ -192,10 +192,10 @@ app.get('/api/users/search', authenticate, async (req: Request, res: Response) =
     }
 
     const patients = await db.searchPatients(query, user.currentOrganization.id);
-    res.json(patients);
+    return res.json(patients);
   } catch (error) {
     console.error('Patient search error:', error);
-    res.status(500).json({ message: 'Failed to search patients' });
+    return res.status(500).json({ message: 'Failed to search patients' });
   }
 });
 
