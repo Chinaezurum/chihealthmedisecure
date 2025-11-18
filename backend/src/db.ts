@@ -211,6 +211,8 @@ export const getHcwDashboardData = async (hcwId: string, orgId: string) => {
         messages: messages.filter(m => orgPatientIds.includes(m.patientId || '')),
         prescriptions: prescriptions.filter(p => orgPatientIds.includes(p.patientId)),
         labTests: labTests.filter(l => orgPatientIds.includes(l.patientId)),
+        clinicalNotes: clinicalNotes.filter(cn => orgPatientIds.includes(cn.patientId)),
+        referrals: referrals.filter(r => orgPatientIds.includes(r.patientId)),
     }
 };
 
@@ -347,7 +349,13 @@ export const updatePrescription = async (id: string, status: Prescription['statu
     return rx;
 };
 export const createReferral = async (fromDoctorId: string, data: any) => {
-    const newRef: Referral = { id: `ref-${Date.now()}`, fromDoctorId, ...data };
+    const newRef: Referral = { 
+        id: `ref-${Date.now()}`, 
+        fromDoctorId, 
+        status: 'Pending',
+        date: new Date().toISOString().split('T')[0],
+        ...data 
+    };
     referrals.push(newRef);
     return newRef;
 }

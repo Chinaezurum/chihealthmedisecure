@@ -155,6 +155,10 @@ export interface Referral {
     patientId: string;
     fromDoctorId: string;
     toSpecialty: string;
+    toDepartment?: string; // Internal department referral
+    toFacility?: string; // External facility referral
+    facilityAddress?: string; // Address of external facility
+    facilityContact?: string; // Contact info for external facility
     reason: string;
     date: string;
     status: 'Pending' | 'Accepted' | 'Completed';
