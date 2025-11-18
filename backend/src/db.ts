@@ -1,4 +1,4 @@
-import type { User, Patient, Appointment, Prescription, LabTest, ClinicalNote, Message, Organization, Bill, TriageEntry, TransportRequest, Referral, Bed, ActivityLog, Department, Room, RoomType } from '../../types.js';
+import type { User, Patient, Appointment, Prescription, LabTest, ClinicalNote, Message, Organization, Bill, TriageEntry, TransportRequest, Referral, Bed, ActivityLog, Department, Room, RoomType, BillingCode, Encounter, InsuranceProvider, PatientInsurance, InsuranceClaim, PaymentTransaction, PricingCatalog } from '../../types.js';
 import { hashPassword, comparePassword } from './auth/password.js';
 import { seedData } from '../prisma/seed.js';
 
@@ -20,6 +20,13 @@ let departments: Department[] = initialData.departments;
 let rooms: Room[] = initialData.rooms;
 let beds: Bed[] = initialData.beds;
 let activityLogs: ActivityLog[] = initialData.activityLogs;
+let billingCodes: BillingCode[] = initialData.billingCodes || [];
+let encounters: Encounter[] = initialData.encounters || [];
+let insuranceProviders: InsuranceProvider[] = initialData.insuranceProviders || [];
+let patientInsurances: PatientInsurance[] = initialData.patientInsurances || [];
+let insuranceClaims: InsuranceClaim[] = initialData.insuranceClaims || [];
+let paymentTransactions: PaymentTransaction[] = initialData.paymentTransactions || [];
+let pricingCatalogs: PricingCatalog[] = initialData.pricingCatalogs || [];
 
 
 // --- User Management ---
@@ -478,4 +485,301 @@ export const removeWearableDevice = async (patientId: string, deviceId: string) 
     if (idx === -1) return false;
     patient.wearableDevices.splice(idx, 1);
     return true;
+};
+
+// --- Billing System ---
+
+// Billing Codes Management
+export const getBillingCodes = async (orgId?: string) => {
+    if (orgId) {
+        const catalog = pricingCatalogs.find(c => c.organizationId === orgId && c.isActive);
+        return catalog ? catalog.billingCodes : billingCodes.filter(bc => bc.isActive);
+    }
+    return billingCodes.filter(bc => bc.isActive);
+};
+
+export const createBillingCode = async (data: Omit<BillingCode, 'id'>) => {
+    const newCode: BillingCode = { id: `bc-${Date.now()}`, ...data };
+    billingCodes.push(newCode);
+    return newCode;
+};
+
+export const updateBillingCode = async (id: string, updates: Partial<BillingCode>) => {
+    const code = billingCodes.find(bc => bc.id === id);
+    if (!code) throw new Error('Billing code not found');
+    Object.assign(code, updates);
+    return code;
+};
+
+// Pricing Catalog Management
+export const getPricingCatalog = async (orgId: string) => {
+    return pricingCatalogs.find(pc => pc.organizationId === orgId && pc.isActive);
+};
+
+export const createPricingCatalog = async (data: Omit<PricingCatalog, 'id'>) => {
+    const newCatalog: PricingCatalog = { id: `catalog-${Date.now()}`, ...data };
+    pricingCatalogs.push(newCatalog);
+    return newCatalog;
+};
+
+// Encounter Management
+export const createEncounter = async (data: Omit<Encounter, 'id' | 'createdAt'>) => {
+    const newEncounter: Encounter = {
+        id: `enc-${Date.now()}`,
+        ...data,
+        createdAt: new Date().toISOString()
+    };
+    encounters.push(newEncounter);
+    return newEncounter;
+};
+
+export const getEncounterById = async (id: string) => {
+    return encounters.find(e => e.id === id);
+};
+
+export const getEncountersByOrganization = async (orgId: string) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return encounters.filter(e => orgPatientIds.includes(e.patientId));
+};
+
+export const getPendingEncounters = async (orgId: string) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return encounters.filter(e => orgPatientIds.includes(e.patientId) && e.status === 'Submitted' && !e.billId);
+};
+
+export const updateEncounter = async (id: string, updates: Partial<Encounter>) => {
+    const encounter = encounters.find(e => e.id === id);
+    if (!encounter) throw new Error('Encounter not found');
+    Object.assign(encounter, updates);
+    return encounter;
+};
+
+// Bill Management
+export const createBill = async (data: Omit<Bill, 'id'>) => {
+    const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
+    const newBill: Bill = { 
+        id: `bill-${Date.now()}`,
+        invoiceNumber,
+        ...data 
+    };
+    bills.push(newBill);
+    
+    // Update encounter if linked
+    if (data.encounterId) {
+        const encounter = encounters.find(e => e.id === data.encounterId);
+        if (encounter) {
+            encounter.billId = newBill.id;
+            encounter.status = 'Billed';
+        }
+    }
+    
+    return newBill;
+};
+
+export const getBillById = async (id: string) => {
+    return bills.find(b => b.id === id);
+};
+
+export const getBillsByOrganization = async (orgId: string) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return bills.filter(b => orgPatientIds.includes(b.patientId));
+};
+
+export const updateBillStatus = async (billId: string, status: Bill['status'], updates?: Partial<Bill>) => {
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) throw new Error('Bill not found');
+    bill.status = status;
+    if (updates) Object.assign(bill, updates);
+    if (status === 'Paid') {
+        bill.paidDate = new Date().toISOString();
+    }
+    return bill;
+};
+
+// Payment Processing
+export const processPayment = async (billId: string, paymentData: { 
+    amount: number, 
+    paymentMethod: 'Cash' | 'Card' | 'Insurance' | 'Mobile Money',
+    transactionId: string,
+    processedBy: string,
+    cardLast4?: string,
+    mobileMoneyNumber?: string
+}) => {
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) throw new Error('Bill not found');
+    
+    const transaction: PaymentTransaction = {
+        id: `txn-${Date.now()}`,
+        billId,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        transactionId: paymentData.transactionId,
+        status: 'Completed',
+        paymentDate: new Date().toISOString(),
+        processedBy: paymentData.processedBy,
+        cardLast4: paymentData.cardLast4,
+        mobileMoneyNumber: paymentData.mobileMoneyNumber
+    };
+    
+    paymentTransactions.push(transaction);
+    
+    bill.status = 'Paid';
+    bill.paidDate = new Date().toISOString();
+    bill.paymentMethod = paymentData.paymentMethod;
+    bill.transactionId = paymentData.transactionId;
+    
+    return { bill, transaction };
+};
+
+// Insurance Management
+export const getInsuranceProviders = async () => {
+    return insuranceProviders.filter(ip => ip.isActive);
+};
+
+export const createInsuranceProvider = async (data: Omit<InsuranceProvider, 'id'>) => {
+    const newProvider: InsuranceProvider = { id: `ins-provider-${Date.now()}`, ...data };
+    insuranceProviders.push(newProvider);
+    return newProvider;
+};
+
+export const getPatientInsurance = async (patientId: string) => {
+    return patientInsurances.find(pi => pi.patientId === patientId && pi.isActive);
+};
+
+export const createPatientInsurance = async (data: Omit<PatientInsurance, 'id'>) => {
+    // Deactivate existing insurance for patient
+    patientInsurances.filter(pi => pi.patientId === data.patientId).forEach(pi => pi.isActive = false);
+    
+    const newInsurance: PatientInsurance = { id: `pat-ins-${Date.now()}`, ...data };
+    patientInsurances.push(newInsurance);
+    
+    // Update patient object
+    const patient = users.find(u => u.id === data.patientId) as Patient;
+    if (patient) {
+        patient.insurance = newInsurance;
+    }
+    
+    return newInsurance;
+};
+
+export const verifyInsurance = async (patientId: string) => {
+    const insurance = patientInsurances.find(pi => pi.patientId === patientId && pi.isActive);
+    if (!insurance) throw new Error('No active insurance found');
+    
+    // Mock verification - in real system would call insurance API
+    const isValid = Math.random() > 0.1; // 90% success rate
+    insurance.verificationStatus = isValid ? 'Verified' : 'Failed';
+    insurance.lastVerified = new Date().toISOString();
+    
+    return insurance;
+};
+
+// Insurance Claims
+export const createInsuranceClaim = async (data: Omit<InsuranceClaim, 'id' | 'claimNumber' | 'submittedDate'>) => {
+    const claimNumber = `CLM-${Date.now().toString().slice(-10)}`;
+    const newClaim: InsuranceClaim = {
+        id: `claim-${Date.now()}`,
+        claimNumber,
+        submittedDate: new Date().toISOString(),
+        ...data
+    };
+    insuranceClaims.push(newClaim);
+    
+    // Update bill with claim info
+    const bill = bills.find(b => b.id === data.billId);
+    if (bill) {
+        bill.insuranceClaimId = newClaim.id;
+        bill.insuranceClaimStatus = 'Pending';
+    }
+    
+    return newClaim;
+};
+
+export const updateInsuranceClaimStatus = async (claimId: string, status: InsuranceClaim['status'], updates?: Partial<InsuranceClaim>) => {
+    const claim = insuranceClaims.find(c => c.id === claimId);
+    if (!claim) throw new Error('Insurance claim not found');
+    
+    claim.status = status;
+    claim.processedDate = new Date().toISOString();
+    if (updates) Object.assign(claim, updates);
+    
+    // Update bill
+    const bill = bills.find(b => b.id === claim.billId);
+    if (bill) {
+        bill.insuranceClaimStatus = status;
+        if (status === 'Approved' && claim.approvedAmount) {
+            bill.insuranceCoverage = claim.approvedAmount;
+            bill.patientResponsibility = bill.amount - claim.approvedAmount;
+        }
+    }
+    
+    return claim;
+};
+
+export const getInsuranceClaimsByOrganization = async (orgId: string) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return insuranceClaims.filter(c => orgPatientIds.includes(c.patientId));
+};
+
+// Accountant Dashboard
+export const getAccountantDashboardData = async (orgId: string) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    
+    const pendingEncounters = encounters.filter(e => 
+        orgPatientIds.includes(e.patientId) && 
+        e.status === 'Submitted' && 
+        !e.billId
+    );
+    
+    const draftBills = bills.filter(b => 
+        orgPatientIds.includes(b.patientId) && 
+        b.status === 'Draft'
+    );
+    
+    const pendingBills = bills.filter(b => 
+        orgPatientIds.includes(b.patientId) && 
+        (b.status === 'Pending' || b.status === 'Due')
+    );
+    
+    const paidBills = bills.filter(b => 
+        orgPatientIds.includes(b.patientId) && 
+        b.status === 'Paid'
+    );
+    
+    const recentTransactions = paymentTransactions
+        .filter(t => bills.find(b => b.id === t.billId && orgPatientIds.includes(b.patientId)))
+        .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+        .slice(0, 20);
+    
+    const pendingClaims = insuranceClaims.filter(c => 
+        orgPatientIds.includes(c.patientId) && 
+        (c.status === 'Submitted' || c.status === 'Pending')
+    );
+    
+    const totalRevenue = paidBills.reduce((sum, b) => sum + b.amount, 0);
+    const pendingRevenue = pendingBills.reduce((sum, b) => sum + b.amount, 0);
+    const insuranceRevenue = paidBills
+        .filter(b => b.paymentType === 'Insurance' || b.paymentType === 'Mixed')
+        .reduce((sum, b) => sum + (b.insuranceCoverage || 0), 0);
+    
+    return {
+        pendingEncounters,
+        draftBills,
+        pendingBills,
+        paidBills,
+        recentTransactions,
+        pendingClaims,
+        billingCodes: await getBillingCodes(orgId),
+        insuranceProviders: await getInsuranceProviders(),
+        patients: users.filter(u => u.role === 'patient' && orgPatientIds.includes(u.id)),
+        stats: {
+            totalRevenue,
+            pendingRevenue,
+            insuranceRevenue,
+            cashRevenue: totalRevenue - insuranceRevenue,
+            pendingEncountersCount: pendingEncounters.length,
+            pendingBillsCount: pendingBills.length,
+            pendingClaimsCount: pendingClaims.length
+        }
+    };
 };

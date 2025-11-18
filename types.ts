@@ -1,7 +1,7 @@
 // Fix: Removed circular self-import of `UserRole`.
 // types.ts
 
-export type UserRole = 'patient' | 'hcw' | 'admin' | 'nurse' | 'pharmacist' | 'lab_technician' | 'receptionist' | 'logistics' | 'command_center';
+export type UserRole = 'patient' | 'hcw' | 'admin' | 'nurse' | 'pharmacist' | 'lab_technician' | 'receptionist' | 'logistics' | 'command_center' | 'accountant';
 
 export interface Organization {
   id: string;
@@ -31,6 +31,7 @@ export interface Patient extends User {
   // Added fields used across UI and backend helpers
   vitalHistory?: any[];
   wearableDevices?: any[];
+  insurance?: PatientInsurance;
 }
 
 export interface WearableDataPoint {
@@ -98,10 +99,28 @@ export interface Message {
 export interface Bill {
   id: string;
   patientId: string;
+  encounterId?: string;
+  invoiceNumber: string;
   date: string;
   service: string;
   amount: number;
-  status: 'Paid' | 'Due';
+  subtotal: number;
+  tax: number;
+  discount: number;
+  status: 'Draft' | 'Pending' | 'Paid' | 'Due' | 'Overdue' | 'Cancelled';
+  paymentMethod?: 'Cash' | 'Card' | 'Insurance' | 'Mobile Money';
+  paymentType: 'Cash' | 'Insurance' | 'Mixed';
+  insuranceCoverage?: number;
+  patientResponsibility?: number;
+  insuranceClaimId?: string;
+  insuranceClaimStatus?: 'Pending' | 'Approved' | 'Denied' | 'Partial';
+  transactionId?: string;
+  billingCodes: BillingCode[];
+  paidDate?: string;
+  dueDate?: string;
+  notes?: string;
+  createdBy: string;
+  reviewedBy?: string;
 }
 
 export interface TriageEntry {
@@ -303,4 +322,102 @@ export interface Toast {
   id: string;
   message: string;
   type: ToastType;
+}
+
+// Billing and Insurance Types
+export interface BillingCode {
+  id: string;
+  code: string; // e.g., "99213" (CPT-like)
+  category: 'Consultation' | 'Procedure' | 'Lab' | 'Imaging' | 'Medication' | 'Other';
+  description: string;
+  price: number;
+  insuranceCoverage: number; // Percentage covered by insurance (0-100)
+  isActive: boolean;
+}
+
+export interface PricingCatalog {
+  id: string;
+  organizationId: string;
+  name: string;
+  billingCodes: BillingCode[];
+  effectiveDate: string;
+  expiryDate?: string;
+  isActive: boolean;
+}
+
+export interface Encounter {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  appointmentId?: string;
+  date: string;
+  chiefComplaint: string;
+  diagnosis: string;
+  servicesRendered: string[];
+  billingCodes: BillingCode[];
+  totalAmount: number;
+  duration: number; // minutes
+  notes?: string;
+  status: 'Draft' | 'Submitted' | 'Billed' | 'Cancelled';
+  billId?: string;
+  createdAt: string;
+}
+
+export interface InsuranceProvider {
+  id: string;
+  name: string;
+  code: string;
+  contactEmail: string;
+  contactPhone: string;
+  coveragePercentage: number; // Default coverage
+  isActive: boolean;
+}
+
+export interface PatientInsurance {
+  id: string;
+  patientId: string;
+  providerId: string;
+  providerName: string;
+  policyNumber: string;
+  groupNumber?: string;
+  coverageType: 'Full' | 'Partial' | 'Basic';
+  coveragePercentage: number;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  verificationStatus: 'Verified' | 'Pending' | 'Failed';
+  lastVerified?: string;
+}
+
+export interface InsuranceClaim {
+  id: string;
+  billId: string;
+  patientId: string;
+  providerId: string;
+  providerName: string;
+  policyNumber: string;
+  claimAmount: number;
+  approvedAmount?: number;
+  deniedAmount?: number;
+  status: 'Submitted' | 'Pending' | 'Approved' | 'Partial' | 'Denied';
+  submittedDate: string;
+  processedDate?: string;
+  denialReason?: string;
+  claimNumber: string;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  billId: string;
+  amount: number;
+  paymentMethod: 'Cash' | 'Card' | 'Insurance' | 'Mobile Money';
+  transactionId: string;
+  status: 'Pending' | 'Completed' | 'Failed' | 'Refunded';
+  paymentDate: string;
+  processedBy: string;
+  notes?: string;
+  cardLast4?: string;
+  mobileMoneyNumber?: string;
 }

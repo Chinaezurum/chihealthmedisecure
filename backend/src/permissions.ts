@@ -16,18 +16,18 @@ declare global {
 const PLAN_FEATURES: Record<string, string[]> = {
   basic: [
     'scheduling', 'ehr', 'prescribing', 'patient_portal', 'ai_summary',
-    'role_hcw', 'role_receptionist', 'admin_dashboard',
+    'role_hcw', 'role_receptionist', 'role_accountant', 'admin_dashboard',
   ],
   professional: [
     'scheduling', 'ehr', 'prescribing', 'patient_portal', 'ai_summary',
     'lab', 'pharmacy', 'inpatient', 'triage', 'ai_proactive_care', 'admin_dashboard',
-    'role_hcw', 'role_receptionist', 'role_nurse', 'role_pharmacist', 'role_lab_technician',
+    'role_hcw', 'role_receptionist', 'role_nurse', 'role_pharmacist', 'role_lab_technician', 'role_accountant',
   ],
   enterprise: [
     'scheduling', 'ehr', 'prescribing', 'patient_portal', 'ai_summary',
     'lab', 'pharmacy', 'inpatient', 'triage', 'ai_proactive_care', 'admin_dashboard',
     'logistics', 'data_io', 'audit_log', 'api_access', 'role_hcw', 'role_receptionist', 
-    'role_nurse', 'role_pharmacist', 'role_lab_technician', 'role_logistics', 'role_admin',
+    'role_nurse', 'role_pharmacist', 'role_lab_technician', 'role_logistics', 'role_admin', 'role_accountant',
     'multi_tenancy', 'staff_management',
   ],
 };

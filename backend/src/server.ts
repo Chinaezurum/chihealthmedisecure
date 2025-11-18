@@ -414,6 +414,158 @@ app.get('/api/nurse/dashboard', authenticate, async (req, res) => res.json(await
 app.get('/api/lab/dashboard', authenticate, async (req, res) => res.json(await db.getLabDashboardData((req.organizationContext as Organization).id)));
 app.get('/api/receptionist/dashboard', authenticate, async (req, res) => res.json(await db.getReceptionistDashboardData((req.organizationContext as Organization).id)));
 app.get('/api/logistics/dashboard', authenticate, async (req, res) => res.json(await db.getLogisticsDashboardData((req.organizationContext as Organization).id)));
+app.get('/api/accountant/dashboard', authenticate, async (req, res) => res.json(await db.getAccountantDashboardData((req.organizationContext as Organization).id)));
+
+
+// Billing System Endpoints
+
+// Billing Codes
+app.get('/api/billing-codes', authenticate, async (req, res) => {
+  const codes = await db.getBillingCodes((req.organizationContext as Organization).id);
+  res.json(codes);
+});
+
+app.post('/api/billing-codes', authenticate, async (req, res) => {
+  const newCode = await db.createBillingCode(req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(newCode);
+});
+
+app.put('/api/billing-codes/:id', authenticate, async (req, res) => {
+  const updated = await db.updateBillingCode(req.params.id, req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+// Encounters
+app.post('/api/encounters', authenticate, async (req, res) => {
+  const encounter = await db.createEncounter(req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(encounter);
+});
+
+app.get('/api/encounters/:id', authenticate, async (req, res) => {
+  const encounter = await db.getEncounterById(req.params.id);
+  if (!encounter) return res.status(404).json({ message: 'Encounter not found' });
+  res.json(encounter);
+});
+
+app.get('/api/encounters/pending/list', authenticate, async (req, res) => {
+  const encounters = await db.getPendingEncounters((req.organizationContext as Organization).id);
+  res.json(encounters);
+});
+
+app.put('/api/encounters/:id', authenticate, async (req, res) => {
+  const updated = await db.updateEncounter(req.params.id, req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+// Bills
+app.post('/api/bills', authenticate, async (req, res) => {
+  const bill = await db.createBill(req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(bill);
+});
+
+app.get('/api/bills/:id', authenticate, async (req, res) => {
+  const bill = await db.getBillById(req.params.id);
+  if (!bill) return res.status(404).json({ message: 'Bill not found' });
+  res.json(bill);
+});
+
+app.get('/api/bills', authenticate, async (req, res) => {
+  const bills = await db.getBillsByOrganization((req.organizationContext as Organization).id);
+  res.json(bills);
+});
+
+app.put('/api/bills/:id/status', authenticate, async (req, res) => {
+  const updated = await db.updateBillStatus(req.params.id, req.body.status, req.body.updates);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+app.post('/api/bills/:id/pay', authenticate, async (req, res) => {
+  try {
+    const result = await db.processPayment(req.params.id, {
+      ...req.body,
+      processedBy: req.user!.id
+    });
+    notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Insurance
+app.get('/api/insurance/providers', authenticate, async (req, res) => {
+  const providers = await db.getInsuranceProviders();
+  res.json(providers);
+});
+
+app.post('/api/insurance/providers', authenticate, async (req, res) => {
+  const provider = await db.createInsuranceProvider(req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(provider);
+});
+
+app.get('/api/patients/:patientId/insurance', authenticate, async (req, res) => {
+  const insurance = await db.getPatientInsurance(req.params.patientId);
+  res.json(insurance || null);
+});
+
+app.post('/api/patients/:patientId/insurance', authenticate, async (req, res) => {
+  const insurance = await db.createPatientInsurance({
+    ...req.body,
+    patientId: req.params.patientId
+  });
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(insurance);
+});
+
+app.post('/api/patients/:patientId/insurance/verify', authenticate, async (req, res) => {
+  try {
+    const insurance = await db.verifyInsurance(req.params.patientId);
+    notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+    res.json(insurance);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Insurance Claims
+app.post('/api/insurance/claims', authenticate, async (req, res) => {
+  const claim = await db.createInsuranceClaim(req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(claim);
+});
+
+app.put('/api/insurance/claims/:id/status', authenticate, async (req, res) => {
+  const updated = await db.updateInsuranceClaimStatus(req.params.id, req.body.status, req.body.updates);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+app.get('/api/insurance/claims', authenticate, async (req, res) => {
+  const claims = await db.getInsuranceClaimsByOrganization((req.organizationContext as Organization).id);
+  res.json(claims);
+});
+
+// Pricing Catalog
+app.get('/api/pricing-catalog', authenticate, async (req, res) => {
+  const catalog = await db.getPricingCatalog((req.organizationContext as Organization).id);
+  res.json(catalog || null);
+});
+
+app.post('/api/pricing-catalog', authenticate, async (req, res) => {
+  const catalog = await db.createPricingCatalog({
+    ...req.body,
+    organizationId: (req.organizationContext as Organization).id
+  });
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(catalog);
+});
 
 
 // Generic Update Routes

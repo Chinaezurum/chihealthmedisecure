@@ -26,6 +26,7 @@ const roleDisplay: Record<UserRole, string> = {
     receptionist: 'Receptionist',
     logistics: 'Logistics',
     command_center: 'Command Center',
+    accountant: 'Accountant',
 };
 
 export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ 

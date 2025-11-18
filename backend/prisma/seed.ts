@@ -84,6 +84,7 @@ export const seedData = () => {
         { id: 'user-lab-01', name: 'Lab Tech', email: 'lab.tech@chihealth.com', role: 'lab_technician' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-recep-01', name: 'Receptionist', email: 'receptionist@chihealth.com', role: 'receptionist' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-logist-01', name: 'Logistics Sam', email: 'logistics.sam@chihealth.com', role: 'logistics' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
+        { id: 'user-accountant-01', name: 'Finance Manager', email: 'accountant@chihealth.com', role: 'accountant' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-hcw-02', name: 'Dr. Okoro', email: 'dr.okoro@chihealth.com', role: 'hcw' as const, passwordHash: password, organizations: [organizations[1]], currentOrganization: organizations[1], departmentIds: ['dept-2'] },
     ];
     
@@ -146,5 +147,194 @@ export const seedData = () => {
         { id: 'act-2', timestamp: new Date(Date.now() - 3 * 60 * 60000).toISOString(), type: 'ADMISSION' as const, details: 'Chinedu Eze admitted to room 302.' },
     ];
 
-    return { users, organizations, appointments, prescriptions, labTests, clinicalNotes, messages, bills, triageQueue, transportRequests, referrals, departments, rooms, beds, activityLogs };
+    // Billing System Data
+    const billingCodes = [
+        { id: 'bc-001', code: '99213', category: 'Consultation' as const, description: 'Office/Outpatient Visit - Moderate Complexity', price: 15000, insuranceCoverage: 70, isActive: true },
+        { id: 'bc-002', code: '99214', category: 'Consultation' as const, description: 'Office/Outpatient Visit - High Complexity', price: 25000, insuranceCoverage: 70, isActive: true },
+        { id: 'bc-003', code: '99215', category: 'Consultation' as const, description: 'Office/Outpatient Visit - Very High Complexity', price: 35000, insuranceCoverage: 70, isActive: true },
+        { id: 'bc-004', code: '80053', category: 'Lab' as const, description: 'Comprehensive Metabolic Panel', price: 8000, insuranceCoverage: 80, isActive: true },
+        { id: 'bc-005', code: '85025', category: 'Lab' as const, description: 'Complete Blood Count (CBC)', price: 5000, insuranceCoverage: 80, isActive: true },
+        { id: 'bc-006', code: '71045', category: 'Imaging' as const, description: 'Chest X-Ray - Single View', price: 12000, insuranceCoverage: 75, isActive: true },
+        { id: 'bc-007', code: '73610', category: 'Imaging' as const, description: 'Ankle X-Ray', price: 10000, insuranceCoverage: 75, isActive: true },
+        { id: 'bc-008', code: '10060', category: 'Procedure' as const, description: 'Incision and Drainage - Simple', price: 18000, insuranceCoverage: 65, isActive: true },
+        { id: 'bc-009', code: '12001', category: 'Procedure' as const, description: 'Simple Wound Repair', price: 20000, insuranceCoverage: 65, isActive: true },
+        { id: 'bc-010', code: '90471', category: 'Procedure' as const, description: 'Immunization Administration', price: 3000, insuranceCoverage: 90, isActive: true },
+        { id: 'bc-011', code: 'MED001', category: 'Medication' as const, description: 'Amoxicillin 500mg (30 tablets)', price: 2500, insuranceCoverage: 50, isActive: true },
+        { id: 'bc-012', code: 'MED002', category: 'Medication' as const, description: 'Lisinopril 10mg (30 tablets)', price: 3500, insuranceCoverage: 50, isActive: true },
+    ];
+
+    const insuranceProviders = [
+        { id: 'ins-prov-001', name: 'NHIS - National Health Insurance Scheme', code: 'NHIS', contactEmail: 'claims@nhis.gov.ng', contactPhone: '+234-800-123-4567', coveragePercentage: 70, isActive: true },
+        { id: 'ins-prov-002', name: 'Hygeia HMO', code: 'HYGEIA', contactEmail: 'claims@hygeiahmo.com', contactPhone: '+234-1-270-2429', coveragePercentage: 75, isActive: true },
+        { id: 'ins-prov-003', name: 'Reliance HMO', code: 'RELIANCE', contactEmail: 'claims@reliancehmo.com', contactPhone: '+234-700-7354-2623', coveragePercentage: 80, isActive: true },
+    ];
+
+    const patientInsurances = [
+        { 
+            id: 'pat-ins-001', 
+            patientId: 'user-patient-01', 
+            providerId: 'ins-prov-002', 
+            providerName: 'Hygeia HMO',
+            policyNumber: 'HYG-2024-001234', 
+            groupNumber: 'GRP-CORP-789',
+            coverageType: 'Partial' as const, 
+            coveragePercentage: 75, 
+            startDate: '2024-01-01', 
+            isActive: true,
+            verificationStatus: 'Verified' as const,
+            lastVerified: today
+        },
+    ];
+
+    // Update patient object with insurance
+    const patient = users.find(u => u.id === 'user-patient-01');
+    if (patient) {
+        (patient as any).insurance = patientInsurances[0];
+    }
+
+    const pricingCatalogs = [
+        {
+            id: 'catalog-001',
+            organizationId: 'org-1',
+            name: 'Standard Pricing 2024',
+            billingCodes: billingCodes,
+            effectiveDate: '2024-01-01',
+            isActive: true
+        }
+    ];
+
+    const encounters = [
+        {
+            id: 'enc-001',
+            patientId: 'user-patient-01',
+            patientName: 'Amina Bello',
+            doctorId: 'user-hcw-01',
+            doctorName: 'Dr. Adebayo',
+            appointmentId: 'appt-001',
+            date: yesterday,
+            chiefComplaint: 'Skin rash on arms',
+            diagnosis: 'Contact dermatitis',
+            servicesRendered: ['Physical examination', 'Consultation', 'Prescription'],
+            billingCodes: [billingCodes[0], billingCodes[10]], // Consultation + Medication
+            totalAmount: 17500,
+            duration: 30,
+            status: 'Billed' as const,
+            billId: 'bill-001',
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: 'enc-002',
+            patientId: 'user-patient-01',
+            patientName: 'Amina Bello',
+            doctorId: 'user-hcw-01',
+            doctorName: 'Dr. Adebayo',
+            date: today,
+            chiefComplaint: 'Routine checkup',
+            diagnosis: 'General wellness examination',
+            servicesRendered: ['Physical examination', 'Blood pressure check', 'Lab tests ordered'],
+            billingCodes: [billingCodes[0], billingCodes[4]], // Consultation + CBC
+            totalAmount: 20000,
+            duration: 45,
+            status: 'Submitted' as const,
+            createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+        },
+    ];
+
+    const updatedBills = [
+        { 
+            id: 'bill-001', 
+            patientId: 'user-patient-01',
+            encounterId: 'enc-001',
+            invoiceNumber: 'INV-00001234',
+            date: yesterday, 
+            service: 'Dermatology Consultation + Medication', 
+            amount: 17500,
+            subtotal: 17500,
+            tax: 0,
+            discount: 0,
+            status: 'Paid' as const,
+            paymentMethod: 'Insurance' as const,
+            paymentType: 'Mixed' as const,
+            insuranceCoverage: 12250, // 70% of 17500
+            patientResponsibility: 5250,
+            transactionId: 'TXN-2024-001',
+            billingCodes: [billingCodes[0], billingCodes[10]],
+            paidDate: yesterday,
+            dueDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            createdBy: 'user-accountant-01',
+            reviewedBy: 'user-accountant-01'
+        },
+        { 
+            id: 'bill-002', 
+            patientId: 'user-patient-01',
+            invoiceNumber: 'INV-00001235',
+            date: today, 
+            service: 'General Checkup', 
+            amount: 10000,
+            subtotal: 10000,
+            tax: 0,
+            discount: 0,
+            status: 'Due' as const,
+            paymentType: 'Cash' as const,
+            billingCodes: [billingCodes[0]],
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            createdBy: 'user-accountant-01'
+        },
+    ];
+
+    const insuranceClaims = [
+        {
+            id: 'claim-001',
+            billId: 'bill-001',
+            patientId: 'user-patient-01',
+            providerId: 'ins-prov-002',
+            providerName: 'Hygeia HMO',
+            policyNumber: 'HYG-2024-001234',
+            claimAmount: 17500,
+            approvedAmount: 12250,
+            status: 'Approved' as const,
+            submittedDate: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString(),
+            processedDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+            claimNumber: 'CLM-2024-0001'
+        }
+    ];
+
+    const paymentTransactions = [
+        {
+            id: 'txn-001',
+            billId: 'bill-001',
+            amount: 5250, // Patient responsibility after insurance
+            paymentMethod: 'Card' as const,
+            transactionId: 'TXN-2024-001',
+            status: 'Completed' as const,
+            paymentDate: yesterday,
+            processedBy: 'user-accountant-01',
+            cardLast4: '4532'
+        }
+    ];
+
+    return { 
+        users, 
+        organizations, 
+        appointments, 
+        prescriptions, 
+        labTests, 
+        clinicalNotes, 
+        messages, 
+        bills: updatedBills, 
+        triageQueue, 
+        transportRequests, 
+        referrals, 
+        departments, 
+        rooms, 
+        beds, 
+        activityLogs,
+        billingCodes,
+        encounters,
+        insuranceProviders,
+        patientInsurances,
+        insuranceClaims,
+        paymentTransactions,
+        pricingCatalogs
+    };
 };
