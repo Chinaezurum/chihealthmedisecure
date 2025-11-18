@@ -175,13 +175,14 @@ app.get('/api/users/me', authenticate, (req: Request, res: Response) => {
   res.json(req.user);
 });
 
-// Patient search endpoint (for receptionists and admin)
+// Patient search endpoint (for receptionists, HCWs, nurses, pharmacists, lab techs, and admin)
 app.get('/api/users/search', authenticate, async (req: Request, res: Response) => {
   try {
     const user = req.user as User;
-    // Only receptionist and admin can search for patients
-    if (!['RECEPTIONIST', 'ADMIN'].includes(user.role)) {
-      return res.status(403).json({ message: 'Access denied. Receptionist or Admin role required.' });
+    // Only authorized medical staff can search for patients
+    const allowedRoles = ['RECEPTIONIST', 'HCW', 'NURSE', 'PHARMACIST', 'LAB_TECHNICIAN', 'ADMIN'];
+    if (!allowedRoles.includes(user.role.toUpperCase())) {
+      return res.status(403).json({ message: 'Access denied. Medical staff role required.' });
     }
 
     const query = req.query.q as string;

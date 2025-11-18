@@ -10,6 +10,7 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { HCWDashboardOverview } from './HCWDashboardOverview.tsx';
 import { ScheduleView } from './ScheduleView.tsx';
 import { MyPatientsView } from './MyPatientsView.tsx';
+import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { EHRView } from '../../components/common/EHRView.tsx';
 import { PrescriptionsView } from './PrescriptionsView.tsx';
 import { LabRequestsView } from './LabRequestsView.tsx';
@@ -20,7 +21,7 @@ import { generatePdfFromHtml } from '../../utils/generatePdf.ts';
 import { generateAiChannelResponse } from '../../services/geminiService.ts';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type HcwView = 'overview' | 'schedule' | 'patients' | 'ehr' | 'prescriptions' | 'labs' | 'messages' | 'telemedicine' | 'settings';
+type HcwView = 'overview' | 'schedule' | 'patients' | 'lookup' | 'ehr' | 'prescriptions' | 'labs' | 'messages' | 'telemedicine' | 'settings';
 
 interface HealthcareWorkerDashboardProps {
   user: User;
@@ -35,6 +36,7 @@ const Sidebar: React.FC<{ activeView: HcwView; setActiveView: (view: HcwView) =>
     { id: 'overview', label: 'Overview', icon: Icons.LayoutDashboardIcon },
     { id: 'schedule', label: "Today's Schedule", icon: Icons.CalendarIcon },
     { id: 'patients', label: 'My Patients', icon: Icons.UsersIcon },
+    { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
     { id: 'prescriptions', label: 'E-Prescriptions', icon: Icons.PillIcon },
     { id: 'labs', label: 'Lab Requests', icon: Icons.FlaskConicalIcon },
@@ -128,6 +130,7 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
       case 'overview': return <HCWDashboardOverview user={props.user} appointments={data.appointments} messages={data.messages} labTests={data.labTests} />;
   case 'schedule': return <ScheduleView appointments={data.appointments} patients={data.patients} onStartCall={handleStartCall} onRefresh={fetchData} />;
       case 'patients': return <MyPatientsView patients={data.patients} onSelectPatient={handleSelectPatient} />;
+      case 'lookup': return <PatientLookupView />;
       case 'ehr': return selectedPatient ? <EHRView
         patient={selectedPatient}
         currentUser={props.user}

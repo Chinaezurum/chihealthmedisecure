@@ -9,9 +9,10 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { TriageQueueView } from './TriageQueueView.tsx';
 import { InpatientView } from './InpatientView.tsx';
+import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type NurseView = 'triage' | 'inpatients' | 'settings';
+type NurseView = 'triage' | 'inpatients' | 'lookup' | 'settings';
 
 interface NurseDashboardProps {
   user: User;
@@ -25,6 +26,7 @@ const Sidebar: React.FC<{ activeView: NurseView; setActiveView: (view: NurseView
   const navItems = [
     { id: 'triage', label: 'Triage Queue', icon: Icons.UsersIcon },
     { id: 'inpatients', label: 'Inpatient Monitoring', icon: Icons.BedIcon },
+    { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -70,6 +72,10 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
   };
 
   const renderContent = () => {
+    if (activeView === 'lookup') {
+      return <PatientLookupView />;
+    }
+    
     if (isLoading || !data) return <FullScreenLoader message="Loading nursing station..." />;
     
     switch (activeView) {

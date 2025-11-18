@@ -8,11 +8,12 @@ import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { PharmacyQueueView } from './PharmacyQueueView.tsx';
+import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { SafetyCheckModal } from '../../components/pharmacist/SafetyCheckModal.tsx';
 import { runPharmacySafetyCheck } from '../../services/geminiService.ts';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type PharmacistView = 'queue' | 'inventory' | 'history' | 'settings';
+type PharmacistView = 'queue' | 'lookup' | 'inventory' | 'history' | 'settings';
 
 interface PharmacistDashboardProps {
   user: User;
@@ -25,6 +26,7 @@ interface PharmacistDashboardProps {
 const Sidebar: React.FC<{ activeView: PharmacistView; setActiveView: (view: PharmacistView) => void }> = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: 'queue', label: 'Fulfillment Queue', icon: Icons.PillIcon },
+    { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'inventory', label: 'Inventory (Soon)', icon: Icons.ArchiveIcon },
     { id: 'history', label: 'Dispensing History (Soon)', icon: Icons.ClipboardListIcon },
   ];
@@ -93,6 +95,10 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
   };
 
   const renderContent = () => {
+    if (activeView === 'lookup') {
+      return <PatientLookupView />;
+    }
+    
     if (isLoading || !data) return <FullScreenLoader message="Loading pharmacy dashboard..." />;
     
     switch (activeView) {

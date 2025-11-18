@@ -8,9 +8,10 @@ import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { LabQueueView } from './LabQueueView.tsx';
+import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type LabView = 'queue' | 'history' | 'settings';
+type LabView = 'queue' | 'lookup' | 'history' | 'settings';
 
 interface LabTechnicianDashboardProps {
   user: User;
@@ -23,6 +24,7 @@ interface LabTechnicianDashboardProps {
 const Sidebar: React.FC<{ activeView: LabView; setActiveView: (view: LabView) => void }> = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: 'queue', label: 'Lab Test Queue', icon: Icons.FlaskConicalIcon },
+    { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'history', label: 'Completed Tests (Soon)', icon: Icons.ClipboardListIcon },
   ];
 
@@ -69,6 +71,10 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
   };
 
   const renderContent = () => {
+    if (activeView === 'lookup') {
+      return <PatientLookupView />;
+    }
+    
     if (isLoading || !data) return <FullScreenLoader message="Loading laboratory dashboard..." />;
     
     switch (activeView) {
