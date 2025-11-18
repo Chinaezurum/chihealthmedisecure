@@ -93,6 +93,23 @@ export const switchUserOrganization = async (userId: string, organizationId: str
     return user;
 };
 
+// --- Patient Search ---
+export const searchPatients = async (query: string, organizationId: string): Promise<User[]> => {
+    const searchTerm = query.toLowerCase().trim();
+    return users.filter(user => {
+        // Only return patients from the same organization
+        if (user.role !== 'patient') return false;
+        if (!user.organizations.some((org: any) => org.id === organizationId)) return false;
+        
+        // Search by name, email, or phone number
+        const nameMatch = user.name?.toLowerCase().includes(searchTerm);
+        const emailMatch = user.email?.toLowerCase().includes(searchTerm);
+        const phoneMatch = user.phoneNumber?.toLowerCase().includes(searchTerm);
+        
+        return nameMatch || emailMatch || phoneMatch;
+    }).slice(0, 20); // Limit to 20 results
+};
+
 
 // --- Organization Management ---
 export const createOrganizationAndAdmin = async (orgData: any, adminData: any): Promise<{organization: Organization, admin: User}> => {

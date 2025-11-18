@@ -259,3 +259,8 @@ export const createRoom = (name: string, type: string) => {
 export const createBed = (name: string, roomId: string) => {
     return apiFetch('/admin/beds', { method: 'POST', body: JSON.stringify({ name, roomId }) });
 };
+
+// --- Patient Search (Receptionist) ---
+export const searchPatients = (query: string): Promise<User[]> => {
+    return apiFetch(`/users/search?q=${encodeURIComponent(query)}`);
+};

@@ -9,9 +9,10 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { CheckInView } from './CheckInView.tsx';
 import { WalkInRegistrationView } from './WalkInRegistrationView.tsx';
+import { PatientLookupView } from './PatientLookupView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type ReceptionistView = 'checkin' | 'walkin' | 'settings';
+type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'settings';
 
 interface ReceptionistDashboardProps {
   user: User;
@@ -23,8 +24,9 @@ interface ReceptionistDashboardProps {
 
 const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: ReceptionistView) => void }> = ({ activeView, setActiveView }) => {
   const navItems = [
+    { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'checkin', label: 'Patient Check-In', icon: Icons.ClipboardListIcon },
-    { id: 'walkin', label: 'Register Walk-In', icon: Icons.UsersIcon },
+    { id: 'walkin', label: 'Register Walk-In', icon: Icons.UserPlusIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -41,7 +43,7 @@ const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: Re
 };
 
 const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
-  const [activeView, setActiveView] = useState<ReceptionistView>('checkin');
+  const [activeView, setActiveView] = useState<ReceptionistView>('lookup');
   const [data, setData] = useState<{ appointments: Appointment[], patients: Patient[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToasts();
@@ -70,6 +72,10 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
   }
 
   const renderContent = () => {
+    if (activeView === 'lookup') {
+      return <PatientLookupView />;
+    }
+    
     if (isLoading || !data) return <FullScreenLoader message="Loading reception desk..." />;
     
     switch (activeView) {

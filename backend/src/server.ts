@@ -175,6 +175,29 @@ app.get('/api/users/me', authenticate, (req: Request, res: Response) => {
   res.json(req.user);
 });
 
+// Patient search endpoint (for receptionists and admin)
+app.get('/api/users/search', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = req.user as User;
+    // Only receptionist and admin can search for patients
+    if (!['RECEPTIONIST', 'ADMIN'].includes(user.role)) {
+      return res.status(403).json({ message: 'Access denied. Receptionist or Admin role required.' });
+    }
+
+    const query = req.query.q as string;
+    
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ message: 'Search query must be at least 2 characters' });
+    }
+
+    const patients = await db.searchPatients(query, user.currentOrganization.id);
+    res.json(patients);
+  } catch (error) {
+    console.error('Patient search error:', error);
+    res.status(500).json({ message: 'Failed to search patients' });
+  }
+});
+
 app.post('/api/users/switch-organization', authenticate, async (req: Request, res: Response) => {
   const { organizationId } = req.body;
   const user = await db.switchUserOrganization((req.user as User).id, organizationId);
