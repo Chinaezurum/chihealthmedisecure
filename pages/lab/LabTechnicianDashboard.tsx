@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, LabTest } from '../../types.ts';
+import { User, Patient, LabTest } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
 import * as Icons from '../../components/icons/index.tsx';
@@ -9,9 +9,11 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { LabQueueView } from './LabQueueView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
+import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type LabView = 'queue' | 'lookup' | 'history' | 'settings';
+type LabView = 'queue' | 'lookup' | 'history' | 'messages' | 'telemedicine' | 'settings';
 
 interface LabTechnicianDashboardProps {
   user: User;
@@ -26,6 +28,7 @@ const Sidebar: React.FC<{ activeView: LabView; setActiveView: (view: LabView) =>
     { id: 'queue', label: 'Lab Test Queue', icon: Icons.FlaskConicalIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'history', label: 'Completed Tests (Soon)', icon: Icons.ClipboardListIcon },
+    { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -43,15 +46,30 @@ const Sidebar: React.FC<{ activeView: LabView; setActiveView: (view: LabView) =>
 
 const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<LabView>('queue');
-  const [data, setData] = useState<{ labTests: LabTest[] } | null>(null);
+  const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
   const { addToast } = useToasts();
+
+  const handleStartCall = (contact: User | Patient) => {
+    if (contact.role === 'patient') {
+      setSelectedPatientForCall(contact as Patient);
+      setActiveView('telemedicine');
+    } else {
+      addToast('Video calls are available for patients only', 'info');
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const labData = await api.fetchLabTechnicianData();
+      const [labData, staff] = await Promise.all([
+        api.fetchLabTechnicianData(),
+        api.fetchStaffUsers()
+      ]);
       setData(labData);
+      setStaffUsers(staff);
     } catch (error) {
       console.error("Failed to fetch lab data:", error);
       addToast('Failed to load lab data.', 'error');
@@ -80,6 +98,8 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     switch (activeView) {
       case 'queue': return <LabQueueView labTests={data.labTests} onUpdateTest={handleUpdateTest} />;
       case 'history': return <div>Completed Test History Coming Soon</div>;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => setActiveView('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Lab Queue</div>;
     }
