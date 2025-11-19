@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/common/Button.tsx';
 import { EmptyState } from '../../components/common/EmptyState.tsx';
-import { InterDepartmentalNote } from '../../types.ts';
+import { InterDepartmentalNote, User } from '../../types.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
 import * as api from '../../services/apiService.ts';
 import { BellIcon, CheckCircleIcon, MessageSquareIcon } from '../../components/icons/index.tsx';
+import { InterDepartmentalNotesModal } from '../../components/common/InterDepartmentalNotesModal.tsx';
 
 interface InterDepartmentalNotesViewProps {
   refreshTrigger?: number;
@@ -14,10 +15,13 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
   const [notes, setNotes] = useState<InterDepartmentalNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'high'>('unread');
+  const [isComposeModalOpen, setComposeModalOpen] = useState(false);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const { addToast } = useToasts();
 
   useEffect(() => {
     fetchNotes();
+    fetchStaffUsers();
   }, [refreshTrigger]);
 
   const fetchNotes = async () => {
@@ -30,6 +34,15 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
       addToast('Failed to load notes', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchStaffUsers = async () => {
+    try {
+      const staff = await api.fetchStaffUsers();
+      setStaffUsers(staff);
+    } catch (error) {
+      console.error('Failed to fetch staff users:', error);
     }
   };
 
@@ -106,13 +119,19 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
         <div>
           <h2 className="text-3xl font-bold text-text-primary">Inter-Departmental Notes</h2>
           <p className="text-text-secondary mt-1">
-            Messages from nurses, lab techs, and pharmacists
+            Messages between all healthcare workers
             {unreadCount > 0 && <span className="ml-2 px-2 py-1 text-xs font-bold rounded-full bg-red-500 text-white">{unreadCount} unread</span>}
           </p>
         </div>
-        <Button onClick={fetchNotes}>
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setComposeModalOpen(true)}>
+            <MessageSquareIcon className="w-4 h-4 mr-2" />
+            Compose Note
+          </Button>
+          <Button onClick={fetchNotes}>
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -216,6 +235,20 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
           ))}
         </div>
       )}
+
+      {/* Compose Note Modal */}
+      <InterDepartmentalNotesModal
+        isOpen={isComposeModalOpen}
+        onClose={() => setComposeModalOpen(false)}
+        patientId="general"
+        patientName="General Communication"
+        availableUsers={staffUsers}
+        relatedEntityType="general"
+        onSendNote={() => {
+          setComposeModalOpen(false);
+          fetchNotes();
+        }}
+      />
     </div>
   );
 };
