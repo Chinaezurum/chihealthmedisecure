@@ -650,7 +650,6 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
     
     const filteredBills = data?.pendingBills.filter(bill => {
       const matchesSearch = bill.id.toLowerCase().includes(searchTerm.toLowerCase());
-                           bill.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
       return matchesSearch && matchesStatus;
     }) || [];
