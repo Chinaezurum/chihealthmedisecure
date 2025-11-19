@@ -148,24 +148,34 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   };
 
   const renderOverview = () => {
-    if (!data) return null;
+    if (!data) {
+      return (
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 h-28"></div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Revenue Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-br from-green-50 to-white rounded-xl border border-green-200 p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-default">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900 truncate">
                   ₦{data.stats.totalRevenue.toLocaleString()}
                 </p>
-                <p className="text-xs text-green-600 mt-1">+12% from last month</p>
+                <p className="text-xs text-green-600 mt-1 font-semibold">↗ +12% from last month</p>
               </div>
               <div className="flex-shrink-0 ml-3">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shadow-sm">
                   <CreditCardIcon className="w-6 h-6 text-green-600" />
                 </div>
               </div>
@@ -175,18 +185,22 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           {/* Pending Revenue Card - Clickable */}
           <button
             onClick={() => setActiveView('bills')}
-            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-amber-300 transition-all text-left"
+            className="group bg-gradient-to-br from-amber-50 to-white rounded-xl border border-amber-200 p-5 hover:shadow-lg hover:scale-105 hover:border-amber-400 transition-all duration-200 text-left relative overflow-hidden"
           >
-            <div className="flex items-center justify-between">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
+            <div className="flex items-center justify-between relative">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-600 mb-1">Pending Revenue</p>
+                <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                  Pending Revenue
+                  <span className="ml-2 text-xs text-amber-500">→ Click to view</span>
+                </p>
                 <p className="text-2xl font-bold text-gray-900 truncate">
                   ₦{data.stats.pendingRevenue.toLocaleString()}
                 </p>
-                <p className="text-xs text-amber-600 mt-1">{data.stats.pendingBillsCount} bills</p>
+                <p className="text-xs text-amber-600 mt-1 font-semibold">{data.stats.pendingBillsCount} bills awaiting payment</p>
               </div>
               <div className="flex-shrink-0 ml-3">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-amber-200 transition-colors">
                   <ClockIcon className="w-6 h-6 text-amber-600" />
                 </div>
               </div>
@@ -196,18 +210,22 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           {/* Pending Encounters Card - Clickable */}
           <button
             onClick={() => setActiveView('encounters')}
-            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-blue-300 transition-all text-left"
+            className="group bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-5 hover:shadow-lg hover:scale-105 hover:border-blue-400 transition-all duration-200 text-left relative overflow-hidden"
           >
-            <div className="flex items-center justify-between">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
+            <div className="flex items-center justify-between relative">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-600 mb-1">Pending Encounters</p>
+                <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                  Pending Encounters
+                  <span className="ml-2 text-xs text-blue-500">→ Click to view</span>
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {data.stats.pendingEncountersCount}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">Awaiting billing</p>
+                <p className="text-xs text-blue-600 mt-1 font-semibold">Awaiting billing</p>
               </div>
               <div className="flex-shrink-0 ml-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-200 transition-colors">
                   <DocumentTextIcon className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
@@ -217,18 +235,22 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           {/* Pending Claims Card - Clickable */}
           <button
             onClick={() => setActiveView('claims')}
-            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-purple-300 transition-all text-left"
+            className="group bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-5 hover:shadow-lg hover:scale-105 hover:border-purple-400 transition-all duration-200 text-left relative overflow-hidden"
           >
-            <div className="flex items-center justify-between">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-purple-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
+            <div className="flex items-center justify-between relative">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-600 mb-1">Pending Claims</p>
+                <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                  Pending Claims
+                  <span className="ml-2 text-xs text-purple-500">→ Click to view</span>
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {data.stats.pendingClaimsCount}
                 </p>
-                <p className="text-xs text-purple-600 mt-1">Insurance claims</p>
+                <p className="text-xs text-purple-600 mt-1 font-semibold">Insurance claims</p>
               </div>
               <div className="flex-shrink-0 ml-3">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-purple-200 transition-colors">
                   <CheckCircleIcon className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
@@ -543,27 +565,49 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   // Encounters awaiting billing
   const renderEncountersView = () => {
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const filteredEncounters = data?.pendingEncounters.filter(enc => 
+      enc.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      enc.id.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-base font-semibold text-gray-900">Pending Encounters</h3>
-            <p className="text-sm text-gray-600 mt-0.5">Encounters awaiting billing</p>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Pending Encounters</h3>
+                <p className="text-sm text-gray-600 mt-0.5">Encounters awaiting billing • {filteredEncounters.length} total</p>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search patient or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            {data && data.pendingEncounters.length > 0 ? (
+            {filteredEncounters.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encounter ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Encounter ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Provider</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.pendingEncounters.map(enc => (
+                  {filteredEncounters.map(enc => (
                     <tr key={enc.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(enc.encounterDate).toLocaleDateString()}
@@ -580,9 +624,9 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => handleGenerateBill(enc)}
-                          className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 hover:shadow-md transition-all duration-200"
                         >
-                          <ReceiptIcon className="h-4 w-4 mr-1" />
+                          <ReceiptIcon className="h-4 w-4 mr-1.5" />
                           Generate Bill
                         </button>
                       </td>
@@ -604,28 +648,65 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   // Bills & Invoices
   const renderBillsView = () => {
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [statusFilter, setStatusFilter] = React.useState<'all' | 'Pending' | 'Paid'>('all');
+    
+    const filteredBills = data?.pendingBills.filter(bill => {
+      const matchesSearch = bill.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           bill.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    }) || [];
+
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-base font-semibold text-gray-900">Bills & Invoices</h3>
-            <p className="text-sm text-gray-600 mt-0.5">Pending bills awaiting payment</p>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-white">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Bills & Invoices</h3>
+                <p className="text-sm text-gray-600 mt-0.5">Pending bills awaiting payment • {filteredBills.length} total</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Paid">Paid</option>
+                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search bills..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                  <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            {data && data.pendingBills.length > 0 ? (
+            {filteredBills.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Bill Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Bill ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.pendingBills.map(bill => (
+                  {filteredBills.map(bill => (
                     <tr key={bill.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(bill.billDate).toLocaleDateString()}
@@ -656,9 +737,9 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                             setSelectedBillForPayment(bill);
                             setShowPaymentModal(true);
                           }}
-                          className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-xs font-semibold rounded-lg hover:from-green-700 hover:to-green-800 hover:shadow-md transition-all duration-200"
                         >
-                          <CreditCardIcon className="h-4 w-4 mr-1" />
+                          <CreditCardIcon className="h-4 w-4 mr-1.5" />
                           Payment
                         </button>
                         <button
@@ -666,9 +747,9 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                             setSelectedBillForClaim(bill);
                             setShowClaimModal(true);
                           }}
-                          className="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-md hover:bg-purple-700 transition-colors"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-md transition-all duration-200"
                         >
-                          <ShieldCheckIcon className="h-4 w-4 mr-1" />
+                          <ShieldCheckIcon className="h-4 w-4 mr-1.5" />
                           Submit Claim
                         </button>
                       </td>
