@@ -48,13 +48,18 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<NurseView>('triage');
   const [data, setData] = useState<{ triageQueue: TriageEntry[], inpatients: Patient[], messages: any[], patients: Patient[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const { addToast } = useToasts();
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const nurseData = await api.fetchNurseData();
+      const [nurseData, staff] = await Promise.all([
+        api.fetchNurseData(),
+        api.fetchStaffUsers()
+      ]);
       setData(nurseData);
+      setStaffUsers(staff);
     } catch (error) {
       console.error("Failed to fetch nurse data:", error);
       addToast('Failed to load nursing data.', 'error');
@@ -83,7 +88,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
     switch (activeView) {
       case 'triage': return <TriageQueueView triageQueue={data.triageQueue} onSaveVitals={handleSaveVitals} />;
       case 'inpatients': return <InpatientView patients={data.inpatients} />;
-      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={data.patients || []} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async (cmd) => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async (cmd) => { addToast('AI feature coming soon', 'info'); return ''; }} />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Triage Queue</div>;
     }
