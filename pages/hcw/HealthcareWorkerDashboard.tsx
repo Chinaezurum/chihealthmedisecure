@@ -17,11 +17,12 @@ import { LabRequestsView } from './LabRequestsView.tsx';
 import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { ClinicalNoteModal } from '../../components/hcw/ClinicalNoteModal.tsx';
+import { InterDepartmentalNotesView } from './InterDepartmentalNotesView.tsx';
 import { generatePdfFromHtml } from '../../utils/generatePdf.ts';
 import { generateAiChannelResponse } from '../../services/geminiService.ts';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type HcwView = 'overview' | 'schedule' | 'patients' | 'lookup' | 'ehr' | 'prescriptions' | 'labs' | 'messages' | 'telemedicine' | 'settings';
+type HcwView = 'overview' | 'schedule' | 'patients' | 'lookup' | 'ehr' | 'prescriptions' | 'labs' | 'messages' | 'dept-notes' | 'telemedicine' | 'settings';
 
 interface HealthcareWorkerDashboardProps {
   user: User;
@@ -38,6 +39,7 @@ const Sidebar: React.FC<{ activeView: HcwView; setActiveView: (view: HcwView) =>
     { id: 'patients', label: 'My Patients', icon: Icons.UsersIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
+    { id: 'dept-notes', label: 'Department Notes', icon: Icons.BellIcon },
     { id: 'prescriptions', label: 'E-Prescriptions', icon: Icons.PillIcon },
     { id: 'labs', label: 'Lab Requests', icon: Icons.FlaskConicalIcon },
   ];
@@ -62,12 +64,14 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isNoteModalOpen, setNoteModalOpen] = useState(false);
   const [noteFromCall, setNoteFromCall] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { addToast } = useToasts();
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       const hcwData = await api.fetchHcwData();
+      setRefreshTrigger(prev => prev + 1);
       setData(hcwData);
     } catch (error) {
       console.error("Failed to fetch HCW data:", error);
@@ -157,6 +161,7 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
       /> : <div>Please select a patient.</div>;
       case 'prescriptions': return <PrescriptionsView prescriptions={data.prescriptions} patients={data.patients} onCreatePrescription={async (rx) => { await api.createPrescription(rx); addToast('Prescription created.', 'success'); fetchData(); }} />;
       case 'labs': return <LabRequestsView labTests={data.labTests} />;
+      case 'dept-notes': return <InterDepartmentalNotesView refreshTrigger={refreshTrigger} />;
       case 'messages': return <MessagingView messages={data.messages} currentUser={props.user} contacts={data.patients} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => handleStartCall(contact.id)} onAiChannelCommand={handleAiCommand} />;
       case 'telemedicine': return <TelemedicineView 
         currentUser={props.user} 

@@ -417,6 +417,92 @@ app.get('/api/logistics/dashboard', authenticate, async (req, res) => res.json(a
 app.get('/api/accountant/dashboard', authenticate, async (req, res) => res.json(await db.getAccountantDashboardData((req.organizationContext as Organization).id)));
 
 
+// Incoming Referrals Endpoints
+app.get('/api/incoming-referrals', authenticate, async (req, res) => {
+  const referrals = await db.getIncomingReferrals((req.organizationContext as Organization).id);
+  res.json(referrals);
+});
+
+app.post('/api/incoming-referrals', async (req, res) => {
+  // This endpoint can be called by external facilities without authentication
+  // In production, you might want API key authentication here
+  try {
+    const newReferral = await db.createIncomingReferral(req.body);
+    // Notify the receiving organization
+    if (req.body.toOrganizationId) {
+      notifyAllOrgUsers(req.body.toOrganizationId, 'refetch');
+    }
+    res.status(201).json(newReferral);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.put('/api/incoming-referrals/:id/status', authenticate, async (req, res) => {
+  const { status, registeredPatientId, responseNotes } = req.body;
+  const updated = await db.updateIncomingReferralStatus(
+    req.params.id, 
+    status,
+    (req.user as User).id,
+    registeredPatientId,
+    responseNotes
+  );
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+// Inter-Departmental Notes Endpoints
+app.get('/api/inter-departmental-notes', authenticate, async (req, res) => {
+  const notes = await db.getInterDepartmentalNotes((req.user as User).id);
+  res.json(notes);
+});
+
+app.get('/api/inter-departmental-notes/patient/:patientId', authenticate, async (req, res) => {
+  const notes = await db.getInterDepartmentalNotesByPatient(req.params.patientId);
+  res.json(notes);
+});
+
+app.post('/api/inter-departmental-notes', authenticate, async (req, res) => {
+  const newNote = await db.createInterDepartmentalNote({
+    ...req.body,
+    fromUserId: (req.user as User).id,
+    fromUserName: (req.user as User).name,
+    fromRole: (req.user as User).role
+  });
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(newNote);
+});
+
+app.put('/api/inter-departmental-notes/:id/read', authenticate, async (req, res) => {
+  const updated = await db.markInterDepartmentalNoteAsRead(req.params.id);
+  res.json(updated);
+});
+
+// External Lab Results Endpoints
+app.get('/api/external-lab-results', authenticate, async (req, res) => {
+  const patientId = req.query.patientId as string | undefined;
+  const results = await db.getExternalLabResults(patientId);
+  res.json(results);
+});
+
+app.post('/api/external-lab-results', async (req, res) => {
+  // This endpoint can be called by external labs without full authentication
+  // In production, you might want API key authentication here
+  try {
+    const newResult = await db.createExternalLabResult(req.body);
+    res.status(201).json(newResult);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.put('/api/external-lab-results/:id/status', authenticate, async (req, res) => {
+  const updated = await db.updateExternalLabResultStatus(req.params.id, req.body.status);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.json(updated);
+});
+
+
 // Billing System Endpoints
 
 // Billing Codes

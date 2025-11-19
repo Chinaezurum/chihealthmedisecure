@@ -288,3 +288,23 @@ export const verifyInsurance = (patientId: string) => apiFetch(`/patients/${pati
 export const createInsuranceClaim = (data: any) => apiFetch('/insurance/claims', { method: 'POST', body: JSON.stringify(data) });
 export const updateInsuranceClaimStatus = (claimId: string, status: string, updates?: any) => apiFetch(`/insurance/claims/${claimId}/status`, { method: 'PUT', body: JSON.stringify({ status, updates }) });
 
+// --- Incoming Referrals ---
+export const getIncomingReferrals = () => apiFetch('/incoming-referrals');
+export const createIncomingReferral = (data: any) => apiFetch('/incoming-referrals', { method: 'POST', body: JSON.stringify(data) });
+export const updateIncomingReferralStatus = (id: string, status: string, registeredPatientId?: string, responseNotes?: string) => 
+    apiFetch(`/incoming-referrals/${id}/status`, { method: 'PUT', body: JSON.stringify({ status, registeredPatientId, responseNotes }) });
+
+// --- Inter-Departmental Notes ---
+export const getInterDepartmentalNotes = () => apiFetch('/inter-departmental-notes');
+export const getInterDepartmentalNotesByPatient = (patientId: string) => apiFetch(`/inter-departmental-notes/patient/${patientId}`);
+export const createInterDepartmentalNote = (data: any) => apiFetch('/inter-departmental-notes', { method: 'POST', body: JSON.stringify(data) });
+export const markNoteAsRead = (id: string) => apiFetch(`/inter-departmental-notes/${id}/read`, { method: 'PUT' });
+
+// --- External Lab Results ---
+export const getExternalLabResults = (patientId?: string) => {
+    const url = patientId ? `/external-lab-results?patientId=${patientId}` : '/external-lab-results';
+    return apiFetch(url);
+};
+export const createExternalLabResult = (data: any) => apiFetch('/external-lab-results', { method: 'POST', body: JSON.stringify(data) });
+export const updateExternalLabResultStatus = (id: string, status: string) => 
+    apiFetch(`/external-lab-results/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });

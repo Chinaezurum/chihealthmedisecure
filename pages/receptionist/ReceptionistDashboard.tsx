@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, Patient, Appointment } from '../../types.ts';
+import { User, Patient, Appointment, IncomingReferral } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
 import * as Icons from '../../components/icons/index.tsx';
@@ -10,9 +10,10 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { CheckInView } from './CheckInView.tsx';
 import { WalkInRegistrationView } from './WalkInRegistrationView.tsx';
 import { PatientLookupView } from './PatientLookupView.tsx';
+import { IncomingReferralsView } from './IncomingReferralsView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'settings';
+type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'referrals' | 'settings';
 
 interface ReceptionistDashboardProps {
   user: User;
@@ -27,6 +28,7 @@ const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: Re
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'checkin', label: 'Patient Check-In', icon: Icons.ClipboardListIcon },
     { id: 'walkin', label: 'Register Walk-In', icon: Icons.UserPlusIcon },
+    { id: 'referrals', label: 'Incoming Referrals', icon: Icons.UsersIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -46,6 +48,7 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<ReceptionistView>('lookup');
   const [data, setData] = useState<{ appointments: Appointment[], patients: Patient[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [referralToRegister, setReferralToRegister] = useState<IncomingReferral | null>(null);
   const { addToast } = useToasts();
 
   const fetchData = useCallback(async () => {
@@ -71,19 +74,41 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     fetchData();
   }
 
+  const handleRegisterFromReferral = (referral: IncomingReferral) => {
+    setReferralToRegister(referral);
+    setActiveView('walkin');
+  };
+
   const renderContent = () => {
     if (activeView === 'lookup') {
       return <PatientLookupView />;
+    }
+
+    if (activeView === 'referrals') {
+      return <IncomingReferralsView onRegisterPatient={handleRegisterFromReferral} />;
     }
     
     if (isLoading || !data) return <FullScreenLoader message="Loading reception desk..." />;
     
     switch (activeView) {
       case 'checkin': return <CheckInView appointments={data.appointments} patients={data.patients} onCheckIn={handleCheckIn} />;
-      case 'walkin': return <WalkInRegistrationView onRegistrationComplete={() => {
-        fetchData();
-        addToast('Patient registered successfully!', 'success');
-      }} />;
+      case 'walkin': return <WalkInRegistrationView 
+        onRegistrationComplete={(patientId?: string) => {
+          if (referralToRegister && patientId) {
+            // Update referral status to "Patient Registered"
+            api.updateIncomingReferralStatus(referralToRegister.id, 'Patient Registered', patientId, 'Patient successfully registered in our system');
+          }
+          setReferralToRegister(null);
+          fetchData();
+          addToast('Patient registered successfully!', 'success');
+        }} 
+        prefillData={referralToRegister ? {
+          name: referralToRegister.patientName,
+          dateOfBirth: '', // Calculate from age if needed
+          allergies: referralToRegister.allergies || '',
+          currentMedications: referralToRegister.currentMedications || ''
+        } : undefined}
+      />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Check-In</div>;
     }

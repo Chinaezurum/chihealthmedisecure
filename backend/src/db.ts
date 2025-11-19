@@ -1,4 +1,4 @@
-import type { User, Patient, Appointment, Prescription, LabTest, ClinicalNote, Message, Organization, Bill, TriageEntry, TransportRequest, Referral, Bed, ActivityLog, Department, Room, RoomType, BillingCode, Encounter, InsuranceProvider, PatientInsurance, InsuranceClaim, PaymentTransaction, PricingCatalog } from '../../types.js';
+import type { User, Patient, Appointment, Prescription, LabTest, ClinicalNote, Message, Organization, Bill, TriageEntry, TransportRequest, Referral, Bed, ActivityLog, Department, Room, RoomType, BillingCode, Encounter, InsuranceProvider, PatientInsurance, InsuranceClaim, PaymentTransaction, PricingCatalog, IncomingReferral, InterDepartmentalNote, ExternalLabResult } from '../../types.js';
 import { hashPassword, comparePassword } from './auth/password.js';
 import { seedData } from '../prisma/seed.js';
 
@@ -27,6 +27,11 @@ let patientInsurances: PatientInsurance[] = initialData.patientInsurances || [];
 let insuranceClaims: InsuranceClaim[] = initialData.insuranceClaims || [];
 let paymentTransactions: PaymentTransaction[] = initialData.paymentTransactions || [];
 let pricingCatalogs: PricingCatalog[] = initialData.pricingCatalogs || [];
+
+// New data structures for incoming referrals and inter-departmental communication
+let incomingReferrals: IncomingReferral[] = [];
+let interDepartmentalNotes: InterDepartmentalNote[] = [];
+let externalLabResults: ExternalLabResult[] = [];
 
 
 // --- User Management ---
@@ -789,4 +794,98 @@ export const getAccountantDashboardData = async (orgId: string) => {
             pendingClaimsCount: pendingClaims.length
         }
     };
+};
+
+// --- Incoming Referrals Management ---
+export const getIncomingReferrals = async (orgId: string) => {
+    return incomingReferrals.filter(r => r.toOrganizationId === orgId);
+};
+
+export const createIncomingReferral = async (data: Omit<IncomingReferral, 'id' | 'status' | 'referralDate'>): Promise<IncomingReferral> => {
+    const newReferral: IncomingReferral = {
+        id: `inc-ref-${Date.now()}`,
+        status: 'Pending',
+        referralDate: new Date().toISOString(),
+        ...data
+    };
+    incomingReferrals.push(newReferral);
+    return newReferral;
+};
+
+export const updateIncomingReferralStatus = async (
+    id: string, 
+    status: IncomingReferral['status'],
+    acceptedBy?: string,
+    registeredPatientId?: string,
+    responseNotes?: string
+): Promise<IncomingReferral> => {
+    const referral = incomingReferrals.find(r => r.id === id);
+    if (!referral) throw new Error('Incoming referral not found');
+    
+    referral.status = status;
+    if (acceptedBy) referral.acceptedBy = acceptedBy;
+    if (registeredPatientId) referral.registeredPatientId = registeredPatientId;
+    if (responseNotes) referral.responseNotes = responseNotes;
+    if (status === 'Accepted') {
+        referral.acceptedDate = new Date().toISOString();
+    }
+    
+    return referral;
+};
+
+// --- Inter-Departmental Notes Management ---
+export const getInterDepartmentalNotes = async (doctorId: string) => {
+    return interDepartmentalNotes
+        .filter(n => !n.toDoctorId || n.toDoctorId === doctorId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+export const getInterDepartmentalNotesByPatient = async (patientId: string) => {
+    return interDepartmentalNotes
+        .filter(n => n.patientId === patientId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+export const createInterDepartmentalNote = async (data: Omit<InterDepartmentalNote, 'id' | 'timestamp' | 'isRead'>): Promise<InterDepartmentalNote> => {
+    const newNote: InterDepartmentalNote = {
+        id: `dept-note-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        isRead: false,
+        ...data
+    };
+    interDepartmentalNotes.push(newNote);
+    return newNote;
+};
+
+export const markInterDepartmentalNoteAsRead = async (id: string): Promise<InterDepartmentalNote> => {
+    const note = interDepartmentalNotes.find(n => n.id === id);
+    if (!note) throw new Error('Note not found');
+    note.isRead = true;
+    return note;
+};
+
+// --- External Lab Results Management ---
+export const getExternalLabResults = async (patientId?: string) => {
+    if (patientId) {
+        return externalLabResults.filter(r => r.patientId === patientId);
+    }
+    return externalLabResults;
+};
+
+export const createExternalLabResult = async (data: Omit<ExternalLabResult, 'id' | 'uploadedDate' | 'status'>): Promise<ExternalLabResult> => {
+    const newResult: ExternalLabResult = {
+        id: `ext-lab-${Date.now()}`,
+        uploadedDate: new Date().toISOString(),
+        status: 'Pending Review',
+        ...data
+    };
+    externalLabResults.push(newResult);
+    return newResult;
+};
+
+export const updateExternalLabResultStatus = async (id: string, status: ExternalLabResult['status']): Promise<ExternalLabResult> => {
+    const result = externalLabResults.find(r => r.id === id);
+    if (!result) throw new Error('External lab result not found');
+    result.status = status;
+    return result;
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
 import { Select } from '../../components/common/Select.tsx';
@@ -7,10 +7,16 @@ import { registerWithEmail } from '../../services/authService.ts';
 import { UserPlusIcon } from '../../components/icons/index.tsx';
 
 interface WalkInRegistrationViewProps {
-  onRegistrationComplete: () => void;
+  onRegistrationComplete: (patientId?: string) => void;
+  prefillData?: {
+    name?: string;
+    dateOfBirth?: string;
+    allergies?: string;
+    currentMedications?: string;
+  };
 }
 
-export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ onRegistrationComplete }) => {
+export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ onRegistrationComplete, prefillData }) => {
   const { addToast } = useToasts();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,6 +33,15 @@ export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ 
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (prefillData) {
+      setFormData(prev => ({
+        ...prev,
+        ...prefillData
+      }));
+    }
+  }, [prefillData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -86,7 +101,7 @@ export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ 
       // Generate a temporary password
       const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!';
       
-      await registerWithEmail(formData.name, formData.email, tempPassword);
+      const response = await registerWithEmail(formData.name, formData.email, tempPassword);
 
       addToast(`Patient registered successfully! Temporary password: ${tempPassword}`, 'success');
       
@@ -104,7 +119,7 @@ export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ 
         currentMedications: ''
       });
 
-      onRegistrationComplete();
+      onRegistrationComplete(response?.user?.id);
     } catch (error: any) {
       console.error('Walk-in registration failed:', error);
       addToast(error?.message || 'Failed to register patient. Please try again.', 'error');

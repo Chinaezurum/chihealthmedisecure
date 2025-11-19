@@ -3,7 +3,10 @@ import React, { useState } from 'react';
 import { Modal } from '../../components/common/Modal.tsx';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
+import { InterDepartmentalNotesModal } from '../../components/common/InterDepartmentalNotesModal.tsx';
 import { TriageEntry, Vitals } from '../../types.ts';
+import * as api from '../../services/apiService.ts';
+import { useToasts } from '../../hooks/useToasts.ts';
 
 interface VitalsModalProps {
   isOpen: boolean;
@@ -14,6 +17,8 @@ interface VitalsModalProps {
 
 export const VitalsModal: React.FC<VitalsModalProps> = ({ isOpen, onClose, patient, onSave }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const { addToast } = useToasts();
   const [vitals, setVitals] = useState<Omit<Vitals, 'date'>>({
       temperature: '',
       bloodPressure: '',
@@ -36,8 +41,24 @@ export const VitalsModal: React.FC<VitalsModalProps> = ({ isOpen, onClose, patie
     }, 1000);
   }
 
+  const handleSendNote = async (note: any) => {
+    try {
+      await api.createInterDepartmentalNote(note);
+    } catch (error) {
+      console.error('Failed to send note:', error);
+      addToast('Failed to send note', 'error');
+    }
+  };
+
   const footerContent = (
     <>
+      <button
+        onClick={() => setIsNoteModalOpen(true)}
+        type="button"
+        className="inline-flex items-center justify-center px-4 py-2 border border-primary text-sm font-medium rounded-md text-primary hover:bg-primary/10 transition-colors"
+      >
+        📋 Send Note to Doctor
+      </button>
       <button
         onClick={onClose}
         type="button"
@@ -52,14 +73,25 @@ export const VitalsModal: React.FC<VitalsModalProps> = ({ isOpen, onClose, patie
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Record Vitals for ${patient.patientName}`} footer={footerContent}>
-      <form id="vitalsForm" onSubmit={handleSubmit} className="space-y-4">
-        <Input label="Temperature (°C)" name="temperature" value={vitals.temperature} onChange={handleChange} required />
-        <Input label="Blood Pressure (mmHg)" name="bloodPressure" placeholder="e.g., 120/80" value={vitals.bloodPressure} onChange={handleChange} required />
-        <Input label="Heart Rate (bpm)" name="heartRate" value={vitals.heartRate} onChange={handleChange} required />
-        <Input label="Respiratory Rate (rpm)" name="respiratoryRate" value={vitals.respiratoryRate} onChange={handleChange} required />
-        <Input label="Notes (optional)" name="notes" value={vitals.notes || ''} onChange={handleChange} />
-      </form>
-    </Modal>
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title={`Record Vitals for ${patient.patientName}`} footer={footerContent}>
+        <form id="vitalsForm" onSubmit={handleSubmit} className="space-y-4">
+          <Input label="Temperature (°C)" name="temperature" value={vitals.temperature} onChange={handleChange} required />
+          <Input label="Blood Pressure (mmHg)" name="bloodPressure" placeholder="e.g., 120/80" value={vitals.bloodPressure} onChange={handleChange} required />
+          <Input label="Heart Rate (bpm)" name="heartRate" value={vitals.heartRate} onChange={handleChange} required />
+          <Input label="Respiratory Rate (rpm)" name="respiratoryRate" value={vitals.respiratoryRate} onChange={handleChange} required />
+          <Input label="Notes (optional)" name="notes" value={vitals.notes || ''} onChange={handleChange} />
+        </form>
+      </Modal>
+
+      <InterDepartmentalNotesModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        patientId={patient.patientId}
+        patientName={patient.patientName}
+        relatedEntityType="vitals"
+        onSendNote={handleSendNote}
+      />
+    </>
   );
 };

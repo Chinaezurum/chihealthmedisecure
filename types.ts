@@ -164,6 +164,66 @@ export interface Referral {
     status: 'Pending' | 'Accepted' | 'Completed';
 }
 
+export interface IncomingReferral {
+    id: string;
+    patientName: string;
+    patientAge: number;
+    patientGender: string;
+    fromFacility: string;
+    fromDoctor: string;
+    fromDoctorContact: string;
+    toOrganizationId: string;
+    specialty: string;
+    reason: string;
+    transferNotes: string;
+    medicalHistory?: string;
+    currentMedications?: string;
+    allergies?: string;
+    vitalSigns?: string;
+    labResults?: string;
+    imagingReports?: string;
+    urgencyLevel: 'Routine' | 'Urgent' | 'Emergency';
+    referralDate: string;
+    status: 'Pending' | 'Accepted' | 'Rejected' | 'Patient Registered';
+    acceptedBy?: string;
+    acceptedDate?: string;
+    registeredPatientId?: string;
+    responseNotes?: string;
+}
+
+export interface InterDepartmentalNote {
+    id: string;
+    patientId: string;
+    patientName: string;
+    fromRole: UserRole;
+    fromUserId: string;
+    fromUserName: string;
+    toRole: 'hcw';
+    toDoctorId?: string;
+    relatedEntityId?: string; // Lab test ID, Prescription ID, etc.
+    relatedEntityType?: 'lab' | 'prescription' | 'vitals' | 'general';
+    subject: string;
+    message: string;
+    priority: 'Low' | 'Normal' | 'High';
+    timestamp: string;
+    isRead: boolean;
+}
+
+export interface ExternalLabResult {
+    id: string;
+    patientId: string;
+    patientName: string;
+    labName: string;
+    labContact: string;
+    testName: string;
+    result: string;
+    resultDate: string;
+    uploadedBy: string;
+    uploadedDate: string;
+    relatedLabTestId?: string;
+    status: 'Pending Review' | 'Reviewed' | 'Integrated';
+}
+
 export interface Notification {
   id: string;
   message: string;
