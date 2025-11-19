@@ -24,15 +24,17 @@
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^20.11.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-  "@types/node": "^20.11.0",
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.2",
     "jsdom": "^24.1.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.2",
-    "vitest": "^4.0.8"
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^4.0.8",
+    "workbox-window": "^7.3.0"
   }
 }

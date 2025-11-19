@@ -19,6 +19,8 @@ import { AccountantDashboard } from './pages/accountant/AccountantDashboard.tsx'
 
 import { FullScreenLoader } from './components/common/FullScreenLoader';
 import { SessionTimeoutModal } from './components/common/SessionTimeoutModal';
+import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
+import { PwaUpdatePrompt } from './components/common/PwaUpdatePrompt';
 
 import { User, Patient } from './types';
 import * as api from './services/apiService';
@@ -366,6 +368,8 @@ const App: React.FC = () => {
       <>
         {content}
         <SessionTimeoutModal isOpen={isWarningModalOpen} countdown={countdown} onStay={handleStay} onLogout={handleSignOut} />
+        <PwaInstallPrompt />
+        <PwaUpdatePrompt />
       </>
     );
   } catch (error) {

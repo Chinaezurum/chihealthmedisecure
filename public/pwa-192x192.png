@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="36" fill="#3b82f6"/>
+  <g transform="translate(32, 32)">
+    <path d="M64 16 L64 112 M16 64 L112 64" stroke="white" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="64" cy="64" r="10" fill="white"/>
+    <path d="M40 40 L88 40 L88 88 L40 88 Z" stroke="white" stroke-width="8" fill="none" stroke-linejoin="round"/>
+  </g>
+  <text x="96" y="170" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">ChiHealth</text>
+</svg>
