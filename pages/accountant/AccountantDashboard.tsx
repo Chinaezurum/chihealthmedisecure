@@ -172,8 +172,11 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
             </div>
           </div>
 
-          {/* Pending Revenue Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          {/* Pending Revenue Card - Clickable */}
+          <button
+            onClick={() => setActiveView('bills')}
+            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-amber-300 transition-all text-left"
+          >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-600 mb-1">Pending Revenue</p>
@@ -188,10 +191,13 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 </div>
               </div>
             </div>
-          </div>
+          </button>
 
-          {/* Pending Encounters Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          {/* Pending Encounters Card - Clickable */}
+          <button
+            onClick={() => setActiveView('encounters')}
+            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-blue-300 transition-all text-left"
+          >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-600 mb-1">Pending Encounters</p>
@@ -206,10 +212,13 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 </div>
               </div>
             </div>
-          </div>
+          </button>
 
-          {/* Pending Claims Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          {/* Pending Claims Card - Clickable */}
+          <button
+            onClick={() => setActiveView('claims')}
+            className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md hover:border-purple-300 transition-all text-left"
+          >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-600 mb-1">Pending Claims</p>
@@ -224,7 +233,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 </div>
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Revenue Breakdown */}
@@ -288,6 +297,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <span className="text-sm font-medium text-green-900">Refresh Data</span>
               </button>
               <button
+                onClick={() => setActiveView('reports')}
                 className="flex flex-col items-center justify-center p-4 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200"
               >
                 <svg className="w-8 h-8 text-amber-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,6 +306,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <span className="text-sm font-medium text-amber-900">Reports</span>
               </button>
               <button
+                onClick={() => setActiveView('settings')}
                 className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
               >
                 <svg className="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
