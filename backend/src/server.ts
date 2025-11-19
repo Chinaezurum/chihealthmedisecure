@@ -806,6 +806,75 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
     
     // For structured queries or non-chat requests, return the original stub behavior
     const preview = typeof contents === 'string' ? contents.slice(0, 300) : JSON.stringify(contents);
+    
+    // Development Mode: Return mock JSON for AI recommendation features
+    if (process.env.NODE_ENV !== 'production') {
+      // Proactive Care Plan
+      if (contentsStr.includes('proactive care plan') || contentsStr.includes('comprehensive proactive')) {
+        const mockCarePlan = {
+          goals: [
+            { category: 'Health Maintenance', description: 'Monitor vital signs weekly', priority: 'high' },
+            { category: 'Lifestyle', description: 'Incorporate 30 minutes of daily exercise', priority: 'medium' },
+            { category: 'Nutrition', description: 'Follow Mediterranean diet guidelines', priority: 'medium' }
+          ],
+          monitoring: [
+            { parameter: 'Blood Pressure', frequency: 'Weekly', target: '< 130/80 mmHg' },
+            { parameter: 'Blood Glucose', frequency: 'Monthly', target: 'Fasting < 100 mg/dL' },
+            { parameter: 'Weight', frequency: 'Weekly', target: 'Maintain within 5% of current' }
+          ],
+          followUps: [
+            { type: 'Primary Care Visit', timeframe: '3 months', reason: 'Routine checkup and medication review' },
+            { type: 'Lab Work', timeframe: '6 months', reason: 'Lipid panel and metabolic panel' }
+          ],
+          medications: [
+            { suggestion: 'Continue current medications', rationale: 'Well-controlled symptoms' },
+            { suggestion: 'Consider vitamin D supplementation', rationale: 'Common deficiency, supports immune health' }
+          ]
+        };
+        return res.json({ text: JSON.stringify(mockCarePlan) });
+      }
+      
+      // Diagnostic Suggestions
+      if (contentsStr.includes('diagnostic tests') || contentsStr.includes('suggest likely diagnostic')) {
+        const mockDiagnostics = [
+          { test: 'Complete Blood Count (CBC)', rationale: 'Baseline hematologic assessment', priority: 'routine' },
+          { test: 'Comprehensive Metabolic Panel', rationale: 'Evaluate kidney and liver function, electrolytes', priority: 'routine' },
+          { test: 'Lipid Panel', rationale: 'Cardiovascular risk assessment', priority: 'recommended' },
+          { test: 'HbA1c', rationale: 'Screen for diabetes or monitor glycemic control', priority: 'recommended' },
+          { test: 'Thyroid Function Tests (TSH, T4)', rationale: 'Rule out thyroid dysfunction if fatigue present', priority: 'optional' }
+        ];
+        return res.json({ text: JSON.stringify(mockDiagnostics) });
+      }
+      
+      // Lifestyle & Diet Plan
+      if (contentsStr.includes('lifestyle and diet') || contentsStr.includes('lifestyle recommendation')) {
+        const mockLifestyle = [
+          { category: 'Exercise', recommendation: 'Aim for 150 minutes of moderate aerobic activity per week', frequency: 'Daily 30min or 5x/week' },
+          { category: 'Diet', recommendation: 'Increase intake of fruits, vegetables, whole grains, and lean proteins', frequency: 'Every meal' },
+          { category: 'Hydration', recommendation: 'Drink 8-10 glasses of water daily', frequency: 'Throughout day' },
+          { category: 'Sleep', recommendation: 'Maintain consistent sleep schedule with 7-9 hours nightly', frequency: 'Daily' },
+          { category: 'Stress Management', recommendation: 'Practice mindfulness, meditation, or yoga', frequency: '10-20min daily' },
+          { category: 'Social Connection', recommendation: 'Engage in regular social activities and maintain relationships', frequency: 'Weekly' }
+        ];
+        return res.json({ text: JSON.stringify(mockLifestyle) });
+      }
+      
+      // Referral Suggestions
+      if (contentsStr.includes('specialty referral') || contentsStr.includes('Recommend specialty referral')) {
+        const mockReferral = {
+          primarySpecialty: 'Cardiology',
+          rationale: 'Based on patient history and current symptoms, cardiovascular evaluation recommended',
+          additionalSpecialties: [
+            { specialty: 'Endocrinology', reason: 'If metabolic concerns persist or diabetes management needed' },
+            { specialty: 'Nutrition/Dietitian', reason: 'For comprehensive dietary counseling and meal planning' }
+          ],
+          urgency: 'routine',
+          notes: 'Schedule within 4-6 weeks unless symptoms worsen'
+        };
+        return res.json({ text: JSON.stringify(mockReferral) });
+      }
+    }
+    
     const text = `(dev AI) Response for model=${model || 'unknown'}\n\n${preview}${preview.length >= 300 ? '...' : ''}`;
     return res.json({ text });
   } catch (err) {
