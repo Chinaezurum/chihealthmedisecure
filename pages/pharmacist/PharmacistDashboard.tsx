@@ -12,8 +12,12 @@ import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { SafetyCheckModal } from '../../components/pharmacist/SafetyCheckModal.tsx';
 import { runPharmacySafetyCheck } from '../../services/geminiService.ts';
 import { SettingsView } from '../common/SettingsView.tsx';
+import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
+import { InventoryView } from './InventoryView.tsx';
+import { DispensingHistoryView } from './DispensingHistoryView.tsx';
 
-type PharmacistView = 'queue' | 'lookup' | 'inventory' | 'history' | 'settings';
+type PharmacistView = 'queue' | 'lookup' | 'inventory' | 'history' | 'messages' | 'dept-notes' | 'settings';
 
 interface PharmacistDashboardProps {
   user: User;
@@ -27,8 +31,10 @@ const Sidebar: React.FC<{ activeView: PharmacistView; setActiveView: (view: Phar
   const navItems = [
     { id: 'queue', label: 'Fulfillment Queue', icon: Icons.PillIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
-    { id: 'inventory', label: 'Inventory (Soon)', icon: Icons.ArchiveIcon },
-    { id: 'history', label: 'Dispensing History (Soon)', icon: Icons.ClipboardListIcon },
+    { id: 'inventory', label: 'Inventory', icon: Icons.ArchiveIcon },
+    { id: 'history', label: 'Dispensing History', icon: Icons.ClipboardListIcon },
+    { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
+    { id: 'dept-notes', label: 'Dept. Notes', icon: Icons.BellIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -51,13 +57,18 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
   const [isSafetyModalOpen, setSafetyModalOpen] = useState(false);
   const [safetyCheckResult, setSafetyCheckResult] = useState(null);
   const [isSafetyCheckLoading, setIsSafetyCheckLoading] = useState(false);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const { addToast } = useToasts();
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const pharmacistData = await api.fetchPharmacistData();
+      const [pharmacistData, staff] = await Promise.all([
+        api.fetchPharmacistData(),
+        api.fetchStaffUsers()
+      ]);
       setData(pharmacistData);
+      setStaffUsers(staff);
     } catch (error) {
       console.error("Failed to fetch pharmacist data:", error);
       addToast('Failed to load pharmacy data.', 'error');
@@ -103,8 +114,10 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
     
     switch (activeView) {
       case 'queue': return <PharmacyQueueView prescriptions={data.prescriptions} patients={data.patients} doctors={data.doctors} onUpdateStatus={handleUpdateStatus} onRunSafetyCheck={handleRunSafetyCheck} />;
-      case 'inventory': return <div>Inventory Management Coming Soon</div>;
-      case 'history': return <div>Dispensing History Coming Soon</div>;
+      case 'inventory': return <InventoryView />;
+      case 'history': return <DispensingHistoryView />;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={() => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'dept-notes': return <InterDepartmentalNotesView />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Queue</div>;
     }

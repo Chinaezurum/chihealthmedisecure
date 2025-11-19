@@ -239,7 +239,7 @@ const App: React.FC = () => {
       case 'pharmacist':
         return <PharmacistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'accountant':
-        return <AccountantDashboard user={user} />;
+        return <AccountantDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'lab_technician':
         return <LabTechnicianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'receptionist':

@@ -318,3 +318,12 @@ export const ArrowDownIcon = createIcon("M19 9l-7 7-7-7");
 export const DocumentTextIcon = createIcon(
   "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
 );
+export const ReceiptIcon = createIcon(
+  "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1zm3 8h10M7 14h10M7 18h10"
+);
+export const BarChart3Icon = createIcon(
+  "M3 3v18h18M7 16V9m5 7V6m5 10v-4"
+);
+export const ArrowLeftRightIcon = createIcon(
+  "M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4m4 4H4"
+);

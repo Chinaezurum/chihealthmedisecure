@@ -138,16 +138,6 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
     setShowBillModal(true);
   };
 
-  const handleProcessPayment = (bill: Bill) => {
-    setSelectedBill(bill);
-    setShowPaymentModal(true);
-  };
-
-  const handleSubmitClaim = (bill: Bill) => {
-    setSelectedBill(bill);
-    setShowClaimModal(true);
-  };
-
   const renderOverview = () => {
     if (!data) {
       return (
@@ -476,14 +466,20 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
                           <button
-                            onClick={() => handleProcessPayment(bill)}
+                            onClick={() => {
+                              setSelectedBillForPayment(bill);
+                              setShowPaymentModal(true);
+                            }}
                             className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
                           >
                             Process Payment
                           </button>
                           {bill.paymentType !== 'Cash' && !bill.insuranceClaimId && (
                             <button
-                              onClick={() => handleSubmitClaim(bill)}
+                              onClick={() => {
+                                setSelectedBillForClaim(bill);
+                                setShowClaimModal(true);
+                              }}
                               className="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
                             >
                               Submit Claim
@@ -611,23 +607,23 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   {filteredEncounters.map(enc => (
                     <tr key={enc.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(enc.encounterDate).toLocaleDateString()}
+                        {new Date(enc.date || Date.now()).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {enc.patientName}
+                        {enc.patientName || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
                         {enc.id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {enc.providerName}
+                        {enc.doctorName || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => handleGenerateBill(enc)}
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 hover:shadow-md transition-all duration-200"
                         >
-                          <ReceiptIcon className="h-4 w-4 mr-1.5" />
+                          <Icons.FileTextIcon className="h-4 w-4 mr-1.5" />
                           Generate Bill
                         </button>
                       </td>
@@ -637,7 +633,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <FileTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.FileTextIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No pending encounters</p>
               </div>
             )}
@@ -653,7 +649,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
     const [statusFilter, setStatusFilter] = React.useState<'all' | 'Pending' | 'Paid'>('all');
     
     const filteredBills = data?.pendingBills.filter(bill => {
-      const matchesSearch = bill.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = bill.id.toLowerCase().includes(searchTerm.toLowerCase());
                            bill.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -710,16 +706,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   {filteredBills.map(bill => (
                     <tr key={bill.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(bill.billDate).toLocaleDateString()}
+                        {new Date(bill.date || Date.now()).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {bill.patientName}
+                        {data?.patients?.find(p => p.id === bill.patientId)?.name || bill.patientId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
                         {bill.id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        ₦{bill.totalAmount.toLocaleString()}
+                        ₦{(bill.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -750,7 +746,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                           }}
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-md transition-all duration-200"
                         >
-                          <ShieldCheckIcon className="h-4 w-4 mr-1.5" />
+                          <Icons.ShieldCheckIcon className="h-4 w-4 mr-1.5" />
                           Submit Claim
                         </button>
                       </td>
@@ -760,7 +756,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <ReceiptIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.FileTextIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No pending bills</p>
               </div>
             )}
@@ -786,14 +782,14 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-semibold text-gray-900">{bill.patientName}</span>
+                        <span className="text-sm font-semibold text-gray-900">{data?.patients?.find(p => p.id === bill.patientId)?.name || bill.patientId}</span>
                         <span className="text-xs font-mono text-gray-500">{bill.id}</span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        Bill Date: {new Date(bill.billDate).toLocaleDateString()}
+                        Bill Date: {new Date(bill.date || Date.now()).toLocaleDateString()}
                       </div>
                       <div className="text-lg font-bold text-gray-900 mt-2">
-                        ₦{bill.totalAmount.toLocaleString()}
+                        ₦{(bill.amount || 0).toLocaleString()}
                       </div>
                     </div>
                     <button
@@ -831,7 +827,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
             <p className="text-sm text-gray-600 mt-0.5">Submitted and pending claims</p>
           </div>
           <div className="overflow-x-auto">
-            {data && data.insuranceClaims.length > 0 ? (
+            {data && (data as any).insuranceClaims && (data as any).insuranceClaims.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -844,7 +840,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.insuranceClaims.map(claim => (
+                  {(data as any).insuranceClaims.map((claim: any) => (
                     <tr key={claim.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(claim.submissionDate).toLocaleDateString()}
@@ -880,7 +876,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No insurance claims</p>
               </div>
             )}
@@ -922,7 +918,11 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                         {txn.transactionId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {txn.patientName}
+                        {(() => {
+                          const bill = data.pendingBills.find((b: Bill) => b.id === txn.billId);
+                          const patient = bill ? data.patients?.find(p => p.id === bill.patientId) : null;
+                          return patient?.name || bill?.patientId || 'Unknown';
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                         ₦{txn.amount.toLocaleString()}
@@ -971,7 +971,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   ₦{data ? data.stats.totalRevenue.toLocaleString() : 0}
                 </p>
               </div>
-              <TrendingUpIcon className="h-10 w-10 text-green-500" />
+              <Icons.TrendingUpIcon className="h-10 w-10 text-green-500" />
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -979,7 +979,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               <div>
                 <p className="text-sm font-medium text-gray-600">Outstanding</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ₦{data ? data.stats.outstandingAmount.toLocaleString() : 0}
+                  ₦{data ? (data.stats.pendingRevenue || 0).toLocaleString() : 0}
                 </p>
               </div>
               <ClockIcon className="h-10 w-10 text-amber-500" />
@@ -990,7 +990,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               <div>
                 <p className="text-sm font-medium text-gray-600">Collected Today</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ₦{data ? data.stats.collectedToday.toLocaleString() : 0}
+                  ₦{data ? (data.stats.cashRevenue || 0).toLocaleString() : 0}
                 </p>
               </div>
               <CheckCircleIcon className="h-10 w-10 text-blue-500" />
@@ -1003,21 +1003,21 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           <h3 className="text-base font-semibold text-gray-900 mb-4">Generate Reports</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <FileTextIcon className="h-8 w-8 text-blue-600" />
+              <Icons.FileTextIcon className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Revenue Report</p>
                 <p className="text-xs text-gray-600">Monthly revenue breakdown</p>
               </div>
             </button>
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <ReceiptIcon className="h-8 w-8 text-green-600" />
+              <Icons.FileTextIcon className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Billing Report</p>
                 <p className="text-xs text-gray-600">Bills and invoices summary</p>
               </div>
             </button>
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <ShieldCheckIcon className="h-8 w-8 text-purple-600" />
+              <Icons.ShieldCheckIcon className="h-8 w-8 text-purple-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Claims Report</p>
                 <p className="text-xs text-gray-600">Insurance claims analysis</p>
@@ -1031,14 +1031,14 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </div>
             </button>
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <TrendingUpIcon className="h-8 w-8 text-green-600" />
+              <Icons.TrendingUpIcon className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Trend Analysis</p>
                 <p className="text-xs text-gray-600">Revenue trends over time</p>
               </div>
             </button>
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
-              <UsersIcon className="h-8 w-8 text-indigo-600" />
+              <Icons.UsersIcon className="h-8 w-8 text-indigo-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Patient Analysis</p>
                 <p className="text-xs text-gray-600">Patient billing analytics</p>
