@@ -15,7 +15,10 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
   const { messages, currentUser, contacts, onSendMessage, onStartCall, onAiChannelCommand } = props;
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [messageContent, setMessageContent] = useState('');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // For HCWs, the "contacts" are the patients they can open channels for.
   const patientContacts = useMemo(() => contacts.filter(c => c.role === 'patient'), [contacts]);
@@ -30,9 +33,34 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedPatient]);
   
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageContent.trim() || !selectedPatient) return;
+    if ((!messageContent.trim() && !selectedImage) || !selectedPatient) return;
+    
+    let finalMessage = messageContent;
+    if (selectedImage) {
+      finalMessage = `${messageContent} [Image: ${selectedImage.name}]`.trim();
+    }
     
     if (messageContent.startsWith('@ai ') && onAiChannelCommand) {
         const command = messageContent.substring(4);
@@ -41,9 +69,10 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
         // Broadcast to a channel - in this mock, we send to the first other non-patient user.
         // A real implementation would have channel IDs.
         const recipient = contacts.find(c => c.role !== 'patient' && c.id !== currentUser.id);
-        onSendMessage(recipient?.id || 'group', messageContent, selectedPatient.id);
+        onSendMessage(recipient?.id || 'group', finalMessage, selectedPatient.id);
     }
     setMessageContent('');
+    handleRemoveImage();
   };
   
   const currentChatMessages = useMemo(() => {
@@ -109,8 +138,40 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
                 <div ref={messagesEndRef} />
             </div>
             <form onSubmit={handleSendMessage} className="message-input-form">
-              <input type="text" placeholder="Type a message or use '@ai' for assistance..." value={messageContent} onChange={(e) => setMessageContent(e.target.value)} />
-              <button type="submit" className="btn btn-primary">Send</button>
+              {imagePreview && (
+                <div className="image-preview-container" style={{ padding: '8px', borderTop: '1px solid #e5e7eb' }}>
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '8px' }} />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 12px', minWidth: 'auto' }}
+                  title="Upload image"
+                >
+                  📎
+                </button>
+                <input type="text" placeholder="Type a message or use '@ai' for assistance..." value={messageContent} onChange={(e) => setMessageContent(e.target.value)} style={{ flex: 1 }} />
+                <button type="submit" className="btn btn-primary">Send</button>
+              </div>
             </form>
           </>
         ) : (
