@@ -3,17 +3,26 @@ import { User, Encounter, Bill, InsuranceClaim, PaymentTransaction, BillingCode 
 import * as api from '../../services/apiService.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
-import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon } from '../../components/icons/index.tsx';
+import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
+import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
+import { Logo } from '../../components/common/Logo.tsx';
+import * as Icons from '../../components/icons/index.tsx';
+import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon, LayoutDashboardIcon, SettingsIcon } from '../../components/icons/index.tsx';
 import { BillGenerationModal } from './BillGenerationModal.tsx';
 import { PaymentModal } from './PaymentModal.tsx';
 import { InsuranceClaimModal } from './InsuranceClaimModal.tsx';
 import { PricingCatalogView } from './PricingCatalogView.tsx';
+import { SettingsView } from '../common/SettingsView.tsx';
 
 interface AccountantDashboardProps {
   user: User;
+  onSignOut: () => void;
+  onSwitchOrganization: (orgId: string) => void;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
 }
 
-type AccountantView = 'overview' | 'pricing';
+type AccountantView = 'overview' | 'pricing' | 'settings';
 
 interface DashboardData {
   pendingEncounters: Encounter[];
@@ -36,7 +45,45 @@ interface DashboardData {
   };
 }
 
-export const AccountantDashboard: React.FC<AccountantDashboardProps> = () => {
+const Sidebar: React.FC<{ activeView: AccountantView; setActiveView: (view: AccountantView) => void }> = ({ activeView, setActiveView }) => {
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboardIcon },
+    { id: 'pricing', label: 'Pricing Catalog', icon: DocumentTextIcon },
+  ];
+
+  const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
+    <button 
+      onClick={() => setActiveView(item.id as AccountantView)} 
+      className={`sidebar-link ${activeView === item.id ? 'active' : ''}`}
+    >
+      <item.icon />
+      <span>{item.label}</span>
+    </button>
+  );
+  
+  return (
+    <aside className="sidebar">
+      <button onClick={() => setActiveView('overview')} className="sidebar-logo-button">
+        <Logo />
+        <h1>ChiHealth</h1>
+      </button>
+      <nav className="flex-1 space-y-1">
+        {navItems.map(item => <NavLink key={item.id} item={item} />)}
+      </nav>
+      <div>
+        <button 
+          onClick={() => setActiveView('settings')} 
+          className={`sidebar-link ${activeView === 'settings' ? 'active' : ''}`}
+        >
+          <SettingsIcon />
+          <span>Settings</span>
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<AccountantView>('overview');
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -470,6 +517,8 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = () => {
         return renderOverview();
       case 'pricing':
         return <PricingCatalogView billingCodes={data.billingCodes} />;
+      case 'settings':
+        return <SettingsView user={props.user} />;
       default:
         return renderOverview();
     }
@@ -480,47 +529,22 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <CreditCardIcon className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">Billing & Accounting</h1>
-                <p className="text-xs text-gray-500 mt-0.5">Financial management dashboard</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setActiveView('overview')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeView === 'overview'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveView('pricing')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeView === 'pricing'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                }`}
-              >
-                Pricing Catalog
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
+    <DashboardLayout 
+      onSignOut={props.onSignOut}
+      sidebar={<Sidebar activeView={activeView} setActiveView={setActiveView} />}
+      header={
+        <DashboardHeader 
+          user={props.user} 
+          onSignOut={props.onSignOut} 
+          onSwitchOrganization={props.onSwitchOrganization}
+          notifications={[]}
+          onMarkNotificationsAsRead={() => {}}
+          title="Billing & Accounting"
+          theme={props.theme}
+          toggleTheme={props.toggleTheme}
+        />
+      }
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {renderContent()}
       </div>
@@ -578,6 +602,8 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = () => {
           }}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 };
+
+export default AccountantDashboard;
