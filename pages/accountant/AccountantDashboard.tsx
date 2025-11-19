@@ -110,6 +110,8 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEncounter, setSelectedEncounter] = useState<Encounter | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState<Bill | null>(null);
+  const [selectedBillForClaim, setSelectedBillForClaim] = useState<Bill | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
@@ -1130,35 +1132,35 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         />
       )}
 
-      {showPaymentModal && selectedBill && (
+      {showPaymentModal && selectedBillForPayment && (
         <PaymentModal
-          bill={selectedBill}
-          patient={data.patients.find(p => p.id === selectedBill.patientId)!}
+          bill={selectedBillForPayment}
+          patient={data.patients.find(p => p.id === selectedBillForPayment.patientId)!}
           onClose={() => {
             setShowPaymentModal(false);
-            setSelectedBill(null);
+            setSelectedBillForPayment(null);
           }}
           onSuccess={() => {
             setShowPaymentModal(false);
-            setSelectedBill(null);
+            setSelectedBillForPayment(null);
             fetchData();
             addToast('Payment processed successfully', 'success');
           }}
         />
       )}
 
-      {showClaimModal && selectedBill && (
+      {showClaimModal && selectedBillForClaim && (
         <InsuranceClaimModal
-          bill={selectedBill}
-          patient={data.patients.find(p => p.id === selectedBill.patientId)!}
+          bill={selectedBillForClaim}
+          patient={data.patients.find(p => p.id === selectedBillForClaim.patientId)!}
           insuranceProviders={data.insuranceProviders}
           onClose={() => {
             setShowClaimModal(false);
-            setSelectedBill(null);
+            setSelectedBillForClaim(null);
           }}
           onSuccess={() => {
             setShowClaimModal(false);
-            setSelectedBill(null);
+            setSelectedBillForClaim(null);
             fetchData();
             addToast('Insurance claim submitted successfully', 'success');
           }}
