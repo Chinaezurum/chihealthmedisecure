@@ -28,7 +28,7 @@ const Sidebar: React.FC<{ activeView: NurseView; setActiveView: (view: NurseView
     { id: 'triage', label: 'Triage Queue', icon: Icons.UsersIcon },
     { id: 'inpatients', label: 'Inpatient Monitoring', icon: Icons.BedIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
-    { id: 'messages', label: 'Messages', icon: Icons.MessageCircleIcon },
+    { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
