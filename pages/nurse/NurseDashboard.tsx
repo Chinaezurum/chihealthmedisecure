@@ -10,9 +10,10 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { TriageQueueView } from './TriageQueueView.tsx';
 import { InpatientView } from './InpatientView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
+import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type NurseView = 'triage' | 'inpatients' | 'lookup' | 'settings';
+type NurseView = 'triage' | 'inpatients' | 'lookup' | 'messages' | 'settings';
 
 interface NurseDashboardProps {
   user: User;
@@ -27,6 +28,7 @@ const Sidebar: React.FC<{ activeView: NurseView; setActiveView: (view: NurseView
     { id: 'triage', label: 'Triage Queue', icon: Icons.UsersIcon },
     { id: 'inpatients', label: 'Inpatient Monitoring', icon: Icons.BedIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
+    { id: 'messages', label: 'Messages', icon: Icons.MessageCircleIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -44,7 +46,7 @@ const Sidebar: React.FC<{ activeView: NurseView; setActiveView: (view: NurseView
 
 const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<NurseView>('triage');
-  const [data, setData] = useState<{ triageQueue: TriageEntry[], inpatients: Patient[] } | null>(null);
+  const [data, setData] = useState<{ triageQueue: TriageEntry[], inpatients: Patient[], messages: any[], patients: Patient[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToasts();
 
@@ -81,6 +83,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
     switch (activeView) {
       case 'triage': return <TriageQueueView triageQueue={data.triageQueue} onSaveVitals={handleSaveVitals} />;
       case 'inpatients': return <InpatientView patients={data.inpatients} />;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={data.patients || []} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async (cmd) => { addToast('AI feature coming soon', 'info'); return ''; }} />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Triage Queue</div>;
     }

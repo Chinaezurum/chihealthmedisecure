@@ -36,38 +36,57 @@ const PatientVitalsCard: React.FC<{ patient: Patient }> = ({ patient }) => {
     const vitals = inpatientInfo.currentVitals;
 
     return (
-        <div className="content-card p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-6">
             <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h3 className="font-bold text-lg text-text-primary">{patient.name}</h3>
-                    <p className="text-sm text-text-secondary">Room: {inpatientInfo.roomNumber}</p>
-                    <p className="text-xs text-text-tertiary">Last updated: {(() => {
-                        const t = (inpatientInfo.vitalHistory && inpatientInfo.vitalHistory[0]?.timestamp) || (patient.vitalHistory && patient.vitalHistory[0]?.timestamp);
-                        if (!t) return 'Unknown';
-                        try { return new Date(String(t)).toLocaleString(); } catch { return 'Unknown'; }
-                    })()}</p>
+                <div className="flex-1">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{patient.name}</h3>
+                    <div className="flex items-center gap-4 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                            <BedIcon className="w-4 h-4" />
+                            Room {inpatientInfo.roomNumber}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                            Last updated: {(() => {
+                                const t = (inpatientInfo.vitalHistory && inpatientInfo.vitalHistory[0]?.timestamp) || (patient.vitalHistory && patient.vitalHistory[0]?.timestamp);
+                                if (!t) return 'Unknown';
+                                try { return new Date(String(t)).toLocaleString(); } catch { return 'Unknown'; }
+                            })()}
+                        </p>
+                    </div>
                 </div>
                 <Button onClick={handleAnalyzeVitals} isLoading={isLoading}>
                     <SparklesIcon className="w-4 h-4 mr-2"/>
                     Analyze Vitals
                 </Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                    <HeartPulseIcon className="w-5 h-5 text-red-500" />
-                    <div><p className="font-semibold text-text-secondary">HR</p><p>{vitals.heartRate} bpm</p></div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-100 dark:border-red-800">
+                    <div className="flex items-center gap-2 mb-1">
+                        <HeartPulseIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        <p className="text-xs font-semibold text-red-900 dark:text-red-300">Heart Rate</p>
+                    </div>
+                    <p className="text-xl font-bold text-red-700 dark:text-red-300">{vitals.heartRate} <span className="text-sm font-normal">bpm</span></p>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <ActivityIcon className="w-5 h-5 text-cyan-500" />
-                    <div><p className="font-semibold text-text-secondary">BP</p><p>{vitals.bloodPressure} mmHg</p></div>
+                <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-3 border border-cyan-100 dark:border-cyan-800">
+                    <div className="flex items-center gap-2 mb-1">
+                        <ActivityIcon className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                        <p className="text-xs font-semibold text-cyan-900 dark:text-cyan-300">Blood Pressure</p>
+                    </div>
+                    <p className="text-xl font-bold text-cyan-700 dark:text-cyan-300">{vitals.bloodPressure} <span className="text-sm font-normal">mmHg</span></p>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <LungIcon className="w-5 h-5 text-sky-500" />
-                    <div><p className="font-semibold text-text-secondary">RR</p><p>{vitals.respiratoryRate} rpm</p></div>
+                <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-3 border border-sky-100 dark:border-sky-800">
+                    <div className="flex items-center gap-2 mb-1">
+                        <LungIcon className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                        <p className="text-xs font-semibold text-sky-900 dark:text-sky-300">Respiratory</p>
+                    </div>
+                    <p className="text-xl font-bold text-sky-700 dark:text-sky-300">{vitals.respiratoryRate} <span className="text-sm font-normal">rpm</span></p>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <HeartPulseIcon className="w-5 h-5 text-violet-500" />
-                    <div><p className="font-semibold text-text-secondary">SpO2</p><p>{vitals.spO2 || '--'}%</p></div>
+                <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-3 border border-violet-100 dark:border-violet-800">
+                    <div className="flex items-center gap-2 mb-1">
+                        <HeartPulseIcon className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                        <p className="text-xs font-semibold text-violet-900 dark:text-violet-300">Oxygen Level</p>
+                    </div>
+                    <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{vitals.spO2 || '--'} <span className="text-sm font-normal">%</span></p>
                 </div>
             </div>
              {isModalOpen && alert && (
@@ -92,10 +111,15 @@ export const InpatientView: React.FC<{ patients: Patient[] }> = ({ patients }) =
     const inpatients = patients.filter(p => p.inpatientStay);
     
     return (
-        <div>
-            <h2 className="text-3xl font-bold text-text-primary mb-6">Inpatient Monitoring</h2>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Inpatient Monitoring</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {inpatients.length} {inpatients.length === 1 ? 'patient' : 'patients'} admitted for care
+                </p>
+            </div>
             {inpatients.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {inpatients.map(p => <PatientVitalsCard key={p.id} patient={p} />)}
                 </div>
             ) : (
