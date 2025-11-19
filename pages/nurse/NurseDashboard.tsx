@@ -88,7 +88,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
     switch (activeView) {
       case 'triage': return <TriageQueueView triageQueue={data.triageQueue} onSaveVitals={handleSaveVitals} />;
       case 'inpatients': return <InpatientView patients={data.inpatients} />;
-      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={(contact) => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async (cmd) => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={() => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Triage Queue</div>;
     }

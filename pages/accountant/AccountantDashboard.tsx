@@ -109,7 +109,6 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEncounter, setSelectedEncounter] = useState<Encounter | null>(null);
-  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<Bill | null>(null);
   const [selectedBillForClaim, setSelectedBillForClaim] = useState<Bill | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
