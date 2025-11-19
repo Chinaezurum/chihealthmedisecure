@@ -12,8 +12,9 @@ import { InpatientView } from './InpatientView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
+import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
 
-type NurseView = 'triage' | 'inpatients' | 'lookup' | 'messages' | 'settings';
+type NurseView = 'triage' | 'inpatients' | 'lookup' | 'messages' | 'dept-notes' | 'settings';
 
 interface NurseDashboardProps {
   user: User;
@@ -29,6 +30,7 @@ const Sidebar: React.FC<{ activeView: NurseView; setActiveView: (view: NurseView
     { id: 'inpatients', label: 'Inpatient Monitoring', icon: Icons.BedIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
     { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
+    { id: 'dept-notes', label: 'Dept. Notes', icon: Icons.BellIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -89,6 +91,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
       case 'triage': return <TriageQueueView triageQueue={data.triageQueue} onSaveVitals={handleSaveVitals} />;
       case 'inpatients': return <InpatientView patients={data.inpatients} />;
       case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={() => { addToast('Call feature coming soon', 'info'); }} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'dept-notes': return <InterDepartmentalNotesView />;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Triage Queue</div>;
     }
