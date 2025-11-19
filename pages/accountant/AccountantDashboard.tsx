@@ -22,7 +22,7 @@ interface AccountantDashboardProps {
   toggleTheme: () => void;
 }
 
-type AccountantView = 'overview' | 'pricing' | 'settings';
+type AccountantView = 'overview' | 'encounters' | 'bills' | 'payments' | 'claims' | 'transactions' | 'pricing' | 'reports' | 'settings';
 
 interface DashboardData {
   pendingEncounters: Encounter[];
