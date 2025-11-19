@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Modal } from './Modal.tsx';
 import { Button } from './Button.tsx';
 import { Select } from './Select.tsx';
-import { InterDepartmentalNote } from '../../types.ts';
+import { InterDepartmentalNote, User, UserRole } from '../../types.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
+import * as api from '../../services/apiService.ts';
 
 interface InterDepartmentalNotesModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ interface InterDepartmentalNotesModalProps {
   patientName: string;
   relatedEntityId?: string;
   relatedEntityType?: 'lab' | 'prescription' | 'vitals' | 'general';
-  onSendNote: (note: Omit<InterDepartmentalNote, 'id' | 'timestamp' | 'isRead' | 'fromUserId' | 'fromUserName' | 'fromRole'>) => void;
+  onSendNote: (note: Omit<InterDepartmentalNote, 'id' | 'timestamp' | 'isRead' | 'fromUserId' | 'fromUserName' | 'fromRole' | 'organizationId'>) => void;
+  availableUsers?: User[]; // List of all staff in organization
 }
 
 export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalProps> = ({
@@ -22,11 +24,14 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
   patientName,
   relatedEntityId,
   relatedEntityType = 'general',
-  onSendNote
+  onSendNote,
+  availableUsers = []
 }) => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState<'Low' | 'Normal' | 'High'>('Normal');
+  const [toRole, setToRole] = useState<UserRole | 'all'>('hcw');
+  const [toUserId, setToUserId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToasts();
 
@@ -40,21 +45,33 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
 
     setIsLoading(true);
     try {
-      onSendNote({
+      const selectedUser = toUserId ? availableUsers.find(u => u.id === toUserId) : undefined;
+      
+      const noteData = {
         patientId,
         patientName,
-        toRole: 'hcw',
+        toRole: toRole === 'all' ? undefined : toRole,
+        toUserId: toUserId || undefined,
+        toUserName: selectedUser?.name,
         relatedEntityId,
         relatedEntityType,
         subject,
         message,
         priority
-      });
+      };
+
+      // Make API call
+      await api.createInterDepartmentalNote(noteData);
       
-      addToast('Note sent to doctor successfully', 'success');
+      // Call the callback
+      onSendNote(noteData);
+      
+      addToast('Note sent successfully', 'success');
       setSubject('');
       setMessage('');
       setPriority('Normal');
+      setToRole('hcw');
+      setToUserId('');
       onClose();
     } catch (error) {
       console.error('Failed to send note:', error);
@@ -62,6 +79,24 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getFilteredUsers = () => {
+    if (toRole === 'all') return availableUsers;
+    return availableUsers.filter(u => u.role === toRole);
+  };
+
+  const getRoleLabel = (role: UserRole | 'all') => {
+    const labels: Record<string, string> = {
+      'all': 'All Staff',
+      'hcw': 'Doctors',
+      'nurse': 'Nurses',
+      'pharmacist': 'Pharmacists',
+      'lab_technician': 'Lab Technicians',
+      'receptionist': 'Receptionists',
+      'admin': 'Administrators'
+    };
+    return labels[role] || role;
   };
 
   const getSubjectSuggestions = () => {
@@ -116,15 +151,49 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Send Note to Doctor - ${patientName}`}
+      title={`Send Inter-Departmental Note - ${patientName}`}
       footer={footerContent}
     >
       <form id="noteForm" onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            This note will be sent to the attending doctor(s) for <strong>{patientName}</strong>.
-            {relatedEntityType !== 'general' && ` It's related to a ${relatedEntityType} record.`}
+            Send a note to other staff members regarding <strong>{patientName}</strong>.
+            {relatedEntityType !== 'general' && ` Related to a ${relatedEntityType} record.`}
           </p>
+        </div>
+
+        {/* Recipient Selection */}
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="Send to Department"
+            value={toRole}
+            onChange={(e) => {
+              setToRole(e.target.value as UserRole | 'all');
+              setToUserId(''); // Reset user selection when role changes
+            }}
+          >
+            <option value="all">All Staff</option>
+            <option value="hcw">Doctors</option>
+            <option value="nurse">Nurses</option>
+            <option value="pharmacist">Pharmacists</option>
+            <option value="lab_technician">Lab Technicians</option>
+            <option value="receptionist">Receptionists</option>
+            <option value="admin">Administrators</option>
+          </Select>
+
+          <Select
+            label="Specific Person (Optional)"
+            value={toUserId}
+            onChange={(e) => setToUserId(e.target.value)}
+            disabled={getFilteredUsers().length === 0}
+          >
+            <option value="">All in {getRoleLabel(toRole)}</option>
+            {getFilteredUsers().map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <div>

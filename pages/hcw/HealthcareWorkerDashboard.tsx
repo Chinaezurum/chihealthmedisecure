@@ -65,14 +65,19 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
   const [isNoteModalOpen, setNoteModalOpen] = useState(false);
   const [noteFromCall, setNoteFromCall] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const { addToast } = useToasts();
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const hcwData = await api.fetchHcwData();
+      const [hcwData, staff] = await Promise.all([
+        api.fetchHcwData(),
+        api.fetchStaffUsers()
+      ]);
       setRefreshTrigger(prev => prev + 1);
       setData(hcwData);
+      setStaffUsers(staff);
     } catch (error) {
       console.error("Failed to fetch HCW data:", error);
       addToast('Failed to load dashboard data.', 'error');
@@ -140,6 +145,7 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
         currentUser={props.user}
         clinicalNotes={[]}
         labTests={data.labTests.filter((l: LabTest) => l.patientId === selectedPatient.id)}
+        availableUsers={staffUsers}
         onDownload={async () => {
           const notesHtml = '';
           const labsHtml = data.labTests.filter((l: LabTest) => l.patientId === selectedPatient.id).map((l: LabTest) => `<div><strong>${l.testName}</strong>: ${l.result || 'Pending'} (${l.status})</div>`).join('');

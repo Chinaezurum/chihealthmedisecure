@@ -198,8 +198,9 @@ export interface InterDepartmentalNote {
     fromRole: UserRole;
     fromUserId: string;
     fromUserName: string;
-    toRole: 'hcw';
-    toDoctorId?: string;
+    toRole?: UserRole; // Can send to any role
+    toUserId?: string; // Specific user or null for all in role
+    toUserName?: string; // Name of recipient if specific
     relatedEntityId?: string; // Lab test ID, Prescription ID, etc.
     relatedEntityType?: 'lab' | 'prescription' | 'vitals' | 'general';
     subject: string;
@@ -207,6 +208,7 @@ export interface InterDepartmentalNote {
     priority: 'Low' | 'Normal' | 'High';
     timestamp: string;
     isRead: boolean;
+    organizationId: string; // For filtering by organization
 }
 
 export interface ExternalLabResult {

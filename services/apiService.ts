@@ -183,6 +183,9 @@ export const removeWearableDevice = (deviceId: string) => {
   return apiFetch(`/patient/devices/${deviceId}`, { method: 'DELETE' });
 };
 
+// --- Staff Users ---
+export const fetchStaffUsers = () => apiFetch('/staff');
+
 // --- HCW Dashboard ---
 export const fetchHcwData = () => apiFetch('/hcw/dashboard');
 export const createClinicalNote = (note: Omit<ClinicalNote, 'id' | 'doctorId' | 'doctorName'>) => {

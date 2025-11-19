@@ -451,9 +451,19 @@ app.put('/api/incoming-referrals/:id/status', authenticate, async (req, res) => 
   res.json(updated);
 });
 
+// Staff Users Endpoint
+app.get('/api/staff', authenticate, async (req, res) => {
+  const staff = await db.getStaffUsers((req.organizationContext as Organization).id);
+  res.json(staff);
+});
+
 // Inter-Departmental Notes Endpoints
 app.get('/api/inter-departmental-notes', authenticate, async (req, res) => {
-  const notes = await db.getInterDepartmentalNotes((req.user as User).id);
+  const notes = await db.getInterDepartmentalNotes(
+    (req.user as User).id,
+    (req.user as User).role,
+    (req.organizationContext as Organization).id
+  );
   res.json(notes);
 });
 
@@ -467,7 +477,8 @@ app.post('/api/inter-departmental-notes', authenticate, async (req, res) => {
     ...req.body,
     fromUserId: (req.user as User).id,
     fromUserName: (req.user as User).name,
-    fromRole: (req.user as User).role
+    fromRole: (req.user as User).role,
+    organizationId: (req.organizationContext as Organization).id
   });
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
   res.status(201).json(newNote);

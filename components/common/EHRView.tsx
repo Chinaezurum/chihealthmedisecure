@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Patient, LabTest, ClinicalNote, User, Prescription, Referral, CarePlan, CarePlanAdherence, DiagnosticSuggestion, LifestyleRecommendation, ReferralSuggestion } from '../../types.ts';
 import { Button } from './Button.tsx';
-import { SparklesIcon, TargetIcon, MicroscopeIcon, DietIcon, RepeatIcon, DownloadCloudIcon, FileTextIcon, CalendarIcon, UserIcon, ClockIcon, CheckCircleIcon, AlertCircleIcon } from '../icons/index.tsx';
+import { SparklesIcon, TargetIcon, MicroscopeIcon, DietIcon, RepeatIcon, DownloadCloudIcon, FileTextIcon, CalendarIcon, UserIcon, ClockIcon, CheckCircleIcon, AlertCircleIcon, MessageSquareIcon } from '../icons/index.tsx';
 import { AISummaryModal } from './AISummaryModal.tsx';
 import * as geminiService from '../../services/geminiService.ts';
 import { ClinicalNoteModal } from '../hcw/ClinicalNoteModal.tsx';
@@ -14,6 +14,7 @@ import { CarePlanAdherenceView } from '../hcw/CarePlanAdherenceView.tsx';
 import { DiagnosticSuggestionsModal } from '../hcw/DiagnosticSuggestionsModal.tsx';
 import { LifestylePlanModal } from '../hcw/LifestylePlanModal.tsx';
 import { ReferralSuggestionModal } from '../hcw/ReferralSuggestionModal.tsx';
+import { InterDepartmentalNotesModal } from './InterDepartmentalNotesModal.tsx';
 import { useToasts } from '../../hooks/useToasts.ts';
 import { canAccessFeature } from '../../services/permissionService.ts';
 
@@ -26,6 +27,7 @@ interface EHRViewProps {
   carePlanAdherence?: CarePlanAdherence;
   onDownload: () => void;
   onBack?: () => void;
+  availableUsers?: User[]; // For inter-departmental notes
   // HCW-specific actions
   onCreateClinicalNote?: (note: Omit<ClinicalNote, 'id' | 'doctorId' | 'doctorName'>) => void;
   onOrderLabTest?: (test: Omit<LabTest, 'id' | 'orderedById' | 'status'>) => void;
@@ -56,6 +58,7 @@ export const EHRView: React.FC<EHRViewProps> = (props) => {
   const [isRxModalOpen, setRxModalOpen] = useState(false);
   const [isLabModalOpen, setLabModalOpen] = useState(false);
   const [isReferralModalOpen, setReferralModalOpen] = useState(false);
+  const [isInterDeptNoteModalOpen, setInterDeptNoteModalOpen] = useState(false);
   
   const [summary, setSummary] = useState('');
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
@@ -288,6 +291,10 @@ export const EHRView: React.FC<EHRViewProps> = (props) => {
             <RepeatIcon className="w-4 h-4" />
             <span>Referral</span>
           </button>
+          <button onClick={() => setInterDeptNoteModalOpen(true)} className="ehr-quick-action-button">
+            <MessageSquareIcon className="w-4 h-4" />
+            <span>Send Note</span>
+          </button>
         </div>
       )}
 
@@ -488,6 +495,21 @@ export const EHRView: React.FC<EHRViewProps> = (props) => {
       {isHcw && props.onCreatePrescription && canAccessFeature(props.currentUser, 'prescribing') && <CreatePrescriptionModal isOpen={isRxModalOpen} onClose={() => setRxModalOpen(false)} patients={[props.patient]} onCreatePrescription={(rx) => { props.onCreatePrescription!(rx); setRxModalOpen(false); }} />}
       {isHcw && props.onOrderLabTest && canAccessFeature(props.currentUser, 'lab') && <OrderLabTestModal isOpen={isLabModalOpen} onClose={() => setLabModalOpen(false)} patient={props.patient} onOrderLabTest={(test) => { props.onOrderLabTest!(test); setLabModalOpen(false); }} />}
       {isHcw && props.onReferPatient && <ReferralModal isOpen={isReferralModalOpen} onClose={() => setReferralModalOpen(false)} patient={props.patient} onReferPatient={(referral) => { props.onReferPatient!(referral); setReferralModalOpen(false); }} />}
+      
+      {/* Inter-departmental Notes Modal */}
+      {isHcw && (
+        <InterDepartmentalNotesModal
+          isOpen={isInterDeptNoteModalOpen}
+          onClose={() => setInterDeptNoteModalOpen(false)}
+          patientId={props.patient.id}
+          patientName={props.patient.name}
+          availableUsers={props.availableUsers || []}
+          onSendNote={() => {
+            // The modal component handles the API call
+            setInterDeptNoteModalOpen(false);
+          }}
+        />
+      )}
       
       {/* AI Recommendation Modals */}
       <DiagnosticSuggestionsModal 

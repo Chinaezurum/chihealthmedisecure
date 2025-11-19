@@ -72,10 +72,13 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
 
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
+      'hcw': 'Doctor',
       'nurse': 'Nurse',
       'lab_technician': 'Lab Technician',
       'pharmacist': 'Pharmacist',
-      'receptionist': 'Receptionist'
+      'receptionist': 'Receptionist',
+      'admin': 'Administrator',
+      'patient': 'Patient'
     };
     return labels[role] || role;
   };
@@ -167,7 +170,19 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
                     {getPriorityBadge(note.priority)}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-text-secondary">
-                    <span className="font-medium">{getRoleLabel(note.fromRole)}: {note.fromUserName}</span>
+                    <span className="font-medium">From: {getRoleLabel(note.fromRole)} - {note.fromUserName}</span>
+                    {note.toUserName && (
+                      <>
+                        <span>•</span>
+                        <span>To: {note.toUserName}</span>
+                      </>
+                    )}
+                    {!note.toUserName && note.toRole && (
+                      <>
+                        <span>•</span>
+                        <span>To: All {getRoleLabel(note.toRole)}s</span>
+                      </>
+                    )}
                     <span>•</span>
                     <span>Patient: {note.patientName}</span>
                     {getEntityTypeLabel(note.relatedEntityType) && (

@@ -834,9 +834,23 @@ export const updateIncomingReferralStatus = async (
 };
 
 // --- Inter-Departmental Notes Management ---
-export const getInterDepartmentalNotes = async (doctorId: string) => {
+export const getInterDepartmentalNotes = async (userId: string, userRole: string, orgId: string) => {
     return interDepartmentalNotes
-        .filter(n => !n.toDoctorId || n.toDoctorId === doctorId)
+        .filter(n => {
+            // Filter by organization
+            if (n.organizationId !== orgId) return false;
+            
+            // Show notes addressed to this specific user
+            if (n.toUserId && n.toUserId === userId) return true;
+            
+            // Show notes addressed to this user's role (if no specific user)
+            if (!n.toUserId && n.toRole === userRole) return true;
+            
+            // Show notes sent by this user
+            if (n.fromUserId === userId) return true;
+            
+            return false;
+        })
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -862,6 +876,19 @@ export const markInterDepartmentalNoteAsRead = async (id: string): Promise<Inter
     if (!note) throw new Error('Note not found');
     note.isRead = true;
     return note;
+};
+
+// --- Staff Management ---
+export const getStaffUsers = async (orgId: string) => {
+    return users.filter(u => 
+        u.role !== 'patient' && 
+        u.currentOrganization.id === orgId
+    ).map(u => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        email: u.email
+    }));
 };
 
 // --- External Lab Results Management ---
