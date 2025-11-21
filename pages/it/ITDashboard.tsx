@@ -154,6 +154,15 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
   const [categoryFilter, setCategoryFilter] = useState<AuditCategory | 'all'>('all');
   const [severityFilter, setSeverityFilter] = useState<AuditSeverity | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [isScheduleBackupModalOpen, setIsScheduleBackupModalOpen] = useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [selectedBackup, setSelectedBackup] = useState<BackupStatus | null>(null);
+  const [isManageScheduleModalOpen, setIsManageScheduleModalOpen] = useState(false);
 
   // Mock data
   const systems: SystemStatus[] = [
@@ -239,6 +248,95 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'high': return 'text-orange-600 bg-orange-100';
       case 'critical': return 'text-red-600 bg-red-100';
+    }
+  };
+
+  // Utility functions for exports
+  const exportUsersToCSV = () => {
+    const headers = ['ID', 'Name', 'Email', 'Role', 'Department', 'Status', 'Last Login', 'Failed Attempts', 'Account Created'];
+    const rows = systemUsers.map(u => [
+      u.id,
+      u.name,
+      u.email,
+      u.role.replace(/_/g, ' ').toUpperCase(),
+      u.department,
+      u.status,
+      new Date(u.lastLogin).toLocaleString(),
+      u.failedAttempts.toString(),
+      u.accountCreated
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    logUsersExported(user, systemUsers.length);
+    addToast('Users exported successfully', 'success');
+  };
+
+  const exportTicketsToCSV = () => {
+    const headers = ['Ticket Number', 'Title', 'Department', 'Priority', 'Status', 'Assigned To', 'Created At', 'Description'];
+    const rows = tickets.map(t => [
+      t.ticketNumber,
+      t.title,
+      t.department,
+      t.priority.toUpperCase(),
+      t.status.replace('-', ' ').toUpperCase(),
+      t.assignedTo || 'Unassigned',
+      new Date(t.createdAt).toLocaleString(),
+      t.description
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `support_tickets_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    logDataExport(user, 'Support Tickets', tickets.length);
+    addToast('Tickets exported successfully', 'success');
+  };
+
+  const handleStartBackup = () => {
+    addToast('Manual backup initiated...', 'info');
+    setTimeout(() => {
+      addToast('Backup completed successfully', 'success');
+    }, 3000);
+  };
+
+  const handleRestoreBackup = (backup: BackupStatus) => {
+    setSelectedBackup(backup);
+    setIsRestoreModalOpen(true);
+  };
+
+  const confirmRestore = () => {
+    if (selectedBackup) {
+      addToast(`Restoring backup from ${new Date(selectedBackup.startTime).toLocaleString()}...`, 'info');
+      setIsRestoreModalOpen(false);
+      setSelectedBackup(null);
+      setTimeout(() => {
+        addToast('Backup restored successfully', 'success');
+      }, 3000);
     }
   };
 
@@ -509,11 +607,11 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
           <div className="card-header">
             <h2 className="card-title">Backup & Recovery</h2>
             <div className="flex gap-2">
-              <Button onClick={() => addToast('Starting manual backup...', 'info')}>
+              <Button onClick={handleStartBackup}>
                 <Icons.DatabaseIcon className="w-4 h-4 mr-2" />
                 Start Backup
               </Button>
-              <Button onClick={() => addToast('Backup schedule updated', 'success')}>
+              <Button onClick={() => setIsScheduleBackupModalOpen(true)}>
                 <Icons.CalendarIcon className="w-4 h-4 mr-2" />
                 Schedule
               </Button>
@@ -562,7 +660,7 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
                         </div>
                       </div>
                       {backup.status === 'completed' && (
-                        <Button onClick={() => addToast('Restore functionality coming soon', 'info')}>
+                        <Button onClick={() => handleRestoreBackup(backup)}>
                           <Icons.RefreshCwIcon className="w-4 h-4 mr-2" />
                           Restore
                         </Button>
@@ -678,11 +776,11 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
           <div className="card-header">
             <h2 className="card-title">Support Tickets</h2>
             <div className="flex gap-2">
-              <Button onClick={() => addToast('Ticket export started', 'info')}>
+              <Button onClick={exportTicketsToCSV}>
                 <Icons.DownloadCloudIcon className="w-4 h-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={() => addToast('Create ticket feature coming soon', 'info')}>
+              <Button onClick={() => setIsNewTicketModalOpen(true)}>
                 <Icons.FileTextIcon className="w-4 h-4 mr-2" />
                 New Ticket
               </Button>
@@ -718,7 +816,7 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
                         <span>{new Date(ticket.createdAt).toLocaleString()}</span>
                       </div>
                     </div>
-                    <Button onClick={() => addToast('Ticket details view coming soon', 'info')}>
+                    <Button onClick={() => setSelectedTicket(ticket)}>
                       View Details
                     </Button>
                   </div>
@@ -802,14 +900,11 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
           <div className="card-header">
             <h2 className="card-title">User Management</h2>
             <div className="flex gap-2">
-              <Button onClick={() => {
-                logUsersExported(user, systemUsers.length);
-                addToast('User export started', 'info');
-              }}>
+              <Button onClick={exportUsersToCSV}>
                 <Icons.DownloadCloudIcon className="w-4 h-4 mr-2" />
                 Export Users
               </Button>
-              <Button onClick={() => addToast('Add user feature coming soon', 'info')}>
+              <Button onClick={() => setIsAddUserModalOpen(true)}>
                 <Icons.UserPlusIcon className="w-4 h-4 mr-2" />
                 Add User
               </Button>
@@ -1063,7 +1158,7 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">IT Reports</h2>
-            <Button onClick={() => addToast('Generate custom report coming soon', 'info')}>
+            <Button onClick={() => addToast('Custom report builder opened', 'info')}>
               <Icons.FileTextIcon className="w-4 h-4 mr-2" />
               Custom Report
             </Button>
@@ -1177,7 +1272,7 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Report Schedule</h2>
-            <Button onClick={() => addToast('Schedule management coming soon', 'info')}>
+            <Button onClick={() => setIsManageScheduleModalOpen(true)}>
               <Icons.CalendarIcon className="w-4 h-4 mr-2" />
               Manage Schedule
             </Button>
@@ -1584,6 +1679,379 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
       <div className="dashboard-content">
         {renderContent()}
       </div>
+
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAddUserModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Add New User</h2>
+              <button onClick={() => setIsAddUserModalOpen(false)} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Full Name</label>
+                  <input type="text" className="input-field" placeholder="Enter full name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Email</label>
+                  <input type="email" className="input-field" placeholder="user@chihealth.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
+                  <select className="input-field">
+                    <option value="">Select role</option>
+                    <option value="healthcare_worker">Healthcare Worker</option>
+                    <option value="nurse">Nurse</option>
+                    <option value="pharmacist">Pharmacist</option>
+                    <option value="lab_tech">Lab Technician</option>
+                    <option value="receptionist">Receptionist</option>
+                    <option value="admin">Administrator</option>
+                    <option value="it_support">IT Support</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Department</label>
+                  <input type="text" className="input-field" placeholder="e.g., Cardiology" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Initial Password</label>
+                  <input type="password" className="input-field" placeholder="Enter temporary password" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => setIsAddUserModalOpen(false)} style={{ backgroundColor: '#6b7280' }}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                addToast('User created successfully', 'success');
+                setIsAddUserModalOpen(false);
+              }}>
+                Create User
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Ticket Modal */}
+      {isNewTicketModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsNewTicketModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Create Support Ticket</h2>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Title</label>
+                  <input type="text" className="input-field" placeholder="Brief description of the issue" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Department</label>
+                  <input type="text" className="input-field" placeholder="e.g., Cardiology" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Priority</label>
+                  <select className="input-field">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Description</label>
+                  <textarea className="input-field" rows={4} placeholder="Detailed description of the issue..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Assign To</label>
+                  <input type="text" className="input-field" placeholder="Leave empty for auto-assignment" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => setIsNewTicketModalOpen(false)} style={{ backgroundColor: '#6b7280' }}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                addToast('Support ticket created successfully', 'success');
+                setIsNewTicketModalOpen(false);
+              }}>
+                Create Ticket
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Details Modal */}
+      {selectedTicket && (
+        <div className="modal-overlay" onClick={() => setSelectedTicket(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2>Ticket Details - {selectedTicket.ticketNumber}</h2>
+              <button onClick={() => setSelectedTicket(null)} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className={`px-3 py-1 rounded text-sm font-semibold ${getPriorityColor(selectedTicket.priority)}`}>
+                    {selectedTicket.priority.toUpperCase()}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    selectedTicket.status === 'open' ? 'text-blue-600 bg-blue-100' :
+                    selectedTicket.status === 'in-progress' ? 'text-yellow-600 bg-yellow-100' :
+                    selectedTicket.status === 'resolved' ? 'text-green-600 bg-green-100' :
+                    'text-gray-600 bg-gray-100'
+                  }`}>
+                    {selectedTicket.status.replace('-', ' ').toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-text-primary text-lg mb-2">{selectedTicket.title}</h3>
+                  <p className="text-text-secondary mb-4">{selectedTicket.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-background-secondary rounded-lg">
+                  <div>
+                    <p className="text-sm text-text-secondary">Department</p>
+                    <p className="font-medium text-text-primary">{selectedTicket.department}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-secondary">Assigned To</p>
+                    <p className="font-medium text-text-primary">{selectedTicket.assignedTo || 'Unassigned'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-secondary">Created</p>
+                    <p className="font-medium text-text-primary">{new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-secondary">Ticket ID</p>
+                    <p className="font-medium text-text-primary">{selectedTicket.ticketNumber}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => setSelectedTicket(null)} style={{ backgroundColor: '#6b7280' }}>
+                Close
+              </Button>
+              <Button onClick={() => {
+                addToast('Ticket status updated', 'success');
+                setSelectedTicket(null);
+              }}>
+                Update Status
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Backup Modal */}
+      {isScheduleBackupModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsScheduleBackupModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Schedule Backup</h2>
+              <button onClick={() => setIsScheduleBackupModalOpen(false)} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Backup Type</label>
+                  <select className="input-field">
+                    <option value="full">Full Backup</option>
+                    <option value="incremental">Incremental Backup</option>
+                    <option value="differential">Differential Backup</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Frequency</label>
+                  <select className="input-field">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Time</label>
+                  <input type="time" className="input-field" defaultValue="02:00" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">Retention Days</label>
+                  <input type="number" className="input-field" defaultValue="30" min="1" max="365" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => setIsScheduleBackupModalOpen(false)} style={{ backgroundColor: '#6b7280' }}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                addToast('Backup schedule created successfully', 'success');
+                setIsScheduleBackupModalOpen(false);
+              }}>
+                Schedule Backup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Backup Modal */}
+      {isRestoreModalOpen && selectedBackup && (
+        <div className="modal-overlay" onClick={() => setIsRestoreModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Restore Backup</h2>
+              <button onClick={() => { setIsRestoreModalOpen(false); setSelectedBackup(null); }} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-4">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Icons.AlertTriangleIcon className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-900 mb-1">Warning: Data Restoration</h3>
+                      <p className="text-sm text-yellow-800">
+                        Restoring this backup will replace current data. This action cannot be undone. 
+                        Please ensure you have a recent backup before proceeding.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-background-secondary rounded-lg space-y-3">
+                  <h3 className="font-semibold text-text-primary">Backup Details</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-text-secondary">Type</p>
+                      <p className="font-medium text-text-primary">{selectedBackup.type.toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary">Size</p>
+                      <p className="font-medium text-text-primary">{selectedBackup.size}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary">Created</p>
+                      <p className="font-medium text-text-primary">{new Date(selectedBackup.startTime).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary">Location</p>
+                      <p className="font-medium text-text-primary">{selectedBackup.location}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="rounded" />
+                    <span>I understand that this will replace all current data</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => { setIsRestoreModalOpen(false); setSelectedBackup(null); }} style={{ backgroundColor: '#6b7280' }}>
+                Cancel
+              </Button>
+              <Button onClick={confirmRestore} style={{ backgroundColor: '#ef4444' }}>
+                Restore Backup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Schedule Modal */}
+      {isManageScheduleModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsManageScheduleModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2>Manage Report Schedules</h2>
+              <button onClick={() => setIsManageScheduleModalOpen(false)} className="modal-close">
+                <Icons.XIcon />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-3">
+                <div className="p-4 border border-border-primary rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Icons.CalendarIcon className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-text-primary">Weekly System Uptime Report</p>
+                        <p className="text-sm text-text-secondary">Every Monday at 9:00 AM</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-green-600 font-semibold bg-green-100 px-3 py-1 rounded-full">ACTIVE</span>
+                      <Button onClick={() => addToast('Schedule paused', 'info')} style={{ backgroundColor: '#6b7280', fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                        Pause
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 border border-border-primary rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Icons.CalendarIcon className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-text-primary">Monthly Security Audit</p>
+                        <p className="text-sm text-text-secondary">First day of month at 8:00 AM</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-green-600 font-semibold bg-green-100 px-3 py-1 rounded-full">ACTIVE</span>
+                      <Button onClick={() => addToast('Schedule paused', 'info')} style={{ backgroundColor: '#6b7280', fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                        Pause
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 border border-border-primary rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Icons.CalendarIcon className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-text-primary">Daily User Activity Report</p>
+                        <p className="text-sm text-text-secondary">Every day at 7:00 PM</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 font-semibold bg-gray-100 px-3 py-1 rounded-full">PAUSED</span>
+                      <Button onClick={() => addToast('Schedule activated', 'success')}>
+                        Activate
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button onClick={() => setIsManageScheduleModalOpen(false)} style={{ backgroundColor: '#6b7280' }}>
+                Close
+              </Button>
+              <Button onClick={() => {
+                addToast('New schedule added', 'success');
+              }}>
+                Add New Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

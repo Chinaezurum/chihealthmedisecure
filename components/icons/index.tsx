@@ -50,6 +50,7 @@ export const BotMessageSquareIcon = createIcon(
   "M12 8V4m0 0h-1m1 0h1m-1 4v.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
 );
 export const SendIcon = createIcon("M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z");
+export const XIcon = createIcon("M18 6L6 18M6 6l12 12");
 export const MicIcon = createIcon(
   "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4"
 );
