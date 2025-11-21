@@ -4,14 +4,15 @@ import { Input } from '../../components/common/Input.tsx';
 import { useToasts } from '../../hooks/useToasts.ts';
 import * as api from '../../services/apiService.ts';
 import { SearchIcon, UserIcon, PhoneIcon, CalendarIcon, MapPinIcon, AlertCircleIcon, PillIcon, HeartIcon, EnvelopeIcon } from '../../components/icons/index.tsx';
-import type { User } from '../../types.ts';
+import type { User, Appointment } from '../../types.ts';
 
 interface PatientLookupViewProps {
   currentUserId?: string;
-  onCheckInForTriage?: (patientId: string) => void;
+  appointments?: Appointment[];
+  onCheckInForTriage?: (appointmentId: string) => void;
 }
 
-export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUserId, onCheckInForTriage }) => {
+export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUserId, appointments = [], onCheckInForTriage }) => {
   const { addToast } = useToasts();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -83,6 +84,16 @@ export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUse
     } catch {
       return 'N/A';
     }
+  };
+
+  // Find today's confirmed appointment for the patient
+  const getPatientActiveAppointment = (patientId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return appointments.find(
+      appt => appt.patientId === patientId && 
+              appt.date === today && 
+              appt.status === 'Confirmed'
+    );
   };
 
   return (
@@ -344,14 +355,28 @@ export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUse
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-6 border-t border-border-primary">
-              {onCheckInForTriage && (
-                <Button 
-                  className="flex-1"
-                  onClick={() => onCheckInForTriage(selectedPatient.id)}
-                >
-                  Check In for Triage
-                </Button>
-              )}
+              {onCheckInForTriage && (() => {
+                const activeAppt = getPatientActiveAppointment(selectedPatient.id);
+                if (activeAppt) {
+                  return (
+                    <Button 
+                      className="flex-1"
+                      onClick={() => onCheckInForTriage(activeAppt.id)}
+                      style={{ backgroundColor: 'var(--color-warning)', color: 'white' }}
+                    >
+                      Check In for Triage
+                    </Button>
+                  );
+                } else {
+                  return (
+                    <div className="flex-1 p-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg">
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        ℹ️ No confirmed appointment today. Patient must have a confirmed appointment to check in for triage.
+                      </p>
+                    </div>
+                  );
+                }
+              })()}
               
               {/* HIPAA Compliance Note */}
               <div className="flex-1 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">

@@ -192,7 +192,8 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
       // Receptionists can search patients but should NOT view medical history
       // Only demographic and contact info - HIPAA compliant
       return <PatientLookupView 
-        currentUserId={props.user.id} 
+        currentUserId={props.user.id}
+        appointments={data?.appointments || []}
         onCheckInForTriage={handleCheckInForTriage}
       />;
     }
