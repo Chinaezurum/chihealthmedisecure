@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as Icons from '../../components/icons';
+import { DispensingDetailsModal } from './DispensingDetailsModal.tsx';
 
 interface DispensedRecord {
   id: string;
@@ -16,6 +17,9 @@ interface DispensedRecord {
 export const DispensingHistoryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('7days');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [viewingRecord, setViewingRecord] = useState<DispensedRecord | null>(null);
 
   // Mock data
   const mockHistory: DispensedRecord[] = [
@@ -38,11 +42,143 @@ export const DispensingHistoryView: React.FC = () => {
                          record.patientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.medicationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.prescriptionId.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    
+    // Date filtering
+    const recordDate = new Date(record.date);
+    const now = new Date();
+    let matchesDate = true;
+
+    if (dateRange === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      matchesDate = recordDate >= sevenDaysAgo;
+    } else if (dateRange === '30days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      matchesDate = recordDate >= thirtyDaysAgo;
+    } else if (dateRange === '3months') {
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      matchesDate = recordDate >= threeMonthsAgo;
+    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
+      const startDate = new Date(customStartDate);
+      const endDate = new Date(customEndDate);
+      endDate.setHours(23, 59, 59, 999); // Include full end date
+      matchesDate = recordDate >= startDate && recordDate <= endDate;
+    }
+
+    return matchesSearch && matchesDate;
   });
 
-  const totalDispensed = mockHistory.length;
-  const uniquePatients = new Set(mockHistory.map(r => r.patientId)).size;
+  const totalDispensed = filteredHistory.length;
+  const uniquePatients = new Set(filteredHistory.map(r => r.patientId)).size;
+
+  const handlePrint = (record: DispensedRecord) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Dispensing Record - ${record.id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; }
+          h1 { color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 10px; }
+          .section { margin: 20px 0; }
+          .label { font-weight: bold; color: #4b5563; }
+          .value { margin-left: 10px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { padding: 10px; text-align: left; border: 1px solid #e5e7eb; }
+          th { background-color: #f3f4f6; }
+          .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>Dispensing Record</h1>
+        
+        <div class="section">
+          <p><span class="label">Dispensing ID:</span><span class="value">${record.id}</span></p>
+          <p><span class="label">Date & Time:</span><span class="value">${new Date(record.date).toLocaleString()}</span></p>
+        </div>
+
+        <div class="section">
+          <h3>Patient Information</h3>
+          <p><span class="label">Name:</span><span class="value">${record.patientName}</span></p>
+          <p><span class="label">Patient ID:</span><span class="value">${record.patientId}</span></p>
+        </div>
+
+        <div class="section">
+          <h3>Medication Details</h3>
+          <table>
+            <tr>
+              <th>Medication</th>
+              <th>Quantity</th>
+              <th>Prescription ID</th>
+            </tr>
+            <tr>
+              <td>${record.medicationName}</td>
+              <td>${record.quantity} ${record.unit}</td>
+              <td>${record.prescriptionId}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <p><span class="label">Dispensed By:</span><span class="value">${record.dispensedBy}</span></p>
+        </div>
+
+        <div class="footer">
+          <p>ChiHealth MediSecure - Pharmacy System</p>
+          <p>Printed on ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const exportReport = () => {
+    const csvData = filteredHistory.map(record => ({
+      'Dispensing ID': record.id,
+      'Date': new Date(record.date).toLocaleDateString(),
+      'Time': new Date(record.date).toLocaleTimeString(),
+      'Patient Name': record.patientName,
+      'Patient ID': record.patientId,
+      'Medication': record.medicationName,
+      'Quantity': `${record.quantity} ${record.unit}`,
+      'Dispensed By': record.dispensedBy,
+      'Prescription ID': record.prescriptionId,
+    }));
+
+    const headers = Object.keys(csvData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => {
+          const value = row[header as keyof typeof row];
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Dispensing_History_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -52,7 +188,10 @@ export const DispensingHistoryView: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Dispensing History</h2>
           <p className="text-sm text-gray-600 mt-1">Track all dispensed prescriptions and patient records</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all">
+        <button 
+          onClick={exportReport}
+          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all"
+        >
           <Icons.DownloadCloudIcon className="h-4 w-4 mr-2" />
           Export Report
         </button>
@@ -120,6 +259,26 @@ export const DispensingHistoryView: React.FC = () => {
             ))}
           </select>
         </div>
+        
+        {/* Custom Date Range */}
+        {dateRange === 'custom' && (
+          <div className="flex gap-4 items-center pt-2">
+            <label className="text-sm font-medium text-gray-700">From:</label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <label className="text-sm font-medium text-gray-700">To:</label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
       </div>
 
       {/* History Table */}
@@ -189,10 +348,16 @@ export const DispensingHistoryView: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-blue-600 hover:text-blue-800 font-semibold mr-3">
+                    <button 
+                      onClick={() => setViewingRecord(record)}
+                      className="text-blue-600 hover:text-blue-800 font-semibold mr-3"
+                    >
                       View Details
                     </button>
-                    <button className="text-gray-600 hover:text-gray-800 font-semibold">
+                    <button 
+                      onClick={() => handlePrint(record)}
+                      className="text-gray-600 hover:text-gray-800 font-semibold"
+                    >
                       Print
                     </button>
                   </td>
@@ -208,6 +373,18 @@ export const DispensingHistoryView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {viewingRecord && (
+        <DispensingDetailsModal
+          record={viewingRecord}
+          onClose={() => setViewingRecord(null)}
+          onPrint={() => {
+            handlePrint(viewingRecord);
+            setViewingRecord(null);
+          }}
+        />
+      )}
     </div>
   );
 };
