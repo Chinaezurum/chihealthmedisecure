@@ -20,6 +20,10 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({ medication, 
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // Audit fields - auto-populated with current date/time and user
+  const adjustmentDateTime = new Date().toISOString();
+  const editorId = 'PHARM001'; // This would come from auth context in real app
 
   const reasons = {
     add: ['Stock Replenishment', 'Received Order', 'Stock Transfer In', 'Correction', 'Other'],
@@ -53,13 +57,16 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({ medication, 
 
     try {
       // API call would go here
-      // await api.adjustMedicationStock(medication.id, { adjustmentType, quantity, reason });
+      // await api.adjustMedicationStock(medication.id, { adjustmentType, quantity, reason, adjustmentDateTime, editorId });
       console.log('Adjusting stock:', {
         medicationId: medication.id,
         adjustmentType,
         quantity,
         reason,
         newStock,
+        adjustmentDateTime,
+        editorId,
+        editorName: 'Current Pharmacist', // Would come from auth context
       });
       
       // Simulate API call
@@ -167,6 +174,33 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({ medication, 
             </p>
           </div>
         )}
+
+        {/* Audit Information */}
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+          <h4 className="text-sm font-semibold text-yellow-900 mb-2">📋 Audit Information</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-600">Date & Time:</p>
+              <p className="font-semibold text-gray-900">
+                {new Date(adjustmentDateTime).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Editor ID:</p>
+              <p className="font-semibold text-gray-900">{editorId}</p>
+            </div>
+          </div>
+          <p className="text-xs text-yellow-700 mt-2">
+            ⚠️ This adjustment will be logged for audit purposes
+          </p>
+        </div>
 
         <div className="flex gap-3 pt-4">
           <Button
