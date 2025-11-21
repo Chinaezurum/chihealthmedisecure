@@ -315,7 +315,14 @@ export const CreateLabTestRequestModal: React.FC<CreateLabTestRequestModalProps>
         
         {/* Audit UI Section */}
         <div className="border-t border-border-primary pt-4 mt-4">
-          <p className="text-xs text-text-tertiary mb-2">Audit Information</p>
+          <div className="mb-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2">
+              <span className="text-base">✓</span>
+              <p className="text-xs font-semibold text-green-800 dark:text-green-200">
+                Patient Registration - This action will be logged and tracked
+              </p>
+            </div>
+          </div>
           <div className="bg-background-tertiary p-3 rounded-lg space-y-1">
             <p className="text-xs text-text-secondary">
               <span className="font-medium">Timestamp:</span> {new Date().toLocaleString()}

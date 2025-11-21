@@ -55,12 +55,54 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
   const [isCreateRequestModalOpen, setIsCreateRequestModalOpen] = useState(false);
+  const [sessionStartTime] = useState(new Date().toISOString());
   const { addToast } = useToasts();
+
+  // Audit-logged view switcher
+  const handleViewChange = useCallback((newView: LabView) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'lab_technician',
+      action: 'switch_view',
+      fromView: activeView,
+      toView: newView,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Lab Dashboard View Navigation Audit:', auditLog);
+    setActiveView(newView);
+  }, [activeView, props.user.id, props.user.currentOrganization.id]);
+
+  // Session tracking
+  useEffect(() => {
+    const sessionAudit = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'lab_technician',
+      action: 'session_start',
+      organizationId: props.user.currentOrganization.id,
+      sessionId: `${props.user.id}_${sessionStartTime}`
+    };
+    console.log('Lab Dashboard Session Start Audit:', sessionAudit);
+
+    return () => {
+      const sessionEndAudit = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userRole: 'lab_technician',
+        action: 'session_end',
+        organizationId: props.user.currentOrganization.id,
+        sessionId: `${props.user.id}_${sessionStartTime}`,
+        sessionDuration: new Date().getTime() - new Date(sessionStartTime).getTime()
+      };
+      console.log('Lab Dashboard Session End Audit:', sessionEndAudit);
+    };
+  }, [props.user.id, props.user.currentOrganization.id, sessionStartTime]);
 
   const handleStartCall = (contact: User | Patient) => {
     if (contact.role === 'patient') {
       setSelectedPatientForCall(contact as Patient);
-      setActiveView('telemedicine');
+      handleViewChange('telemedicine');
     } else {
       addToast('Video calls are available for patients only', 'info');
     }
@@ -69,6 +111,17 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Audit logging for data fetch
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userRole: 'lab_technician',
+        action: 'fetch_lab_dashboard_data',
+        organizationId: props.user.currentOrganization.id
+      };
+      console.log('Lab Dashboard Data Fetch Audit:', auditLog);
+      
       const [labData, staff] = await Promise.all([
         api.fetchLabTechnicianData(),
         api.fetchStaffUsers()
@@ -81,7 +134,7 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, props.user.id, props.user.currentOrganization.id]);
 
   useEffect(() => {
     fetchData();
@@ -196,14 +249,25 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
       case 'dept-notes': 
         return <InterDepartmentalNotesView />;
       case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
-      case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => setActiveView('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
+      case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => handleViewChange('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Lab Queue</div>;
     }
   };
 
   return (
-  <DashboardLayout onSignOut={props.onSignOut} sidebar={<Sidebar activeView={activeView} setActiveView={setActiveView} />} header={<DashboardHeader user={props.user} onSignOut={props.onSignOut} onSwitchOrganization={props.onSwitchOrganization} notifications={[]} onMarkNotificationsAsRead={()=>{}} title="Lab Technician Dashboard" theme={props.theme} toggleTheme={props.toggleTheme} />}>
+  <DashboardLayout onSignOut={props.onSignOut} sidebar={<Sidebar activeView={activeView} setActiveView={handleViewChange} />} header={<DashboardHeader user={props.user} onSignOut={props.onSignOut} onSwitchOrganization={props.onSwitchOrganization} notifications={[]} onMarkNotificationsAsRead={()=>{}} title="Lab Technician Dashboard" theme={props.theme} toggleTheme={props.toggleTheme} />}>
+      {/* Audit Logging Warning */}
+      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Icons.AlertCircleIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Audit & Compliance Notice:</strong> All actions including data access, test modifications, searches, and view navigation are logged for HIPAA compliance and security monitoring.
+            </p>
+          </div>
+        </div>
+      </div>
       {renderContent()}
       
       {/* Create Lab Test Request Modal */}

@@ -118,7 +118,14 @@ export const EnterResultsModal: React.FC<EnterResultsModalProps> = ({ isOpen, on
         
         {/* Audit UI Section */}
         <div className="border-t border-border-primary pt-4 mt-4">
-          <p className="text-xs text-text-tertiary mb-2">Audit Information</p>
+          <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔒</span>
+              <p className="text-xs font-semibold text-blue-800 dark:text-blue-200">
+                Audit & Compliance - This action will be logged
+              </p>
+            </div>
+          </div>
           <div className="bg-background-tertiary p-3 rounded-lg space-y-1">
             <p className="text-xs text-text-secondary">
               <span className="font-medium">Timestamp:</span> {new Date().toLocaleString()}

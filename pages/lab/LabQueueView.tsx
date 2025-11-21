@@ -31,6 +31,45 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
     const [priorityFilter, setPriorityFilter] = useState<'all' | 'Urgent' | 'High' | 'Normal' | 'Low'>('all');
     const [sortBy, setSortBy] = useState<'date' | 'priority' | 'patient'>('priority');
     
+    // Audit-logged handlers
+    const handleSearchChange = (value: string) => {
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId,
+        userRole: 'lab_technician',
+        action: 'search_lab_queue',
+        searchTerm: value
+      };
+      console.log('Lab Queue Search Audit:', auditLog);
+      setSearchTerm(value);
+    };
+
+    const handlePriorityFilterChange = (value: string) => {
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId,
+        userRole: 'lab_technician',
+        action: 'filter_lab_queue_by_priority',
+        filterValue: value,
+        previousValue: priorityFilter
+      };
+      console.log('Lab Queue Priority Filter Audit:', auditLog);
+      setPriorityFilter(value as any);
+    };
+
+    const handleSortChange = (value: string) => {
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId,
+        userRole: 'lab_technician',
+        action: 'sort_lab_queue',
+        sortBy: value,
+        previousSortBy: sortBy
+      };
+      console.log('Lab Queue Sort Audit:', auditLog);
+      setSortBy(value as any);
+    };
+    
     const pendingTests = labTests.filter(t => t.status === 'Ordered' || t.status === 'In-progress');
     const completedTests = labTests.filter(t => t.status === 'Completed');
     
@@ -120,6 +159,13 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
 
     return (
     <>
+      {/* Audit Warning */}
+      <div className="mb-4 p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> Search queries, filters, and all test actions are logged.
+        </p>
+      </div>
+      
       {/* Filters and Search */}
       <div className="bg-background-secondary border border-border-primary rounded-xl p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -132,7 +178,7 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Patient name, ID, or test..."
                 className="w-full pl-10 pr-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -145,7 +191,7 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
             </label>
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as any)}
+              onChange={(e) => handlePriorityFilterChange(e.target.value)}
               className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">All Priorities</option>
@@ -162,7 +208,7 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
             </label>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => handleSortChange(e.target.value)}
               className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="priority">Priority</option>

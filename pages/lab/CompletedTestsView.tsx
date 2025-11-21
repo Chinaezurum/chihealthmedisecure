@@ -24,6 +24,67 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
   const [endDate, setEndDate] = useState('');
   const [editingTest, setEditingTest] = useState<LabTest | null>(null);
   
+  // Audit-logged handlers
+  const handleSearchChange = (value: string) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userRole: 'lab_technician',
+      action: 'search_completed_tests',
+      searchTerm: value,
+      resultCount: completedTests.filter(t => 
+        t.patientName.toLowerCase().includes(value.toLowerCase()) ||
+        t.patientId.toLowerCase().includes(value.toLowerCase()) ||
+        t.testName.toLowerCase().includes(value.toLowerCase())
+      ).length
+    };
+    console.log('Completed Tests Search Audit:', auditLog);
+    setSearchTerm(value);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userRole: 'lab_technician',
+      action: 'filter_completed_tests_by_status',
+      filterValue: value,
+      previousValue: statusFilter
+    };
+    console.log('Completed Tests Status Filter Audit:', auditLog);
+    setStatusFilter(value as any);
+  };
+
+  const handleDateFilterChange = (value: string) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userRole: 'lab_technician',
+      action: 'filter_completed_tests_by_date',
+      filterValue: value,
+      previousValue: dateFilter
+    };
+    console.log('Completed Tests Date Filter Audit:', auditLog);
+    setDateFilter(value);
+  };
+
+  const handleCustomDateChange = (type: 'start' | 'end', value: string) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId,
+      userRole: 'lab_technician',
+      action: 'set_custom_date_range',
+      dateType: type,
+      dateValue: value
+    };
+    console.log('Completed Tests Custom Date Audit:', auditLog);
+    if (type === 'start') {
+      setStartDate(value);
+    } else {
+      setEndDate(value);
+    }
+  };
+  
   const completedTests = labTests.filter(t => 
     t.status === 'Completed' || t.status === 'Awaiting Pickup'
   );
@@ -168,6 +229,13 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
         <p className="text-text-secondary">View and manage completed laboratory tests</p>
       </div>
       
+      {/* Audit Warning */}
+      <div className="mb-4 p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> Searches, filters, exports, and print actions are logged for compliance.
+        </p>
+      </div>
+      
       {/* Filters */}
       <div className="bg-background-secondary border border-border-primary rounded-xl p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -180,7 +248,7 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Patient name, ID, or test..."
                 className="w-full pl-10 pr-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -193,7 +261,7 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
               className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">All Statuses</option>
@@ -208,7 +276,7 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
             </label>
             <select
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
               className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="7">Last 7 days</option>
@@ -232,13 +300,13 @@ export const CompletedTestsView: React.FC<CompletedTestsViewProps> = ({
               type="date"
               label="Start Date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => handleCustomDateChange('start', e.target.value)}
             />
             <Input
               type="date"
               label="End Date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => handleCustomDateChange('end', e.target.value)}
             />
           </div>
         )}
