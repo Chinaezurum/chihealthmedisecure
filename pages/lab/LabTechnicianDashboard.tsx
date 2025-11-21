@@ -9,6 +9,7 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { LabQueueView } from './LabQueueView.tsx';
 import { CompletedTestsView } from './CompletedTestsView.tsx';
+import { CreateLabTestRequestModal } from './CreateLabTestRequestModal.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
@@ -51,6 +52,7 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
   const [isLoading, setIsLoading] = useState(true);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
+  const [isCreateRequestModalOpen, setIsCreateRequestModalOpen] = useState(false);
   const { addToast } = useToasts();
 
   const handleStartCall = (contact: User | Patient) => {
@@ -132,6 +134,21 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     addToast(`Test request cancelled: ${reason}`, 'info');
     fetchData();
   };
+  
+  const handleCreateRequest = async (request: Omit<LabTest, 'id' | 'status'>) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      action: 'create_lab_test_request_from_lab',
+      request
+    };
+    console.log('Lab Test Request Creation Audit:', auditLog);
+    
+    await api.orderLabTest(request);
+    addToast('Lab test request created successfully.', 'success');
+    fetchData();
+  };
 
   const renderContent = () => {
     if (activeView === 'lookup') {
@@ -143,13 +160,28 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     switch (activeView) {
       case 'queue': 
         return (
-          <LabQueueView 
-            labTests={data.labTests} 
-            onUpdateTest={handleUpdateTest}
-            onEditTest={handleEditTest}
-            onCancelTest={handleCancelTest}
-            currentUserId={props.user.id}
-          />
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-3xl font-bold text-text-primary">Lab Test Queue</h2>
+                <p className="text-text-secondary mt-1">Manage test requests from HCWs and direct requests</p>
+              </div>
+              <button
+                onClick={() => setIsCreateRequestModalOpen(true)}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+              >
+                <span className="text-xl">+</span>
+                New Test Request
+              </button>
+            </div>
+            <LabQueueView 
+              labTests={data.labTests} 
+              onUpdateTest={handleUpdateTest}
+              onEditTest={handleEditTest}
+              onCancelTest={handleCancelTest}
+              currentUserId={props.user.id}
+            />
+          </>
         );
       case 'history': 
         return (
@@ -169,6 +201,14 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
   return (
   <DashboardLayout onSignOut={props.onSignOut} sidebar={<Sidebar activeView={activeView} setActiveView={setActiveView} />} header={<DashboardHeader user={props.user} onSignOut={props.onSignOut} onSwitchOrganization={props.onSwitchOrganization} notifications={[]} onMarkNotificationsAsRead={()=>{}} title="Lab Technician Dashboard" theme={props.theme} toggleTheme={props.toggleTheme} />}>
       {renderContent()}
+      
+      {/* Create Lab Test Request Modal */}
+      <CreateLabTestRequestModal
+        isOpen={isCreateRequestModalOpen}
+        onClose={() => setIsCreateRequestModalOpen(false)}
+        onCreateRequest={handleCreateRequest}
+        currentUserId={props.user.id}
+      />
     </DashboardLayout>
   );
 };

@@ -120,8 +120,6 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
 
     return (
     <>
-      <h2 className="text-3xl font-bold text-text-primary mb-6">Lab Test Queue</h2>
-      
       {/* Filters and Search */}
       <div className="bg-background-secondary border border-border-primary rounded-xl p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
