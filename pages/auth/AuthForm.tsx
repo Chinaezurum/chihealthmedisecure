@@ -51,6 +51,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
 
     // Probe backend health to show a friendly warning if API proxy is down
     const [backendHealthy, setBackendHealthy] = React.useState<boolean | null>(null);
+    const [oauthConfigured, setOauthConfigured] = React.useState<boolean | null>(null);
+    
     useEffect(() => {
         let mounted = true;
 
@@ -150,9 +152,27 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
             probeHealth();
         }, 500);
 
+        // Check OAuth configuration
+        const checkOAuth = async () => {
+            try {
+                const res = await fetch(`${api.API_BASE_URL}/api/auth/oauth/status`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (mounted) setOauthConfigured(data.configured);
+                }
+            } catch {
+                if (mounted) setOauthConfigured(false);
+            }
+        };
+        
+        const oauthTimeoutId = setTimeout(() => {
+            checkOAuth();
+        }, 600);
+
         return () => { 
             mounted = false;
             clearTimeout(timeoutId);
+            clearTimeout(oauthTimeoutId);
         };
     }, []);
 
@@ -160,9 +180,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
         setIsSsoLoading(true);
         try {
             // Check if OAuth is configured
-            const response = await fetch(`${api.API_BASE_URL}/api/health`);
-            if (!response.ok) {
-                throw new Error('Backend server is not available');
+            const statusResponse = await fetch(`${api.API_BASE_URL}/api/auth/oauth/status`);
+            if (statusResponse.ok) {
+                const status = await statusResponse.json();
+                if (!status.configured) {
+                    throw new Error('OAuth is not configured on this server');
+                }
             }
             
             await authService.signInWithSso(provider);
@@ -170,8 +193,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
             // The loading state will be reset if the user navigates back.
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown SSO error occurred.';
-            if (message.includes('not available') || message.includes('ECONNREFUSED')) {
+            if (message.includes('not configured')) {
                 addToast('OAuth is not configured. Please use email/password login or contact your administrator.', 'error');
+            } else if (message.includes('not available') || message.includes('ECONNREFUSED')) {
+                addToast('Backend server is not available. Please try again later.', 'error');
             } else {
                 addToast(`OAuth login failed: ${message}. Please try email/password login instead.`, 'error');
             }
@@ -217,8 +242,20 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
             </div>
 
             <div className="sso-providers">
-                <SSOButton providerName="Google" onClick={() => handleSsoLogin('Google')} isLoading={isSsoLoading}><GoogleIcon /></SSOButton>
+                <SSOButton 
+                    providerName="Google" 
+                    onClick={() => handleSsoLogin('Google')} 
+                    isLoading={isSsoLoading}
+                    disabled={oauthConfigured === false}
+                >
+                    <GoogleIcon />
+                </SSOButton>
                 <SSOButton providerName="Microsoft" disabled><MicrosoftIcon /></SSOButton>
+                {oauthConfigured === false && (
+                    <div className="text-xs text-center mt-2 text-gray-500">
+                        OAuth is not configured. Please use email/password login.
+                    </div>
+                )}
             </div>
         </div>
     );

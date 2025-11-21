@@ -16,48 +16,77 @@ export const verifyToken = (token) => {
 // A simple in-memory store for new SSO users pending registration completion.
 // In a production app, this would be a cache like Redis.
 const ssoTempStore = new Map();
+// Check if OAuth is properly configured
+const isOAuthConfigured = () => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    return clientId && clientSecret &&
+        clientId !== 'mock-client-id' &&
+        clientSecret !== 'mock-client-secret' &&
+        clientId.length > 10 &&
+        clientSecret.length > 10;
+};
 // --- Passport Google SSO Strategy ---
-passport.use(new GoogleStrategy({
-    // These should be configured in your environment variables for production
-    clientID: process.env.GOOGLE_CLIENT_ID || 'mock-client-id',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'mock-client-secret',
-    // Use an explicit callback URL so the redirect_uri exactly matches the
-    // value registered in the Google Cloud Console. Prefer an env var but
-    // fall back to API_BASE_URL or localhost:8080 for development.
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || `${process.env.API_BASE_URL || 'http://localhost:8080'}/api/auth/google/callback`
-}, async (accessToken, refreshToken, profile, done) => {
-    var _a;
-    try {
-        const email = (_a = profile.emails) === null || _a === void 0 ? void 0 : _a[0].value;
-        if (!email) {
-            return done(new Error("No email found from Google profile."), undefined);
+// Only configure the strategy if valid credentials are provided
+if (isOAuthConfigured()) {
+    passport.use(new GoogleStrategy({
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        // Use an explicit callback URL so the redirect_uri exactly matches the
+        // value registered in the Google Cloud Console. Prefer an env var but
+        // fall back to API_BASE_URL or localhost:8080 for development.
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || `${process.env.API_BASE_URL || 'http://localhost:8080'}/api/auth/google/callback`
+    }, async (accessToken, refreshToken, profile, done) => {
+        var _a;
+        try {
+            const email = (_a = profile.emails) === null || _a === void 0 ? void 0 : _a[0].value;
+            if (!email) {
+                return done(new Error("No email found from Google profile."), undefined);
+            }
+            let user = await db.findUserByEmail(email);
+            if (user) {
+                // User exists, proceed to log them in
+                return done(null, user);
+            }
+            else {
+                // This is a new user. Create a temporary profile.
+                const tempUser = {
+                    name: profile.displayName,
+                    email: email,
+                    role: 'patient',
+                };
+                // Create a short-lived token to manage this temporary state
+                const tempToken = jwt.sign({ email: tempUser.email }, JWT_SECRET, { expiresIn: '10m' });
+                ssoTempStore.set(tempToken, tempUser);
+                // Pass a special object to the callback handler to signify a new user
+                return done(null, { isNew: true, tempToken });
+            }
         }
-        let user = await db.findUserByEmail(email);
-        if (user) {
-            // User exists, proceed to log them in
-            return done(null, user);
+        catch (error) {
+            return done(error, undefined);
         }
-        else {
-            // This is a new user. Create a temporary profile.
-            const tempUser = {
-                name: profile.displayName,
-                email: email,
-                role: 'patient',
-            };
-            // Create a short-lived token to manage this temporary state
-            const tempToken = jwt.sign({ email: tempUser.email }, JWT_SECRET, { expiresIn: '10m' });
-            ssoTempStore.set(tempToken, tempUser);
-            // Pass a special object to the callback handler to signify a new user
-            return done(null, { isNew: true, tempToken });
-        }
-    }
-    catch (error) {
-        return done(error, undefined);
-    }
-}));
-// Debugging: log the configured Google callback URL
+    }));
+}
+else {
+    console.warn('⚠️  Google OAuth is NOT properly configured.');
+    console.warn('   Set these environment variables to enable OAuth:');
+    console.warn('   - GOOGLE_CLIENT_ID');
+    console.warn('   - GOOGLE_CLIENT_SECRET');
+    console.warn('   - GOOGLE_CALLBACK_URL (optional)');
+}
+// Debugging: log the configured Google callback URL and OAuth status
 console.info('Google OAuth callbackURL =', process.env.GOOGLE_CALLBACK_URL || `${process.env.API_BASE_URL || 'http://localhost:8080'}/api/auth/google/callback`);
+console.info('Google OAuth configured:', isOAuthConfigured());
 // --- Auth Routes ---
+// OAuth configuration status endpoint
+router.get('/oauth/status', (req, res) => {
+    res.json({
+        configured: isOAuthConfigured(),
+        message: isOAuthConfigured()
+            ? 'OAuth is properly configured'
+            : 'OAuth is not configured. Please set valid GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.'
+    });
+});
 // Local Email/Password Registration
 router.post('/register', body('email').isEmail().normalizeEmail(), body('password').isLength({ min: 8 }), body('fullName').not().isEmpty().trim().escape(), async (req, res) => {
     const errors = validationResult(req);
@@ -135,8 +164,21 @@ router.post('/register-org', async (req, res) => {
     }
 });
 // --- SSO Routes ---
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/?error=sso_failed', session: false }), (req, res) => {
+router.get('/google', (req, res, next) => {
+    if (!isOAuthConfigured()) {
+        return res.status(503).json({
+            message: 'OAuth is not configured on this server. Please contact your system administrator or use email/password login.',
+            details: 'Missing or invalid GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.'
+        });
+    }
+    return passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
+});
+router.get('/google/callback', (req, res, next) => {
+    if (!isOAuthConfigured()) {
+        return res.redirect('/?error=oauth_not_configured');
+    }
+    passport.authenticate('google', { failureRedirect: '/?error=sso_failed', session: false })(req, res, next);
+}, (req, res) => {
     const user = req.user;
     if (user.isNew && user.tempToken) {
         // New user: redirect to the frontend to complete their profile
