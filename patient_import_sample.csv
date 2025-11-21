@@ -1,0 +1,6 @@
+name,email,dateOfBirth,phone,address,city,state,country,postalCode,gender,bloodType,allergies,chronicConditions,emergencyContactName,emergencyContactPhone
+"John Doe",john.doe@example.com,1980-05-15,+234-803-123-4567,"45 Victoria Street","Lagos","Lagos State","Nigeria",101234,Male,A+,"Peanuts, Penicillin","Hypertension, Diabetes","Jane Doe",+234-803-987-6543
+"Maria Santos",maria.santos@email.com,1992-11-22,+234-805-234-5678,"12 Allen Avenue",Ikeja,"Lagos State","Nigeria",100001,Female,O-,"None","None","Carlos Santos",+234-805-111-2222
+"Ahmed Ibrahim",ahmed.ibrahim@mail.com,1975-03-08,+234-701-345-6789,"78 Adeola Odeku","Victoria Island","Lagos State","Nigeria",101241,Male,B+,"Latex, Sulfa drugs","Asthma","Fatima Ibrahim",+234-701-999-8888
+"Grace Okafor",grace.okafor@healthcare.com,1988-07-30,+234-802-456-7890,"23 Admiralty Way","Lekki","Lagos State","Nigeria",105102,Female,AB+,"Shellfish","None","Michael Okafor",+234-802-777-6666
+"David Chen",david.chen@clinic.net,1995-12-14,+234-806-567-8901,"56 Banana Island Road","Ikoyi","Lagos State","Nigeria",106104,Male,A-,"None","High Cholesterol","Lisa Chen",+234-806-555-4444

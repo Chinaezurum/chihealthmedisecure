@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '../../components/common/Button.tsx';
+import { ChangePlanModal } from './ChangePlanModal.tsx';
+import { UpdatePaymentMethodModal } from './UpdatePaymentMethodModal.tsx';
+import { BillingHistoryModal } from './BillingHistoryModal.tsx';
+import { useToasts } from '../../hooks/useToasts.ts';
+import * as api from '../../services/apiService.ts';
 import { 
   CheckIcon, 
   CreditCardIcon, 
@@ -55,6 +60,36 @@ const availablePlans = [
 
 export const SubscriptionView: React.FC = () => {
   const [showChangePlan, setShowChangePlan] = useState(false);
+  const [showUpdatePayment, setShowUpdatePayment] = useState(false);
+  const [showBillingHistory, setShowBillingHistory] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const { addToast } = useToasts();
+
+  const handlePlanChange = async (newPlan: 'basic' | 'professional' | 'enterprise') => {
+    try {
+      // In a real implementation, get the current user's organization ID
+      const orgId = 'current-org-id'; // This should come from context/props
+      await api.changePlan(orgId, newPlan);
+      addToast(`Successfully ${newPlan === 'professional' ? 'upgraded' : newPlan === 'basic' ? 'downgraded' : 'changed'} to ${newPlan} plan!`, 'success');
+      // Refresh page data here
+      setShowChangePlan(false);
+    } catch (error: any) {
+      addToast(error.message || 'Failed to change plan. Please try again.', 'error');
+      throw error;
+    }
+  };
+
+  const handleUpdatePaymentMethod = async (paymentData: any) => {
+    try {
+      // In real implementation, this would call an API to update payment method
+      console.log('Updating payment method:', paymentData);
+      addToast('Payment method updated successfully!', 'success');
+      setShowUpdatePayment(false);
+    } catch (error: any) {
+      addToast(error.message || 'Failed to update payment method.', 'error');
+      throw error;
+    }
+  };
 
   return (
     <div className="subscription-page-redesign">
@@ -92,13 +127,45 @@ export const SubscriptionView: React.FC = () => {
             </div>
 
             <div className="subscription-plan-body">
+              {/* Billing Cycle Toggle */}
+              <div className="flex items-center justify-center gap-2 mb-4 p-2 bg-background-tertiary rounded-lg">
+                <button
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    billingCycle === 'monthly'
+                      ? 'bg-primary text-white'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingCycle('annual')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    billingCycle === 'annual'
+                      ? 'bg-primary text-white'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Annual <span className="text-xs ml-1">(Save 20%)</span>
+                </button>
+              </div>
+
               <div className="subscription-plan-name-section">
                 <h3 className="subscription-plan-name">{planDetails.name}</h3>
                 <div className="subscription-plan-price">
                   <span className="subscription-plan-currency">₦</span>
-                  <span className="subscription-plan-amount">{planDetails.price}</span>
-                  <span className="subscription-plan-period">/{planDetails.period}</span>
+                  <span className="subscription-plan-amount">
+                    {billingCycle === 'annual' 
+                      ? (parseInt(planDetails.price.replace(/,/g, '')) * 12 * 0.8).toLocaleString()
+                      : planDetails.price
+                    }
+                  </span>
+                  <span className="subscription-plan-period">/{billingCycle === 'annual' ? 'year' : planDetails.period}</span>
                 </div>
+                {billingCycle === 'annual' && (
+                  <p className="text-xs text-teal-600 mt-1">You save ₦{(parseInt(planDetails.price.replace(/,/g, '')) * 12 * 0.2).toLocaleString()} per year</p>
+                )}
               </div>
 
               <div className="subscription-features-section">
@@ -237,6 +304,7 @@ export const SubscriptionView: React.FC = () => {
 
               <Button 
                 fullWidth
+                onClick={() => setShowUpdatePayment(true)}
                 style={{
                   marginTop: '1rem',
                   background: 'linear-gradient(135deg, var(--teal-600) 0%, var(--teal-500) 100%)',
@@ -254,7 +322,10 @@ export const SubscriptionView: React.FC = () => {
           <div className="subscription-billing-history-card">
             <div className="subscription-billing-history-header">
               <h3 className="subscription-billing-history-title">Billing History</h3>
-              <button className="subscription-view-all-link">
+              <button 
+                onClick={() => setShowBillingHistory(true)}
+                className="subscription-view-all-link"
+              >
                 View All
                 <ArrowRightIcon className="w-4 h-4" />
               </button>
@@ -327,6 +398,28 @@ export const SubscriptionView: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Change Plan Modal */}
+      <ChangePlanModal
+        isOpen={showChangePlan}
+        onClose={() => setShowChangePlan(false)}
+        currentPlan="professional"
+        billingCycle={billingCycle}
+        onConfirmChange={handlePlanChange}
+      />
+      
+      {/* Update Payment Method Modal */}
+      <UpdatePaymentMethodModal
+        isOpen={showUpdatePayment}
+        onClose={() => setShowUpdatePayment(false)}
+        onUpdate={handleUpdatePaymentMethod}
+      />
+      
+      {/* Billing History Modal */}
+      <BillingHistoryModal
+        isOpen={showBillingHistory}
+        onClose={() => setShowBillingHistory(false)}
+      />
     </div>
   );
 };

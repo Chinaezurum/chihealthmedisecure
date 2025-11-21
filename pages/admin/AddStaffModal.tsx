@@ -19,6 +19,14 @@ interface AddStaffModalProps {
     role: UserRole;
     departmentIds?: string[];
     organizationIds?: string[];
+    // New demographic fields
+    phoneNumbers?: string[];
+    address?: string;
+    emails?: string[];
+    certificationId?: string;
+    certificationStatus?: 'Active' | 'Expired' | 'Pending' | 'Suspended';
+    certificationExpiry?: string;
+    specialization?: string;
   }) => Promise<void>;
   currentUser: User;
 }
@@ -29,7 +37,9 @@ const allRoles = [
     { value: 'pharmacist', label: 'Pharmacist', feature: 'role_pharmacist' },
     { value: 'lab_technician', label: 'Lab Technician', feature: 'role_lab_technician' },
     { value: 'receptionist', label: 'Receptionist', feature: 'role_receptionist' },
-    { value: 'logistics', label: 'Logistics', feature: 'role_logistics' },
+    { value: 'logistics', label: 'Logistics', feature: 'logistics' },
+    { value: 'radiologist', label: 'Radiologist', feature: 'role_hcw' },
+    { value: 'dietician', label: 'Dietician', feature: 'role_hcw' },
     { value: 'admin', label: 'Administrator', feature: 'admin_dashboard' },
 ];
 
@@ -48,6 +58,15 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
     confirmPassword: '',
     role: 'hcw' as UserRole,
     departmentIds: [] as string[],
+    // New demographic fields
+    phoneNumber: '',
+    secondaryPhoneNumber: '',
+    secondaryEmail: '',
+    address: '',
+    certificationId: '',
+    certificationStatus: '' as 'Active' | 'Expired' | 'Pending' | 'Suspended' | '',
+    certificationExpiry: '',
+    specialization: '',
   });
   const [assignedOrgIds, setAssignedOrgIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +83,14 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
         confirmPassword: '',
         role: 'hcw' as UserRole,
         departmentIds: [],
+        phoneNumber: '',
+        secondaryPhoneNumber: '',
+        secondaryEmail: '',
+        address: '',
+        certificationId: '',
+        certificationStatus: '',
+        certificationExpiry: '',
+        specialization: '',
       });
       setAssignedOrgIds([]);
       setErrors({});
@@ -146,14 +173,42 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
 
     setIsLoading(true);
     try {
-      await onSave({
+      const staffData: any = {
         name: formData.name.trim(),
         email: formData.email.trim(),
         password: formData.password,
         role: formData.role,
         departmentIds: formData.departmentIds.length > 0 ? formData.departmentIds : undefined,
         organizationIds: assignedOrgIds.length > 0 ? assignedOrgIds : undefined,
-      });
+      };
+
+      // Add demographic fields if provided
+      if (formData.phoneNumber.trim() || formData.secondaryPhoneNumber.trim()) {
+        const phones = [];
+        if (formData.phoneNumber.trim()) phones.push(formData.phoneNumber.trim());
+        if (formData.secondaryPhoneNumber.trim()) phones.push(formData.secondaryPhoneNumber.trim());
+        staffData.phoneNumbers = phones;
+      }
+      if (formData.secondaryEmail.trim()) {
+        staffData.emails = [formData.email.trim(), formData.secondaryEmail.trim()];
+      }
+      if (formData.address.trim()) {
+        staffData.address = formData.address.trim();
+      }
+      if (formData.certificationId.trim()) {
+        staffData.certificationId = formData.certificationId.trim();
+      }
+      if (formData.certificationStatus) {
+        staffData.certificationStatus = formData.certificationStatus;
+      }
+      if (formData.certificationExpiry) {
+        staffData.certificationExpiry = formData.certificationExpiry;
+      }
+      if (formData.specialization.trim()) {
+        staffData.specialization = formData.specialization.trim();
+      }
+
+      await onSave(staffData);
       addToast('Staff member created successfully!', 'success');
       onClose();
     } catch (error: any) {
@@ -232,6 +287,91 @@ export const AddStaffModal: React.FC<AddStaffModalProps> = ({
           error={errors.confirmPassword}
           required
         />
+
+        {/* Divider */}
+        <div className="border-t border-border-primary pt-4">
+          <h3 className="text-sm font-semibold text-text-primary mb-3">Contact Information</h3>
+        </div>
+
+        <Input 
+          label="Phone Number" 
+          name="phoneNumber" 
+          type="tel" 
+          value={formData.phoneNumber} 
+          onChange={handleChange}
+          placeholder="e.g. +234 801 234 5678"
+        />
+        <Input 
+          label="Secondary Phone Number (Optional)" 
+          name="secondaryPhoneNumber" 
+          type="tel" 
+          value={formData.secondaryPhoneNumber} 
+          onChange={handleChange}
+          placeholder="e.g. +234 802 345 6789"
+        />
+        <Input 
+          label="Secondary Email (Optional)" 
+          name="secondaryEmail" 
+          type="email" 
+          value={formData.secondaryEmail} 
+          onChange={handleChange}
+          placeholder="e.g. secondary@example.com"
+        />
+        <div className="w-full">
+          <label className="form-label">Address</label>
+          <textarea
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            rows={3}
+            className="w-full px-3 py-2 border border-border-primary rounded-md bg-background-secondary text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Street address, city, state, country"
+          />
+        </div>
+
+        {/* Professional Credentials Section */}
+        {['hcw', 'nurse', 'pharmacist', 'lab_technician', 'radiologist', 'dietician'].includes(formData.role) && (
+          <>
+            <div className="border-t border-border-primary pt-4">
+              <h3 className="text-sm font-semibold text-text-primary mb-3">Professional Credentials</h3>
+            </div>
+            
+            <Input 
+              label="Certification/License ID" 
+              name="certificationId" 
+              value={formData.certificationId} 
+              onChange={handleChange}
+              placeholder="e.g. MD12345 or RN67890"
+            />
+            <Select 
+              label="Certification Status" 
+              name="certificationStatus" 
+              value={formData.certificationStatus} 
+              onChange={handleChange}
+            >
+              <option value="">Select status...</option>
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Expired">Expired</option>
+              <option value="Suspended">Suspended</option>
+            </Select>
+            <Input 
+              label="Certification Expiry Date" 
+              name="certificationExpiry" 
+              type="date" 
+              value={formData.certificationExpiry} 
+              onChange={handleChange}
+            />
+            <Input 
+              label="Specialization" 
+              name="specialization" 
+              value={formData.specialization} 
+              onChange={handleChange}
+              placeholder="e.g. Cardiology, Pediatrics, etc."
+            />
+          </>
+        )}
+
         <Select 
           label="Role" 
           name="role" 

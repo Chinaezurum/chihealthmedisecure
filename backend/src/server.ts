@@ -171,6 +171,10 @@ const notifyAllOrgUsers = async (orgId: string, type: string) => {
 // Auth Routes
 app.use('/api/auth', auth.authRouter);
 
+// MFA Routes
+import mfaRouter from './auth/mfa.js';
+app.use('/api/mfa', mfaRouter);
+
 // User Routes
 app.get('/api/users/me', authenticate, (req: Request, res: Response) => {
   res.json(req.user);

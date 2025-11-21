@@ -16,6 +16,9 @@ import ReceptionistDashboard from './pages/receptionist/ReceptionistDashboard';
 import LogisticsDashboard from './pages/logistics/LogisticsDashboard';
 import CommandCenterDashboard from './pages/command-center/CommandCenterDashboard.tsx';
 import { AccountantDashboard } from './pages/accountant/AccountantDashboard.tsx';
+import RadiologistDashboard from './pages/radiologist/RadiologistDashboard.tsx';
+import DieticianDashboard from './pages/dietician/DieticianDashboard.tsx';
+import ITDashboard from './pages/it/ITDashboard.tsx';
 
 import { FullScreenLoader } from './components/common/FullScreenLoader';
 import { SessionTimeoutModal } from './components/common/SessionTimeoutModal';
@@ -250,6 +253,12 @@ const App: React.FC = () => {
         return <LogisticsDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       case 'command_center':
         return <CommandCenterDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+      case 'radiologist':
+        return <RadiologistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+      case 'dietician':
+        return <DieticianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+      case 'it_support':
+        return <ITDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
       default:
         return <div>Unknown user role. Please contact support.</div>;
     }

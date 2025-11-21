@@ -396,11 +396,18 @@ export const recordVitals = async (patientId, vitals) => {
         patient.inpatientStay.vitalHistory.unshift({ timestamp: entry.timestamp, heartRate: entry.heartRate, bloodPressure: entry.bloodPressure, spO2: entry.spO2 });
     }
 };
+export const createTransportRequest = async (requestedById, data) => {
+    const requester = await findUserById(requestedById);
+    const newRequest = Object.assign({ id: `tr-${Date.now()}`, status: 'Pending', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), requestedById, requestedByName: (requester === null || requester === void 0 ? void 0 : requester.name) || 'Unknown User' }, data);
+    transportRequests.push(newRequest);
+    return newRequest;
+};
 export const updateTransportRequest = async (id, status) => {
     const req = transportRequests.find(t => t.id === id);
     if (!req)
         throw new Error("Request not found");
     req.status = status;
+    req.updatedAt = new Date().toISOString();
     return req;
 };
 export const admitPatient = async (patientId, bedId, reason) => {
@@ -803,5 +810,29 @@ export const updateExternalLabResultStatus = async (id, status) => {
         throw new Error('External lab result not found');
     result.status = status;
     return result;
+};
+// --- MFA Management ---
+export const getUserById = async (id) => {
+    return users.find(u => u.id === id);
+};
+export const updateUserMfa = async (userId, mfaData) => {
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1)
+        throw new Error("User not found");
+    const user = users[userIndex];
+    // Update MFA fields
+    if (mfaData.mfaEnabled !== undefined)
+        user.mfaEnabled = mfaData.mfaEnabled;
+    if (mfaData.mfaMethod !== undefined)
+        user.mfaMethod = mfaData.mfaMethod;
+    if (mfaData.mfaSecret !== undefined)
+        user.mfaSecret = mfaData.mfaSecret;
+    if (mfaData.webAuthnCredentials !== undefined)
+        user.webAuthnCredentials = mfaData.webAuthnCredentials;
+    if (mfaData.backupCodes !== undefined)
+        user.backupCodes = mfaData.backupCodes;
+    if (mfaData.mfaEnrolledAt !== undefined)
+        user.mfaEnrolledAt = mfaData.mfaEnrolledAt;
+    return user;
 };
 //# sourceMappingURL=db.js.map

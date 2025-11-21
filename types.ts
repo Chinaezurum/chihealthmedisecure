@@ -1,7 +1,7 @@
 // Fix: Removed circular self-import of `UserRole`.
 // types.ts
 
-export type UserRole = 'patient' | 'hcw' | 'admin' | 'nurse' | 'pharmacist' | 'lab_technician' | 'receptionist' | 'logistics' | 'command_center' | 'accountant';
+export type UserRole = 'patient' | 'hcw' | 'admin' | 'nurse' | 'pharmacist' | 'lab_technician' | 'receptionist' | 'logistics' | 'command_center' | 'accountant' | 'radiologist' | 'dietician' | 'it_support';
 
 export interface Organization {
   id: string;
@@ -9,6 +9,15 @@ export interface Organization {
   type: 'Hospital' | 'Clinic' | 'Pharmacy' | 'Laboratory' | 'Headquarters';
   planId: 'basic' | 'professional' | 'enterprise';
   parentOrganizationId?: string;
+  // Contact Information
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  phoneNumbers?: string[]; // Multiple phone numbers
+  emails?: string[]; // Multiple email addresses
+  website?: string;
 }
 
 export interface User {
@@ -22,6 +31,28 @@ export interface User {
   inpatientStay?: InpatientStay;
   departmentIds?: string[];
   insurance?: PatientInsurance;
+  // Staff member additional fields
+  address?: string;
+  phoneNumbers?: string[]; // Multiple phone numbers
+  emails?: string[]; // Multiple email addresses
+  certificationId?: string; // Professional certification/license number
+  certificationStatus?: 'Active' | 'Expired' | 'Pending' | 'Suspended';
+  certificationExpiry?: string; // ISO date string
+  specialization?: string; // For clinical staff
+  // MFA fields
+  mfaEnabled?: boolean;
+  mfaMethod?: 'totp' | 'webauthn' | 'both';
+  mfaSecret?: string; // Encrypted TOTP secret
+  webAuthnCredentials?: Array<{
+    id: string;
+    publicKey: string;
+    counter: number;
+    deviceName?: string;
+    createdAt: string;
+    lastUsed?: string;
+  }>;
+  backupCodes?: string[]; // Hashed backup codes
+  mfaEnrolledAt?: string;
 }
 
 export interface Patient extends User {
@@ -498,4 +529,59 @@ export interface PaymentTransaction {
   notes?: string;
   cardLast4?: string;
   mobileMoneyNumber?: string;
+}
+
+// Audit Log Types
+export type AuditAction = 
+  // User Management
+  | 'user.create' | 'user.update' | 'user.delete' | 'user.suspend' | 'user.activate'
+  | 'user.password_reset' | 'user.role_change' | 'user.permission_change'
+  // Authentication
+  | 'auth.login' | 'auth.logout' | 'auth.login_failed' | 'auth.session_timeout'
+  | 'auth.mfa_enabled' | 'auth.mfa_disabled' | 'auth.password_change'
+  // Data Access
+  | 'data.patient_view' | 'data.patient_edit' | 'data.medical_record_view'
+  | 'data.export' | 'data.bulk_export' | 'data.import' | 'data.bulk_import'
+  // System Operations
+  | 'system.backup_start' | 'system.backup_complete' | 'system.restore'
+  | 'system.config_change' | 'system.maintenance_mode' | 'system.update'
+  // Security
+  | 'security.alert_resolve' | 'security.unauthorized_access' | 'security.permission_denied'
+  | 'security.suspicious_activity' | 'security.policy_violation'
+  // IT Operations
+  | 'it.ticket_create' | 'it.ticket_resolve' | 'it.log_export' | 'it.report_generate'
+  | 'it.user_export' | 'it.system_refresh'
+  // Admin Operations
+  | 'admin.org_create' | 'admin.org_update' | 'admin.org_delete'
+  | 'admin.settings_change' | 'admin.report_view' | 'admin.dashboard_export'
+  // Financial
+  | 'finance.bill_create' | 'finance.bill_update' | 'finance.payment_process'
+  | 'finance.refund' | 'finance.report_export';
+
+export type AuditCategory = 'user' | 'auth' | 'data' | 'system' | 'security' | 'it' | 'admin' | 'finance';
+
+export type AuditSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userRole: UserRole;
+  organizationId: string;
+  organizationName: string;
+  action: AuditAction;
+  category: AuditCategory;
+  severity: AuditSeverity;
+  resourceType?: string; // e.g., 'Patient', 'User', 'Bill', 'Report'
+  resourceId?: string; // ID of the affected resource
+  resourceName?: string; // Name/identifier of the resource
+  description: string;
+  ipAddress?: string;
+  userAgent?: string;
+  changes?: Record<string, { old: any; new: any }>; // For tracking field changes
+  metadata?: Record<string, any>; // Additional context
+  success: boolean;
+  errorMessage?: string;
 }

@@ -11,12 +11,16 @@ import {
   ArrowRightIcon,
   ClockIcon
 } from '../../components/icons';
+import { useToasts } from '../../hooks/useToasts';
+import { logDashboardExport } from '../../services/auditService';
+import { User } from '../../types';
 
 interface AdminDashboardOverviewProps {
   staffCount: number;
   patientCount: number;
   appointmentCount: number;
   totalRevenue: number;
+  user: User;
   onNavigate?: (view: string) => void;
 }
 
@@ -124,12 +128,73 @@ const ActivityItem: React.FC<{
   </div>
 );
 
-export const AdminDashboardOverview: React.FC<AdminDashboardOverviewProps> = (props) => {
+const AdminDashboardOverview: React.FC<AdminDashboardOverviewProps> = (props) => {
+  const { addToast } = useToasts();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const handleExportData = () => {
+    const exportData = [
+      {
+        metric: 'Total Patients',
+        value: props.patientCount,
+        category: 'Users',
+        exportDate: new Date().toLocaleDateString()
+      },
+      {
+        metric: 'Total Staff',
+        value: props.staffCount,
+        category: 'Users',
+        exportDate: new Date().toLocaleDateString()
+      },
+      {
+        metric: 'Total Appointments',
+        value: props.appointmentCount,
+        category: 'Operations',
+        exportDate: new Date().toLocaleDateString()
+      },
+      {
+        metric: 'Total Revenue',
+        value: `₦${props.totalRevenue.toLocaleString()}`,
+        category: 'Finance',
+        exportDate: new Date().toLocaleDateString()
+      }
+    ];
+
+    // Log the export action
+    logDashboardExport(props.user, 'Admin Dashboard');
+
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => 
+        headers.map(header => {
+          const value = row[header as keyof typeof row];
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `admin_dashboard_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    addToast('Dashboard data exported successfully', 'success');
   };
 
   return (
@@ -142,11 +207,17 @@ export const AdminDashboardOverview: React.FC<AdminDashboardOverviewProps> = (pr
             <p className="admin-overview-hero-subtitle">Here's what's happening across your platform today</p>
           </div>
           <div className="admin-overview-quick-actions">
-            <button className="admin-quick-action-btn">
+            <button 
+              className="admin-quick-action-btn"
+              onClick={() => props.onNavigate?.('audit')}
+            >
               <ActivityIcon className="w-4 h-4" />
               <span>View Reports</span>
             </button>
-            <button className="admin-quick-action-btn admin-quick-action-primary">
+            <button 
+              className="admin-quick-action-btn admin-quick-action-primary"
+              onClick={handleExportData}
+            >
               <ArrowRightIcon className="w-4 h-4" />
               <span>Export Data</span>
             </button>
@@ -275,3 +346,5 @@ export const AdminDashboardOverview: React.FC<AdminDashboardOverviewProps> = (pr
     </div>
   );
 };
+
+export { AdminDashboardOverview };

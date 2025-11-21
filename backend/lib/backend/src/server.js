@@ -160,6 +160,9 @@ const notifyAllOrgUsers = async (orgId, type) => {
 // --- API Routes ---
 // Auth Routes
 app.use('/api/auth', auth.authRouter);
+// MFA Routes
+import mfaRouter from './auth/mfa.js';
+app.use('/api/mfa', mfaRouter);
 // User Routes
 app.get('/api/users/me', authenticate, (req, res) => {
     res.json(req.user);
@@ -612,6 +615,11 @@ app.post('/api/triage/:patientId/vitals', authenticate, async (req, res) => {
     await db.recordVitals(req.params.patientId, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
+});
+app.post('/api/transport/requests', authenticate, async (req, res) => {
+    const newRequest = await db.createTransportRequest(req.user.id, req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(newRequest);
 });
 app.put('/api/transport/:id/status', authenticate, async (req, res) => {
     await db.updateTransportRequest(req.params.id, req.body.status);

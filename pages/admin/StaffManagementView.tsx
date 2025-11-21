@@ -17,19 +17,20 @@ interface StaffManagementViewProps {
 }
 
 const roleDisplay: Record<UserRole, string> = {
-    admin: 'Administrator',
-    hcw: 'Healthcare Worker',
-    nurse: 'Nurse',
-    patient: 'Patient',
-    pharmacist: 'Pharmacist',
-    lab_technician: 'Lab Technician',
-    receptionist: 'Receptionist',
-    logistics: 'Logistics',
-    command_center: 'Command Center',
-    accountant: 'Accountant',
-};
-
-export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ 
+  admin: 'Administrator',
+  hcw: 'Healthcare Worker',
+  nurse: 'Nurse',
+  patient: 'Patient',
+  pharmacist: 'Pharmacist',
+  lab_technician: 'Lab Technician',
+  receptionist: 'Receptionist',
+  logistics: 'Logistics',
+  command_center: 'Command Center',
+  accountant: 'Accountant',
+  radiologist: 'Radiologist',
+  dietician: 'Dietician',
+  it_support: 'IT Support',
+};export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ 
   staff, 
   organizations, 
   departments, 
@@ -83,11 +84,6 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
       .filter(Boolean)
       .join(', ');
   }
-  
-  const getOrganizationNames = (orgs: Organization[]) => {
-    if (!orgs || orgs.length === 0) return 'Unassigned';
-    return orgs.map(o => o.name).join(', ');
-  }
 
   return (
     <>
@@ -102,9 +98,11 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Phone</th>
                 <th>Role</th>
+                <th>Certification</th>
+                <th>Status</th>
                 <th>Departments</th>
-                <th>Assigned Organizations</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -113,9 +111,26 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                 <tr key={user.id}>
                   <td className="font-medium">{user.name}</td>
                   <td>{user.email}</td>
+                  <td className="text-sm">{user.phoneNumbers?.[0] || 'N/A'}</td>
                   <td>{roleDisplay[user.role]}</td>
+                  <td className="text-sm">
+                    {user.certificationId ? (
+                      <span title={user.certificationId}>{user.certificationId.substring(0, 10)}...</span>
+                    ) : 'N/A'}
+                  </td>
+                  <td>
+                    {user.certificationStatus && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        user.certificationStatus === 'Active' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                        user.certificationStatus === 'Expired' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                        user.certificationStatus === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                        'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                      }`}>
+                        {user.certificationStatus}
+                      </span>
+                    )}
+                  </td>
                   <td className="text-sm">{getDepartmentNames(user.departmentIds)}</td>
-                  <td className="text-sm">{getOrganizationNames(user.organizations)}</td>
                   <td>
                     <Button onClick={() => handleEdit(user)}>Edit</Button>
                   </td>

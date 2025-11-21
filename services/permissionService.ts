@@ -19,6 +19,34 @@ const PLAN_FEATURES: Record<string, string[]> = {
   ],
 };
 
+// Plan-based limits for facility management
+export const PLAN_LIMITS = {
+  basic: {
+    maxDepartments: 5,
+    maxRooms: 10,
+    maxBeds: 20,
+    maxStaff: 10,
+    maxFacilityLocations: 1,
+    features: 'Core features only',
+  },
+  professional: {
+    maxDepartments: 20,
+    maxRooms: 50,
+    maxBeds: 100,
+    maxStaff: 50,
+    maxFacilityLocations: 3,
+    features: 'Advanced clinical modules',
+  },
+  enterprise: {
+    maxDepartments: -1, // unlimited
+    maxRooms: -1,
+    maxBeds: -1,
+    maxStaff: -1,
+    maxFacilityLocations: -1,
+    features: 'All features + customization',
+  },
+};
+
 // Define permissions for each role (matches backend)
 const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   patient: [
@@ -126,6 +154,68 @@ const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'view_all_analytics',
     'system_administration',
   ],
+  radiologist: [
+    'view_patient_list',
+    'view_patient_records',
+    'view_imaging_studies',
+    'create_radiology_reports',
+    'message_patient',
+    'message_staff',
+    'view_appointments',
+  ],
+  dietician: [
+    'view_patient_list',
+    'view_patient_records',
+    'create_nutrition_plans',
+    'create_dietary_consultations',
+    'message_patient',
+    'message_staff',
+    'view_appointments',
+  ],
+  it_support: [
+    'view_system_logs',
+    'manage_users',
+    'view_user_list',
+    'manage_system_settings',
+    'view_security_alerts',
+    'manage_backups',
+    'view_system_status',
+    'manage_support_tickets',
+    'view_all_data',
+    'system_administration',
+    'view_audit_logs',
+  ],
+};
+
+export const canCreateMore = (
+  user: User | null,
+  resourceType: 'departments' | 'rooms' | 'beds' | 'staff',
+  currentCount: number
+): { allowed: boolean; limit: number; message?: string } => {
+  if (!user?.currentOrganization) {
+    return { allowed: false, limit: 0, message: 'No organization context' };
+  }
+
+  const plan = user.currentOrganization.planId || 'basic';
+  const limits = PLAN_LIMITS[plan];
+  const limitKey = `max${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}` as keyof typeof limits;
+  const limit = limits[limitKey] as number;
+
+  // -1 means unlimited
+  if (limit === -1) {
+    return { allowed: true, limit: -1 };
+  }
+
+  const allowed = currentCount < limit;
+  const message = allowed
+    ? undefined
+    : `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan limit reached (${limit} ${resourceType}). Upgrade to create more.`;
+
+  return { allowed, limit, message };
+};
+
+export const getPlanLimits = (planId: 'basic' | 'professional' | 'enterprise') => {
+  return PLAN_LIMITS[planId];
 };
 
 export const canAccessFeature = (user: User | null, feature: string): boolean => {

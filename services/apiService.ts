@@ -85,6 +85,19 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
   }
 };
 
+// Generic API request function for MFA and other services
+export const apiRequest = async <T = any>(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  body?: any
+): Promise<T> => {
+  const options: RequestInit = {
+    method,
+    ...(body && { body: JSON.stringify(body) })
+  };
+  return apiFetch(endpoint, options);
+};
+
 // --- Auth & User ---
 export const fetchCurrentUser = (): Promise<User> => {
   // Add timeout to prevent hanging - increased to 8 seconds for better reliability
@@ -267,6 +280,17 @@ export const createRoom = (name: string, type: string) => {
 };
 export const createBed = (name: string, roomId: string) => {
     return apiFetch('/admin/beds', { method: 'POST', body: JSON.stringify({ name, roomId }) });
+};
+
+// --- Subscription & Plan Management ---
+export const changePlan = (organizationId: string, newPlanId: 'basic' | 'professional' | 'enterprise') => {
+    return apiFetch('/admin/change-plan', { 
+        method: 'POST', 
+        body: JSON.stringify({ organizationId, newPlanId }) 
+    });
+};
+export const getUpgradePreview = (organizationId: string, targetPlanId: string) => {
+    return apiFetch(`/admin/upgrade-preview?orgId=${organizationId}&targetPlan=${targetPlanId}`);
 };
 
 // --- Patient Search (Receptionist) ---

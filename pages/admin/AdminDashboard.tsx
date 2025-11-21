@@ -168,6 +168,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             patientCount={data.patients.length}
             appointmentCount={data.appointments.length}
             totalRevenue={data.totalRevenue}
+            user={props.user}
             onNavigate={(view) => setActiveView(view as AdminView)}
           />
         );
@@ -197,7 +198,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       case "data":
         return <DataManagementView />;
       case "facility":
-        return <FacilityManagementView data={data} onUpdate={fetchData} />;
+        return <FacilityManagementView data={data} onUpdate={fetchData} currentUser={props.user} />;
       case "settings":
         return <SettingsView user={props.user} />;
       default:

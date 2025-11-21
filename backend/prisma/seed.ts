@@ -9,8 +9,49 @@ export const seedData = () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     const organizations = [
-        { id: 'org-1', name: 'ChiHealth General Hospital', type: 'Hospital' as const, planId: 'professional' as const },
-        { id: 'org-2', name: 'ChiHealth Clinic Ikoyi', type: 'Clinic' as const, planId: 'professional' as const, parentOrganizationId: 'org-1' },
+        { 
+            id: 'org-1', 
+            name: 'ChiHealth General Hospital', 
+            type: 'Hospital' as const, 
+            planId: 'professional' as const,
+            address: '123 Medical Center Drive',
+            city: 'Lagos',
+            state: 'Lagos State',
+            country: 'Nigeria',
+            postalCode: '100001',
+            phoneNumbers: ['+234 1 234 5678', '+234 1 234 5679'],
+            emails: ['contact@chihealthgeneral.com', 'info@chihealthgeneral.com'],
+            website: 'https://www.chihealthgeneral.com'
+        },
+        { 
+            id: 'org-2', 
+            name: 'ChiHealth Clinic Ikoyi', 
+            type: 'Clinic' as const, 
+            planId: 'professional' as const, 
+            parentOrganizationId: 'org-1',
+            address: '45 Banana Island Road',
+            city: 'Lagos',
+            state: 'Lagos State',
+            country: 'Nigeria',
+            postalCode: '106104',
+            phoneNumbers: ['+234 1 456 7890'],
+            emails: ['ikoyi@chihealth.com'],
+            website: 'https://www.chihealth.com/ikoyi'
+        },
+        { 
+            id: 'org-3', 
+            name: 'ChiHealth Enterprise Network', 
+            type: 'Hospital' as const, 
+            planId: 'enterprise' as const,
+            address: '1 Enterprise Plaza, Victoria Island',
+            city: 'Lagos',
+            state: 'Lagos State',
+            country: 'Nigeria',
+            postalCode: '101241',
+            phoneNumbers: ['+234 1 789 0123', '+234 1 789 0124', '+234 800 CHIHEALTH'],
+            emails: ['enterprise@chihealth.com', 'support@chihealth.com', 'billing@chihealth.com'],
+            website: 'https://www.chihealth.com/enterprise'
+        },
     ];
 
     const departments = [
@@ -77,6 +118,7 @@ export const seedData = () => {
         },
         // Staff
         { id: 'user-admin-01', name: 'Admin User', email: 'admin@chihealth.com', role: 'admin' as const, passwordHash: password, organizations: [organizations[0], organizations[1]], currentOrganization: organizations[0] },
+        { id: 'user-admin-enterprise', name: 'Enterprise Admin', email: 'enterprise@chihealth.com', role: 'admin' as const, passwordHash: password, organizations: [organizations[2]], currentOrganization: organizations[2] },
         { id: 'user-cmd-01', name: 'Command Center', email: 'cmd@chihealth.com', role: 'command_center' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-hcw-01', name: 'Dr. Adebayo', email: 'dr.adebayo@chihealth.com', role: 'hcw' as const, passwordHash: password, organizations: [organizations[0], organizations[1]], currentOrganization: organizations[0], departmentIds: ['dept-1', 'dept-3'] },
         { id: 'user-nurse-01', name: 'Nurse Joy', email: 'nurse.joy@chihealth.com', role: 'nurse' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0], departmentIds: ['dept-3'] },
@@ -85,6 +127,9 @@ export const seedData = () => {
         { id: 'user-recep-01', name: 'Receptionist', email: 'receptionist@chihealth.com', role: 'receptionist' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-logist-01', name: 'Logistics Sam', email: 'logistics.sam@chihealth.com', role: 'logistics' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-accountant-01', name: 'Finance Manager', email: 'accountant@chihealth.com', role: 'accountant' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
+        { id: 'user-dietician-01', name: 'Dietician Grace', email: 'dietician@chihealth.com', role: 'dietician' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0], departmentIds: ['dept-3'] },
+        { id: 'user-radiologist-01', name: 'Dr. Ray Chen', email: 'radiologist@chihealth.com', role: 'radiologist' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0], departmentIds: ['dept-1'] },
+        { id: 'user-it-01', name: 'IT Support Admin', email: 'it@chihealth.com', role: 'it_support' as const, passwordHash: password, organizations: [organizations[0]], currentOrganization: organizations[0] },
         { id: 'user-hcw-02', name: 'Dr. Okoro', email: 'dr.okoro@chihealth.com', role: 'hcw' as const, passwordHash: password, organizations: [organizations[1]], currentOrganization: organizations[1], departmentIds: ['dept-2'] },
     ];
     

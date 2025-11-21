@@ -1,17 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../components/common/Button.tsx';
 import { useToasts } from '../../hooks/useToasts.ts';
-import { UploadCloudIcon, DownloadCloudIcon, CheckCircleIcon, AlertTriangleIcon } from '../../components/icons/index.tsx';
+import { UploadCloudIcon, DownloadCloudIcon, CheckCircleIcon } from '../../components/icons/index.tsx';
+import { ImportPatientsModal } from './ImportPatientsModal.tsx';
 
-type ImportStatus = 'idle' | 'uploading' | 'validating' | 'importing' | 'complete' | 'error';
 type ExportStatus = 'idle' | 'preparing' | 'generating' | 'downloading' | 'complete';
 
-
-const IMPORT_STATUS_MESSAGES: Record<Exclude<ImportStatus, 'idle' | 'complete' | 'error'>, string> = {
-    uploading: 'Uploading file...',
-    validating: 'Validating CSV format...',
-    importing: 'Importing patient records...',
-};
 
 const EXPORT_STATUS_MESSAGES: Record<Exclude<ExportStatus, 'idle' | 'complete'>, string> = {
     preparing: 'Preparing data...',
@@ -22,28 +16,14 @@ const EXPORT_STATUS_MESSAGES: Record<Exclude<ExportStatus, 'idle' | 'complete'>,
 
 export const DataManagementView: React.FC = () => {
     const { addToast } = useToasts();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Import states
-    const [fileName, setFileName] = useState<string | null>(null);
-    const [importStatus, setImportStatus] = useState<ImportStatus>('idle');
-    const [importProgress, setImportProgress] = useState(0);
-    const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+    // Import state
+    const [showImportModal, setShowImportModal] = useState(false);
     
     // Export states
     const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
     const [exportProgress, setExportProgress] = useState(0);
     const [selectedExportModules, setSelectedExportModules] = useState<string[]>([]);
-
-    const handleImportReset = () => {
-        setImportStatus('idle');
-        setImportProgress(0);
-        setImportResult(null);
-        setFileName(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    };
     
     const handleExportReset = () => {
         setExportStatus('idle');
@@ -51,51 +31,18 @@ export const DataManagementView: React.FC = () => {
         setSelectedExportModules([]);
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        handleImportReset();
-        if (e.target.files && e.target.files.length > 0) {
-            setFileName(e.target.files[0].name);
-        }
-    };
+    // Old import handlers removed - using ImportPatientsModal now
 
-    const handleImport = () => {
-        if (!fileName) {
-            addToast('Please select a file to import.', 'error');
-            return;
-        }
-
-        setImportStatus('uploading');
-        setImportProgress(10);
-
-        setTimeout(() => {
-            setImportProgress(25);
-            setImportStatus('validating');
-            setTimeout(() => {
-                setImportProgress(50);
-                setImportStatus('importing');
-                setTimeout(() => {
-                    setImportProgress(75);
-                    setTimeout(() => {
-                        const isError = Math.random() > 0.8;
-                        if (isError) {
-                            setImportStatus('error');
-                            setImportResult({ success: 15, failed: 10 });
-                        } else {
-                            setImportStatus('complete');
-                            setImportResult({ success: 25, failed: 0 });
-                        }
-                        setImportProgress(100);
-                    }, 1500);
-                }, 1000);
-            }, 800);
-        }, 500);
-    };
-    
     const handleExportModulesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, checked } = e.target;
         setSelectedExportModules(prev =>
             checked ? [...prev, id] : prev.filter(item => item !== id)
         );
+    };
+
+    const handleImportSuccess = (count: number) => {
+        addToast(`Successfully imported ${count} patient records`, 'success');
+        setShowImportModal(false);
     };
 
     const handleExport = () => {
@@ -122,64 +69,7 @@ export const DataManagementView: React.FC = () => {
         }, 800);
     };
     
-    const isImporting = ['uploading', 'validating', 'importing'].includes(importStatus);
-
-    const renderImportContent = () => {
-        if (importStatus === 'complete' || importStatus === 'error') {
-            const isSuccess = importStatus === 'complete' && importResult?.failed === 0;
-            const isPartial = importStatus === 'complete' && importResult?.failed !== 0;
-            const title = isSuccess ? "Import Successful" : isPartial ? "Import Partially Complete" : "Import Failed";
-            const Icon = isSuccess ? CheckCircleIcon : AlertTriangleIcon;
-            
-            return (
-                 <div className={`import-result-summary ${isSuccess ? 'success' : 'error'}`}>
-                    <Icon className="import-result-icon" style={{color: isSuccess ? 'var(--success-color)' : 'var(--error-color)'}} />
-                    <h4 className="import-result-title">{title}</h4>
-                    {importResult && (
-                        <p className="import-result-details">
-                            {importResult.success} records imported successfully. <br />
-                            {importResult.failed > 0 && `${importResult.failed} records failed due to errors.`}
-                        </p>
-                    )}
-                    <Button onClick={handleImportReset} style={{marginTop: '1.5rem'}}>Start Over</Button>
-                </div>
-            );
-        }
-
-        if (isImporting) {
-            return (
-                <div className="import-progress-container">
-                    <div className="import-progress-bar-background">
-                        <div className="import-progress-bar" style={{ width: `${importProgress}%` }}></div>
-                    </div>
-                    <p className="import-status-text">
-                        <span>{IMPORT_STATUS_MESSAGES[importStatus as keyof typeof IMPORT_STATUS_MESSAGES]}</span>
-                    </p>
-                </div>
-            );
-        }
-
-        return (
-            <>
-                <div className={`data-management-dropzone ${isImporting ? 'disabled' : ''}`}>
-                    <UploadCloudIcon className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
-                    <input type="file" id="file-upload" className="hidden" accept=".csv" onChange={handleFileChange} ref={fileInputRef} disabled={isImporting}/>
-                    <label htmlFor="file-upload" className="font-semibold text-primary cursor-pointer hover:underline">
-                        Choose a file
-                    </label>
-                    <p className="text-xs text-text-secondary mt-1">
-                        {fileName ? fileName : 'or drag and drop. CSV up to 10MB.'}
-                    </p>
-                </div>
-                 <p className="text-xs text-text-secondary mt-4">
-                    Required CSV columns: <strong>name, email, dateOfBirth, lastVisit</strong>
-                </p>
-                <Button onClick={handleImport} disabled={!fileName} fullWidth style={{marginTop: '1rem'}}>
-                    Import Data
-                </Button>
-            </>
-        );
-    };
+    // Old import function removed - now using ImportPatientsModal
 
     const renderExportContent = () => {
         const isExporting = ['preparing', 'generating', 'downloading'].includes(exportStatus);
@@ -251,7 +141,17 @@ export const DataManagementView: React.FC = () => {
                     <p className="text-sm text-text-secondary mb-4">
                         Upload patient records from other facilities in CSV format. Support for Excel, PDF, and DOCS is coming soon.
                     </p>
-                    {renderImportContent()}
+                    <div className="flex-1 flex flex-col justify-center items-center py-8">
+                        <UploadCloudIcon className="w-16 h-16 text-text-tertiary mb-4" />
+                        <h4 className="font-semibold text-text-primary mb-2">Import Patient Records</h4>
+                        <p className="text-sm text-text-secondary text-center mb-6 max-w-md">
+                            Easily transfer patient data from other facilities using our CSV import tool. Validate and import records in bulk.
+                        </p>
+                        <Button onClick={() => setShowImportModal(true)}>
+                            <UploadCloudIcon className="w-4 h-4 mr-2" />
+                            Start Import
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Export Section */}
@@ -260,6 +160,14 @@ export const DataManagementView: React.FC = () => {
                      {renderExportContent()}
                 </div>
             </div>
+
+            {/* Import Patients Modal */}
+            <ImportPatientsModal 
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImportSuccess={handleImportSuccess}
+                organizationId="org-1"
+            />
         </>
     );
 };

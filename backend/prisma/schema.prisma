@@ -58,8 +58,18 @@ model User {
   bills               Bill[]
   referralsAsPatient  Referral[]
   referralsAsDoctor   Referral[]
+  // MFA fields for enhanced security
+  mfaEnabled          Boolean? @default(false)
+  mfaMethod           String?  // 'totp' | 'webauthn' | 'both'
+  mfaSecret           String?  // Encrypted TOTP secret
+  webAuthnCredentials Json?    // Array of WebAuthn credentials
+  backupCodes         String[] // Hashed backup recovery codes
+  mfaEnrolledAt       DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  @@index([email])
+  @@index([mfaEnabled])
 }
 
 model Appointment {
@@ -206,4 +216,37 @@ model ActivityLog {
   timestamp DateTime @default(now())
   type      String   // 'ADMISSION' | 'DISCHARGE' | 'ALERT' | 'INFO'
   details   String   @db.Text
+}
+
+model AuditLog {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  userId            String
+  userEmail         String
+  userName          String
+  userRole          String
+  organizationId    String
+  organizationName  String
+  action            String   // AuditAction type
+  category          String   // 'user' | 'auth' | 'data' | 'system' | 'security' | 'it' | 'admin' | 'finance'
+  severity          String   // 'low' | 'medium' | 'high' | 'critical'
+  resourceType      String?  // e.g., 'Patient', 'User', 'Bill', 'Report'
+  resourceId        String?  // ID of the affected resource
+  resourceName      String?  // Name/identifier of the resource
+  description       String   @db.Text
+  ipAddress         String?
+  userAgent         String?  @db.Text
+  changes           Json?    // JSON object tracking field changes
+  metadata          Json?    // Additional context as JSON
+  success           Boolean  @default(true)
+  errorMessage      String?  @db.Text
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([action])
+  @@index([category])
+  @@index([severity])
+  @@index([organizationId])
+  @@index([success])
+  @@map("audit_logs")
 }

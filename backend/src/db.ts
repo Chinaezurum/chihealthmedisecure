@@ -938,3 +938,39 @@ export const updateExternalLabResultStatus = async (id: string, status: External
     result.status = status;
     return result;
 };
+
+// --- MFA Management ---
+export const getUserById = async (id: string): Promise<User | undefined> => {
+    return users.find(u => u.id === id);
+};
+
+export const updateUserMfa = async (userId: string, mfaData: {
+    mfaEnabled?: boolean;
+    mfaMethod?: 'totp' | 'webauthn' | 'both';
+    mfaSecret?: string;
+    webAuthnCredentials?: Array<{
+        id: string;
+        publicKey: string;
+        counter: number;
+        deviceName?: string;
+        createdAt: string;
+        lastUsed?: string;
+    }>;
+    backupCodes?: string[];
+    mfaEnrolledAt?: string;
+}): Promise<User> => {
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) throw new Error("User not found");
+    
+    const user = users[userIndex];
+    
+    // Update MFA fields
+    if (mfaData.mfaEnabled !== undefined) user.mfaEnabled = mfaData.mfaEnabled;
+    if (mfaData.mfaMethod !== undefined) user.mfaMethod = mfaData.mfaMethod;
+    if (mfaData.mfaSecret !== undefined) user.mfaSecret = mfaData.mfaSecret;
+    if (mfaData.webAuthnCredentials !== undefined) user.webAuthnCredentials = mfaData.webAuthnCredentials;
+    if (mfaData.backupCodes !== undefined) user.backupCodes = mfaData.backupCodes;
+    if (mfaData.mfaEnrolledAt !== undefined) user.mfaEnrolledAt = mfaData.mfaEnrolledAt;
+    
+    return user;
+};

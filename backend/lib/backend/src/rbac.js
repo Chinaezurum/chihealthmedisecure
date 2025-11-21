@@ -105,6 +105,33 @@ const ROLE_PERMISSIONS = {
         'view_all_analytics',
         'system_administration',
     ],
+    radiologist: [
+        'view_patient_list',
+        'view_patient_records',
+        'view_imaging_orders',
+        'upload_imaging_results',
+        'create_radiology_reports',
+        'message_hcw',
+        'message_staff',
+    ],
+    dietician: [
+        'view_patient_list',
+        'view_patient_records',
+        'create_meal_plans',
+        'view_nutritional_assessments',
+        'message_hcw',
+        'message_patient',
+        'message_staff',
+    ],
+    it_support: [
+        'view_system_logs',
+        'manage_users',
+        'view_audit_logs',
+        'manage_technical_issues',
+        'system_administration',
+        'view_all_data',
+        'export_data',
+    ],
 };
 // Resource ownership checks
 const OWNERSHIP_RULES = {

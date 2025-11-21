@@ -39,6 +39,16 @@ const RegisterOrg: React.FC<RegisterOrgProps> = ({ onNavigate }) => {
   const [formData, setFormData] = useState({
     organizationName: '',
     organizationType: '' as Organization['type'],
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    postalCode: '',
+    primaryPhone: '',
+    secondaryPhone: '',
+    primaryEmail: '',
+    secondaryEmail: '',
+    website: '',
     adminName: '',
     adminEmail: '',
     password: '',
@@ -99,8 +109,27 @@ const RegisterOrg: React.FC<RegisterOrgProps> = ({ onNavigate }) => {
     
     setIsLoading(true);
     try {
+      const phoneNumbers = [];
+      if (formData.primaryPhone) phoneNumbers.push(formData.primaryPhone);
+      if (formData.secondaryPhone) phoneNumbers.push(formData.secondaryPhone);
+      
+      const emails = [];
+      if (formData.primaryEmail) emails.push(formData.primaryEmail);
+      if (formData.secondaryEmail) emails.push(formData.secondaryEmail);
+      
       const { organization } = await api.registerOrganizationAndAdmin(
-        { name: formData.organizationName, type: formData.organizationType },
+        { 
+          name: formData.organizationName, 
+          type: formData.organizationType,
+          address: formData.address || undefined,
+          city: formData.city || undefined,
+          state: formData.state || undefined,
+          country: formData.country || undefined,
+          postalCode: formData.postalCode || undefined,
+          phoneNumbers: phoneNumbers.length > 0 ? phoneNumbers : undefined,
+          emails: emails.length > 0 ? emails : undefined,
+          website: formData.website || undefined,
+        },
         { name: formData.adminName, email: formData.adminEmail, password: formData.password }
       );
       setNewOrgDetails({ orgId: organization.id, orgName: organization.name });
@@ -142,6 +171,32 @@ const RegisterOrg: React.FC<RegisterOrgProps> = ({ onNavigate }) => {
                                 <option value="Pharmacy">Pharmacy</option>
                                 <option value="Laboratory">Laboratory</option>
                             </Select>
+                        </div>
+                        
+                        <div className="form-section mt-6">
+                            <legend className="form-section-legend">Contact Information</legend>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input name="primaryPhone" type="tel" label="Primary Phone" value={formData.primaryPhone} onChange={handleChange} placeholder="+234 XXX XXX XXXX" />
+                                <Input name="secondaryPhone" type="tel" label="Secondary Phone (Optional)" value={formData.secondaryPhone} onChange={handleChange} placeholder="+234 XXX XXX XXXX" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input name="primaryEmail" type="email" label="Contact Email" value={formData.primaryEmail} onChange={handleChange} placeholder="contact@facility.com" />
+                                <Input name="secondaryEmail" type="email" label="Secondary Email (Optional)" value={formData.secondaryEmail} onChange={handleChange} placeholder="info@facility.com" />
+                            </div>
+                            <Input name="website" type="url" label="Website (Optional)" value={formData.website} onChange={handleChange} placeholder="https://www.yourfacility.com" />
+                        </div>
+                        
+                        <div className="form-section mt-6">
+                            <legend className="form-section-legend">Address</legend>
+                            <Input name="address" type="text" label="Street Address" value={formData.address} onChange={handleChange} placeholder="123 Main Street" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input name="city" type="text" label="City" value={formData.city} onChange={handleChange} placeholder="Lagos" />
+                                <Input name="state" type="text" label="State/Province" value={formData.state} onChange={handleChange} placeholder="Lagos State" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input name="country" type="text" label="Country" value={formData.country} onChange={handleChange} placeholder="Nigeria" />
+                                <Input name="postalCode" type="text" label="Postal Code" value={formData.postalCode} onChange={handleChange} placeholder="100001" />
+                            </div>
                         </div>
                     </div>
                     {/* Step 2 */}
