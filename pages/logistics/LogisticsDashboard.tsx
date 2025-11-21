@@ -9,9 +9,10 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { TransportView } from './TransportView.tsx';
 import { LabSampleTrackingView } from './LabSampleTrackingView.tsx';
+import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type LogisticsView = 'transport' | 'samples' | 'settings';
+type LogisticsView = 'transport' | 'samples' | 'messages' | 'settings';
 
 interface LogisticsDashboardProps {
   user: User;
@@ -25,6 +26,7 @@ const Sidebar: React.FC<{ activeView: LogisticsView; setActiveView: (view: Logis
   const navItems = [
     { id: 'transport', label: 'Transport Requests', icon: Icons.TruckIcon },
     { id: 'samples', label: 'Sample Tracking', icon: Icons.MicroscopeIcon },
+    { id: 'messages', label: 'Team Messages', icon: Icons.MessageSquareIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -42,36 +44,121 @@ const Sidebar: React.FC<{ activeView: LogisticsView; setActiveView: (view: Logis
 
 const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<LogisticsView>('transport');
-  const [data, setData] = useState<{ transportRequests: TransportRequest[], labSamples: LabTest[] } | null>(null);
+  const [data, setData] = useState<{ transportRequests: TransportRequest[], labSamples: LabTest[], messages?: any[], patients?: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [sessionStartTime] = useState(new Date().toISOString());
   const { addToast } = useToasts();
+
+  // Session tracking
+  useEffect(() => {
+    const sessionLog = {
+      timestamp: sessionStartTime,
+      userId: props.user.id,
+      userName: props.user.name,
+      userRole: 'logistics',
+      action: 'session_start',
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Logistics Session Start Audit:', sessionLog);
+
+    return () => {
+      const sessionEndLog = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userName: props.user.name,
+        userRole: 'logistics',
+        action: 'session_end',
+        sessionDuration: Math.floor((Date.now() - new Date(sessionStartTime).getTime()) / 1000),
+        organizationId: props.user.currentOrganization.id
+      };
+      console.log('Logistics Session End Audit:', sessionEndLog);
+    };
+  }, [props.user.id, props.user.name, props.user.currentOrganization.id, sessionStartTime]);
+
+  // View navigation tracking
+  useEffect(() => {
+    const navLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'logistics',
+      action: 'view_navigation',
+      view: activeView,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Logistics View Navigation Audit:', navLog);
+  }, [activeView, props.user.id, props.user.currentOrganization.id]);
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Audit log for data fetch
+      const fetchLog = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userRole: 'logistics',
+        action: 'fetch_dashboard_data',
+        organizationId: props.user.currentOrganization.id
+      };
+      console.log('Logistics Data Fetch Audit:', fetchLog);
+      
       const logisticsData = await api.fetchLogisticsData();
       setData(logisticsData);
+      
+      // Fetch staff users for messaging
+      try {
+        const staff = await api.fetchStaffUsers();
+        setStaffUsers(staff);
+      } catch (error) {
+        console.error('Failed to fetch staff users:', error);
+        // Continue even if staff fetch fails
+      }
     } catch (error) {
       console.error("Failed to fetch logistics data:", error);
       addToast('Failed to load logistics data.', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, props.user.id, props.user.currentOrganization.id]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleUpdateTransportStatus = async (id: string, status: TransportRequest['status']) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'logistics',
+      action: 'update_transport_status',
+      transportRequestId: id,
+      newStatus: status,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Logistics Transport Status Update Audit:', auditLog);
+    
     await api.updateTransportRequestStatus(id, status);
-    addToast(`Transport request ${id} updated.`, 'success');
+    addToast(`Transport request ${id} updated to ${status}.`, 'success');
     fetchData();
   };
 
   const handleUpdateSampleStatus = async (id: string, status: LabTest['status']) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'logistics',
+      action: 'update_sample_status',
+      sampleId: id,
+      newStatus: status,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Logistics Sample Status Update Audit:', auditLog);
+    
     await api.updateLabSampleStatus(id, status);
-    addToast(`Lab sample ${id} updated.`, 'success');
+    addToast(`Lab sample ${id} updated to ${status}.`, 'success');
     fetchData();
   };
 
@@ -79,10 +166,49 @@ const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
     if (isLoading || !data) return <FullScreenLoader message="Loading logistics dashboard..." />;
     
     switch (activeView) {
-      case 'transport': return <TransportView requests={data.transportRequests} onUpdateStatus={handleUpdateTransportStatus} />;
-      case 'samples': return <LabSampleTrackingView labTests={data.labSamples} onUpdateStatus={handleUpdateSampleStatus} />;
-      case 'settings': return <SettingsView user={props.user} />;
-      default: return <div>Transport Requests</div>;
+      case 'transport': 
+        return <TransportView 
+          requests={data.transportRequests} 
+          onUpdateStatus={handleUpdateTransportStatus}
+          currentUserId={props.user.id}
+        />;
+      case 'samples': 
+        return <LabSampleTrackingView 
+          labTests={data.labSamples} 
+          onUpdateStatus={handleUpdateSampleStatus}
+          currentUserId={props.user.id}
+        />;
+      case 'messages':
+        return <MessagingView 
+          messages={data.messages || []} 
+          currentUser={props.user} 
+          contacts={[...(data.patients || []), ...staffUsers]} 
+          onSendMessage={async (recipientId, content, patientId) => {
+            // Audit logging
+            const auditLog = {
+              timestamp: new Date().toISOString(),
+              userId: props.user.id,
+              userRole: 'logistics',
+              action: 'send_message',
+              recipientId,
+              patientId,
+              organizationId: props.user.currentOrganization.id
+            };
+            console.log('Logistics Message Send Audit:', auditLog);
+            
+            await api.sendMessage({recipientId, content, patientId, senderId: props.user.id}); 
+            fetchData();
+          }} 
+          onStartCall={() => addToast('Call feature coming soon', 'info')} 
+          onAiChannelCommand={async () => { 
+            addToast('AI feature coming soon', 'info'); 
+            return ''; 
+          }} 
+        />;
+      case 'settings': 
+        return <SettingsView user={props.user} />;
+      default: 
+        return <div>Transport Requests</div>;
     }
   };
 

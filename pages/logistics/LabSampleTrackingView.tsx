@@ -7,21 +7,23 @@ import { MicroscopeIcon } from '../../components/icons/index.tsx';
 interface LabSampleTrackingViewProps {
   labTests: LabTest[];
   onUpdateStatus: (id: string, status: LabTest['status']) => void;
+  currentUserId?: string;
 }
 
-const SampleCard: React.FC<{ test: LabTest; onUpdateStatus: LabSampleTrackingViewProps['onUpdateStatus'] }> = ({ test, onUpdateStatus }) => {
+const SampleCard: React.FC<{ test: LabTest; onUpdateStatus: LabSampleTrackingViewProps['onUpdateStatus']; currentUserId?: string }> = ({ test, onUpdateStatus, currentUserId }) => {
   const handleStatusUpdate = (newStatus: LabTest['status']) => {
     const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId || 'unknown',
+      userRole: 'logistics',
+      action: 'sample_status_change',
       sampleId: test.id,
       patientName: test.patientName,
       testName: test.testName,
       oldStatus: test.status,
       newStatus,
-      updatedDateTime: new Date().toISOString(),
-      updatedBy: 'LOG001', // Would come from auth context
-      updatedByName: 'Current Logistics Officer',
     };
-    console.log('Lab sample status update audit:', auditLog);
+    console.log('Lab Sample Status Change Audit:', auditLog);
     onUpdateStatus(test.id, newStatus);
   };
   
@@ -50,25 +52,33 @@ const KanbanColumn: React.FC<{ title: string, count: number, colorClass: string,
 );
 
 
-export const LabSampleTrackingView: React.FC<LabSampleTrackingViewProps> = ({ labTests, onUpdateStatus }) => {
+export const LabSampleTrackingView: React.FC<LabSampleTrackingViewProps> = ({ labTests, onUpdateStatus, currentUserId }) => {
   const awaitingPickup = labTests.filter(t => t.status === 'Awaiting Pickup');
   const inTransit = labTests.filter(t => t.status === 'In Transit');
   const delivered = labTests.filter(t => t.status === 'Delivered');
 
   return (
     <>
-      <h2 className="text-3xl font-bold text-text-primary mb-6">Lab Sample Tracking</h2>
+      <h2 className="text-3xl font-bold text-text-primary mb-4">Lab Sample Tracking</h2>
+      
+      {/* Audit Warning */}
+      <div className="mb-6 p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> All lab sample tracking and status updates are logged for compliance and traceability.
+        </p>
+      </div>
+      
       <div className="kanban-board">
         <KanbanColumn title="Awaiting Pickup" count={awaitingPickup.length} colorClass="text-amber-500">
-          {awaitingPickup.length > 0 ? awaitingPickup.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} />) : <EmptyState icon={MicroscopeIcon} title="No Samples Awaiting Pickup" message="" />}
+          {awaitingPickup.length > 0 ? awaitingPickup.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} currentUserId={currentUserId} />) : <EmptyState icon={MicroscopeIcon} title="No Samples Awaiting Pickup" message="" />}
         </KanbanColumn>
 
         <KanbanColumn title="In-Transit" count={inTransit.length} colorClass="text-cyan-500">
-           {inTransit.length > 0 ? inTransit.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} />) : <EmptyState icon={MicroscopeIcon} title="No Samples In Transit" message="" />}
+           {inTransit.length > 0 ? inTransit.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} currentUserId={currentUserId} />) : <EmptyState icon={MicroscopeIcon} title="No Samples In Transit" message="" />}
         </KanbanColumn>
         
         <KanbanColumn title="Delivered" count={delivered.length} colorClass="text-green-500">
-            {delivered.length > 0 ? delivered.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} />) : <EmptyState icon={MicroscopeIcon} title="No Samples Delivered" message="" />}
+            {delivered.length > 0 ? delivered.map(test => <SampleCard key={test.id} test={test} onUpdateStatus={onUpdateStatus} currentUserId={currentUserId} />) : <EmptyState icon={MicroscopeIcon} title="No Samples Delivered" message="" />}
         </KanbanColumn>
       </div>
     </>
