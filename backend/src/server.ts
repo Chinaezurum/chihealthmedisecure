@@ -26,6 +26,7 @@ import cookieParser from 'cookie-parser';
 import process from 'process';
 import * as db from './db.js';
 import * as auth from './auth/auth.js';
+import * as rbac from './rbac.js';
 import { User, Organization } from '../../types.js';
 
 // Extend Express Request type
@@ -176,15 +177,9 @@ app.get('/api/users/me', authenticate, (req: Request, res: Response) => {
 });
 
 // Patient search endpoint (for receptionists, HCWs, nurses, pharmacists, lab techs, and admin)
-app.get('/api/users/search', authenticate, async (req: Request, res: Response) => {
+app.get('/api/users/search', authenticate, rbac.requireRole(['receptionist', 'hcw', 'nurse', 'pharmacist', 'lab_technician', 'admin', 'command_center']), async (req: Request, res: Response) => {
   try {
     const user = req.user as User;
-    // Only authorized medical staff can search for patients
-    const allowedRoles = ['RECEPTIONIST', 'HCW', 'NURSE', 'PHARMACIST', 'LAB_TECHNICIAN', 'ADMIN'];
-    if (!allowedRoles.includes(user.role.toUpperCase())) {
-      return res.status(403).json({ message: 'Access denied. Medical staff role required.' });
-    }
-
     const query = req.query.q as string;
     
     if (!query || query.trim().length < 2) {
@@ -208,8 +203,8 @@ app.post('/api/users/switch-organization', authenticate, async (req: Request, re
 });
 
 // Patient Routes
-app.get('/api/patient/dashboard', authenticate, async (req, res) => res.json(await db.getPatientDashboardData((req.user as User).id)));
-app.post('/api/patient/appointments', authenticate, async (req, res) => {
+app.get('/api/patient/dashboard', authenticate, rbac.requireRole('patient'), async (req, res) => res.json(await db.getPatientDashboardData((req.user as User).id)));
+app.post('/api/patient/appointments', authenticate, rbac.requirePermission(['create_own_appointments', 'create_appointments']), async (req, res) => {
   await db.createAppointment((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(201).send();
@@ -268,18 +263,18 @@ app.delete('/api/patient/devices/:id', authenticate, async (req, res) => {
 });
 
 // HCW Routes
-app.get('/api/hcw/dashboard', authenticate, async (req, res) => res.json(await db.getHcwDashboardData((req.user as User).id, (req.organizationContext as Organization).id)));
-app.post('/api/hcw/notes', authenticate, async (req, res) => {
+app.get('/api/hcw/dashboard', authenticate, rbac.requireRole(['hcw', 'nurse']), async (req, res) => res.json(await db.getHcwDashboardData((req.user as User).id, (req.organizationContext as Organization).id)));
+app.post('/api/hcw/notes', authenticate, rbac.requirePermission('create_medical_notes'), async (req, res) => {
   await db.createClinicalNote((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/lab-tests', authenticate, async (req, res) => {
+app.post('/api/hcw/lab-tests', authenticate, rbac.requirePermission('order_lab_tests'), async (req, res) => {
   await db.createLabTest((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/prescriptions', authenticate, async (req, res) => {
+app.post('/api/hcw/prescriptions', authenticate, rbac.requirePermission('create_prescriptions'), async (req, res) => {
   await db.createPrescription((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(201).send();
@@ -291,13 +286,13 @@ app.post('/api/hcw/referrals', authenticate, async (req, res) => {
 });
 
 // Admin Routes
-app.get('/api/admin/dashboard', authenticate, async (req, res) => res.json(await db.getAdminDashboardData((req.organizationContext as Organization).id)));
-app.put('/api/users/:id', authenticate, async (req, res) => {
+app.get('/api/admin/dashboard', authenticate, rbac.requireRole(['admin', 'command_center']), async (req, res) => res.json(await db.getAdminDashboardData((req.organizationContext as Organization).id)));
+app.put('/api/users/:id', authenticate, rbac.requirePermission('manage_users'), async (req, res) => {
   await db.updateUser(req.params.id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/admin/staff', authenticate, async (req, res) => {
+app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'), async (req, res) => {
   try {
     const { name, email, password, role, departmentIds, organizationIds } = req.body;
     
