@@ -410,10 +410,25 @@ export const recordVitals = async (patientId: string, vitals: any) => {
         patient.inpatientStay.vitalHistory.unshift({ timestamp: entry.timestamp, heartRate: entry.heartRate, bloodPressure: entry.bloodPressure, spO2: entry.spO2 });
     }
 };
+export const createTransportRequest = async (requestedById: string, data: Omit<TransportRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+    const requester = await findUserById(requestedById);
+    const newRequest: TransportRequest = {
+        id: `tr-${Date.now()}`,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        requestedById,
+        requestedByName: requester?.name || 'Unknown User',
+        ...data
+    };
+    transportRequests.push(newRequest);
+    return newRequest;
+};
 export const updateTransportRequest = async (id: string, status: TransportRequest['status']) => {
     const req = transportRequests.find(t => t.id === id);
     if (!req) throw new Error("Request not found");
     req.status = status;
+    req.updatedAt = new Date().toISOString();
     return req;
 };
 export const admitPatient = async (patientId: string, bedId: string, reason: string) => {

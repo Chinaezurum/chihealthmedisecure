@@ -703,6 +703,11 @@ app.post('/api/triage/:patientId/vitals', authenticate, async (req, res) => {
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(200).send();
 });
+app.post('/api/transport/requests', authenticate, async (req, res) => {
+  const newRequest = await db.createTransportRequest((req.user as User).id, req.body);
+  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+  res.status(201).json(newRequest);
+});
 app.put('/api/transport/:id/status', authenticate, async (req, res) => {
   await db.updateTransportRequest(req.params.id, req.body.status);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');

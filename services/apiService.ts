@@ -245,6 +245,9 @@ export const saveVitals = (patientId: string, vitals: any) => {
 export const updateTransportRequestStatus = (id: string, status: any) => {
     return apiFetch(`/transport/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
 };
+export const createTransportRequest = (data: any) => {
+    return apiFetch('/transport/requests', { method: 'POST', body: JSON.stringify(data) });
+};
 export const updateLabSampleStatus = (id: string, status: any) => {
     return apiFetch(`/lab-samples/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
 };

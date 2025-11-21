@@ -13,7 +13,7 @@ import { PatientLookupView } from './PatientLookupView.tsx';
 import { IncomingReferralsView } from './IncomingReferralsView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
-import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TeamMessagingView } from '../../components/common/TeamMessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
 
 type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'referrals' | 'dept-notes' | 'messages' | 'telemedicine' | 'settings';
@@ -233,31 +233,26 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
       case 'dept-notes': 
         return <InterDepartmentalNotesView />;
       case 'messages': 
-        return <MessagingView 
+        return <TeamMessagingView 
           messages={data?.messages || []} 
           currentUser={props.user} 
-          contacts={[...(data?.patients || []), ...staffUsers]} 
-          onSendMessage={async (recipientId, content, patientId) => {
+          staffContacts={staffUsers} 
+          onSendMessage={async (recipientId, content) => {
             // Audit logging
             const auditLog = {
               timestamp: new Date().toISOString(),
               userId: props.user.id,
               userRole: 'receptionist',
-              action: 'send_message',
+              action: 'send_team_message',
               recipientId,
-              patientId,
               organizationId: props.user.currentOrganization.id
             };
-            console.log('Receptionist Message Send Audit:', auditLog);
+            console.log('Receptionist Team Message Send Audit:', auditLog);
             
-            await api.sendMessage({recipientId, content, patientId, senderId: props.user.id});
+            await api.sendMessage({recipientId, content, senderId: props.user.id});
             fetchData();
           }} 
           onStartCall={handleStartCall} 
-          onAiChannelCommand={async () => { 
-            addToast('AI feature coming soon', 'info'); 
-            return ''; 
-          }} 
         />;
       case 'telemedicine': 
         return selectedPatientForCall ? (

@@ -12,9 +12,10 @@ import { CompletedTestsView } from './CompletedTestsView.tsx';
 import { CreateLabTestRequestModal } from './CreateLabTestRequestModal.tsx';
 import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
-import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TeamMessagingView } from '../../components/common/TeamMessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
+import { TransportRequestButton } from '../../components/common/TransportRequestButton.tsx';
 
 type LabView = 'queue' | 'lookup' | 'history' | 'dept-notes' | 'messages' | 'telemedicine' | 'settings';
 
@@ -221,13 +222,22 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
                 <h2 className="text-3xl font-bold text-text-primary">Lab Test Queue</h2>
                 <p className="text-text-secondary mt-1">Manage test requests from HCWs and direct requests</p>
               </div>
-              <button
-                onClick={() => setIsCreateRequestModalOpen(true)}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-              >
-                <span className="text-xl">+</span>
-                New Test Request
-              </button>
+              <div className="flex gap-3">
+                <TransportRequestButton
+                  currentUserId={props.user.id}
+                  currentUserName={props.user.name}
+                  currentLocation="Laboratory"
+                  organizationId={props.user.currentOrganization.id}
+                  onRequestCreated={fetchData}
+                />
+                <button
+                  onClick={() => setIsCreateRequestModalOpen(true)}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+                >
+                  <span className="text-xl">+</span>
+                  New Test Request
+                </button>
+              </div>
             </div>
             <LabQueueView 
               labTests={data.labTests} 
@@ -248,7 +258,7 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
         );
       case 'dept-notes': 
         return <InterDepartmentalNotesView />;
-      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'messages': return <TeamMessagingView messages={data.messages || []} currentUser={props.user} staffContacts={staffUsers} onSendMessage={async (rec, content) => { await api.sendMessage({recipientId: rec, content, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} />;
       case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => handleViewChange('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Lab Queue</div>;

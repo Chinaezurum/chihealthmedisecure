@@ -148,6 +148,17 @@ export interface TransportRequest {
     from: string;
     to: string;
     status: 'Pending' | 'In-Transit' | 'Delivered' | 'Cancelled';
+    description?: string;
+    priority?: 'Normal' | 'Urgent' | 'Emergency';
+    patientId?: string;
+    patientName?: string;
+    requestedById?: string;
+    requestedByName?: string;
+    contactPerson?: string;
+    contactPhone?: string;
+    notes?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Referral {

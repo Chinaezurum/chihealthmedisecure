@@ -10,7 +10,7 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { TriageQueueView } from './TriageQueueView.tsx';
 import { InpatientView } from './InpatientView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
-import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TeamMessagingView } from '../../components/common/TeamMessagingView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
@@ -101,7 +101,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
     switch (activeView) {
       case 'triage': return <TriageQueueView triageQueue={data.triageQueue} onSaveVitals={handleSaveVitals} />;
       case 'inpatients': return <InpatientView patients={data.inpatients} />;
-      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
+      case 'messages': return <TeamMessagingView messages={data.messages || []} currentUser={props.user} staffContacts={staffUsers} onSendMessage={async (rec, content) => { await api.sendMessage({recipientId: rec, content, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} />;
       case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => setActiveView('messages')} onStartCall={(contactId) => { const patient = data.patients.find(p => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'dept-notes': return <InterDepartmentalNotesView />;
       case 'settings': return <SettingsView user={props.user} />;

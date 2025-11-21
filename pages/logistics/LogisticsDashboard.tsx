@@ -9,7 +9,7 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { TransportView } from './TransportView.tsx';
 import { LabSampleTrackingView } from './LabSampleTrackingView.tsx';
-import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TeamMessagingView } from '../../components/common/TeamMessagingView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
 type LogisticsView = 'transport' | 'samples' | 'messages' | 'settings';
@@ -179,31 +179,26 @@ const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
           currentUserId={props.user.id}
         />;
       case 'messages':
-        return <MessagingView 
+        return <TeamMessagingView 
           messages={data.messages || []} 
           currentUser={props.user} 
-          contacts={[...(data.patients || []), ...staffUsers]} 
-          onSendMessage={async (recipientId, content, patientId) => {
+          staffContacts={staffUsers} 
+          onSendMessage={async (recipientId, content) => {
             // Audit logging
             const auditLog = {
               timestamp: new Date().toISOString(),
               userId: props.user.id,
               userRole: 'logistics',
-              action: 'send_message',
+              action: 'send_team_message',
               recipientId,
-              patientId,
               organizationId: props.user.currentOrganization.id
             };
-            console.log('Logistics Message Send Audit:', auditLog);
+            console.log('Logistics Team Message Send Audit:', auditLog);
             
-            await api.sendMessage({recipientId, content, patientId, senderId: props.user.id}); 
+            await api.sendMessage({recipientId, content, senderId: props.user.id}); 
             fetchData();
           }} 
           onStartCall={() => addToast('Call feature coming soon', 'info')} 
-          onAiChannelCommand={async () => { 
-            addToast('AI feature coming soon', 'info'); 
-            return ''; 
-          }} 
         />;
       case 'settings': 
         return <SettingsView user={props.user} />;
