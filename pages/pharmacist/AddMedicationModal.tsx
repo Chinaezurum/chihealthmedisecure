@@ -23,6 +23,8 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({ onClose,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
 
   const categories = ['Analgesics', 'Antibiotics', 'Gastrointestinal', 'Antidiabetic', 'Cardiovascular', 'Antihypertensive', 'Antihistamine', 'Other'];
   const units = ['tablets', 'capsules', 'ml', 'bottles', 'vials', 'tubes', 'boxes'];
@@ -97,20 +99,45 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({ onClose,
             />
           </div>
 
-          <div>
+          <div className="col-span-2">
             <label className="block text-sm font-medium text-text-primary mb-1.5">
               Category
             </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 bg-background-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={showCustomCategory ? 'custom' : formData.category}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') {
+                    setShowCustomCategory(true);
+                    setFormData({ ...formData, category: '' });
+                  } else {
+                    setShowCustomCategory(false);
+                    setFormData({ ...formData, category: e.target.value });
+                  }
+                }}
+                className="flex-1 px-3 py-2 bg-background-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                <option value="custom">+ Create New Category</option>
+              </select>
+            </div>
+            {showCustomCategory && (
+              <div className="mt-2">
+                <Input
+                  label=""
+                  placeholder="Enter new category name"
+                  value={customCategory}
+                  onChange={(e) => {
+                    setCustomCategory(e.target.value);
+                    setFormData({ ...formData, category: e.target.value });
+                  }}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <Input
