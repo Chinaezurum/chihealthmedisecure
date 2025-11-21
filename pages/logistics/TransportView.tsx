@@ -9,7 +9,21 @@ interface TransportViewProps {
   onUpdateStatus: (id: string, status: TransportRequest['status']) => void;
 }
 
-const RequestCard: React.FC<{ request: TransportRequest; onUpdateStatus: TransportViewProps['onUpdateStatus'] }> = ({ request, onUpdateStatus }) => (
+const RequestCard: React.FC<{ request: TransportRequest; onUpdateStatus: TransportViewProps['onUpdateStatus'] }> = ({ request, onUpdateStatus }) => {
+  const handleStatusUpdate = (newStatus: TransportRequest['status']) => {
+    const auditLog = {
+      requestId: request.id,
+      oldStatus: request.status,
+      newStatus,
+      updatedDateTime: new Date().toISOString(),
+      updatedBy: 'LOG001', // Would come from auth context
+      updatedByName: 'Current Logistics Officer',
+    };
+    console.log('Transport status update audit:', auditLog);
+    onUpdateStatus(request.id, newStatus);
+  };
+  
+  return (
     <div className="kanban-card">
         <div className="flex justify-between items-center">
             <h4 className="font-bold text-text-primary">{request.type} Request</h4>
@@ -18,11 +32,12 @@ const RequestCard: React.FC<{ request: TransportRequest; onUpdateStatus: Transpo
         <p className="text-sm"><span className="text-text-secondary">From:</span> {request.from}</p>
         <p className="text-sm"><span className="text-text-secondary">To:</span> {request.to}</p>
         <div className="flex gap-2 pt-3">
-          {request.status === 'Pending' && <Button onClick={() => onUpdateStatus(request.id, 'In-Transit')} fullWidth>Accept & Start</Button>}
-          {request.status === 'In-Transit' && <Button onClick={() => onUpdateStatus(request.id, 'Delivered')} fullWidth>Mark as Delivered</Button>}
+          {request.status === 'Pending' && <Button onClick={() => handleStatusUpdate('In-Transit')} fullWidth>Accept & Start</Button>}
+          {request.status === 'In-Transit' && <Button onClick={() => handleStatusUpdate('Delivered')} fullWidth>Mark as Delivered</Button>}
         </div>
     </div>
-);
+  );
+};
 
 const KanbanColumn: React.FC<{ title: string, count: number, colorClass: string, children: React.ReactNode }> = ({title, count, colorClass, children}) => (
     <div className="kanban-column">

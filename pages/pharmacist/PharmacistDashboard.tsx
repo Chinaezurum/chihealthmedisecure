@@ -93,12 +93,33 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleUpdateStatus = async (prescriptionId: string, status: Prescription['status']) => {
+    // Audit log for prescription status update
+    const auditLog = {
+      action: 'UPDATE_PRESCRIPTION_STATUS',
+      prescriptionId,
+      newStatus: status,
+      updatedDateTime: new Date().toISOString(),
+      updatedBy: props.user.id || 'PHARM001',
+      updatedByName: props.user.name || 'Current Pharmacist',
+    };
+    console.log('Prescription status update audit:', auditLog);
+    
     await api.updatePrescriptionStatus(prescriptionId, status);
     addToast(`Prescription marked as ${status}.`, 'success');
     fetchData();
   };
 
   const handleRunSafetyCheck = async (prescriptionId: string) => {
+    // Audit log for safety check
+    const auditLog = {
+      action: 'RUN_SAFETY_CHECK',
+      prescriptionId,
+      checkInitiatedDateTime: new Date().toISOString(),
+      initiatedBy: props.user.id || 'PHARM001',
+      initiatedByName: props.user.name || 'Current Pharmacist',
+    };
+    console.log('Safety check audit:', auditLog);
+    
     setSafetyModalOpen(true);
     setIsSafetyCheckLoading(true);
     setSafetyCheckResult(null);
@@ -108,6 +129,13 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
       
       const result = await runPharmacySafetyCheck(rx.medication, patientPrescriptions.map((p: Prescription) => p.medication));
       setSafetyCheckResult(result as any);
+      
+      // Log safety check completion
+      console.log('Safety check completed:', {
+        ...auditLog,
+        checkCompletedDateTime: new Date().toISOString(),
+        result: result ? 'Success' : 'Failed',
+      });
     } catch (error) {
        addToast('AI Safety Check failed to run.', 'error');
        setSafetyModalOpen(false);

@@ -25,6 +25,10 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({ onClose,
   const [error, setError] = useState('');
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
+  
+  // Audit fields
+  const createdDateTime = new Date().toISOString();
+  const createdBy = 'PHARM001'; // Would come from auth context
 
   const categories = ['Analgesics', 'Antibiotics', 'Gastrointestinal', 'Antidiabetic', 'Cardiovascular', 'Antihypertensive', 'Antihistamine', 'Other'];
   const units = ['tablets', 'capsules', 'ml', 'bottles', 'vials', 'tubes', 'boxes'];
@@ -63,8 +67,13 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({ onClose,
 
     try {
       // API call would go here
-      // await api.createMedication(formData);
-      console.log('Adding medication:', formData);
+      // await api.createMedication({ ...formData, createdDateTime, createdBy });
+      console.log('Adding medication:', {
+        ...formData,
+        createdDateTime,
+        createdBy,
+        createdByName: 'Current Pharmacist', // Would come from auth context
+      });
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -218,6 +227,33 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({ onClose,
               onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
             />
           </div>
+        </div>
+
+        {/* Audit Information */}
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+          <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Audit Information</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-600">Created Date & Time:</p>
+              <p className="font-semibold text-gray-900">
+                {new Date(createdDateTime).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Created By:</p>
+              <p className="font-semibold text-gray-900">{createdBy}</p>
+            </div>
+          </div>
+          <p className="text-xs text-blue-700 mt-2">
+            ℹ️ This medication addition will be logged for audit purposes
+          </p>
         </div>
 
         <div className="flex gap-3 pt-4">

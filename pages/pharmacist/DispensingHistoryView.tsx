@@ -71,6 +71,17 @@ export const DispensingHistoryView: React.FC = () => {
   const uniquePatients = new Set(filteredHistory.map(r => r.patientId)).size;
 
   const handlePrint = (record: DispensedRecord) => {
+    // Audit log for print action
+    const auditLog = {
+      action: 'PRINT_DISPENSING_RECORD',
+      recordId: record.id,
+      patientId: record.patientId,
+      printedDateTime: new Date().toISOString(),
+      printedBy: 'PHARM001', // Would come from auth context
+      printedByName: 'Current Pharmacist',
+    };
+    console.log('Dispensing record print audit:', auditLog);
+    
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -143,6 +154,19 @@ export const DispensingHistoryView: React.FC = () => {
   };
 
   const exportReport = () => {
+    // Audit log for export action
+    const auditLog = {
+      action: 'EXPORT_DISPENSING_REPORT',
+      recordCount: filteredHistory.length,
+      dateRange,
+      customStartDate: customStartDate || 'N/A',
+      customEndDate: customEndDate || 'N/A',
+      exportedDateTime: new Date().toISOString(),
+      exportedBy: 'PHARM001', // Would come from auth context
+      exportedByName: 'Current Pharmacist',
+    };
+    console.log('Dispensing report export audit:', auditLog);
+    
     const csvData = filteredHistory.map(record => ({
       'Dispensing ID': record.id,
       'Date': new Date(record.date).toLocaleDateString(),
