@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import * as Icons from '../../components/icons';
+import { AddMedicationModal } from './AddMedicationModal.tsx';
+import { AdjustStockModal } from './AdjustStockModal.tsx';
+import { MedicationDetailsModal } from './MedicationDetailsModal.tsx';
 
 interface Medication {
   id: string;
@@ -15,6 +18,9 @@ interface Medication {
 export const InventoryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [adjustingMed, setAdjustingMed] = useState<Medication | null>(null);
+  const [viewingMed, setViewingMed] = useState<Medication | null>(null);
 
   // Mock data
   const mockInventory: Medication[] = [
@@ -42,6 +48,16 @@ export const InventoryView: React.FC = () => {
 
   const lowStockCount = mockInventory.filter(med => med.stock <= med.minStock).length;
 
+  const handleAddSuccess = () => {
+    console.log('Medication added successfully');
+    // Refresh data here
+  };
+
+  const handleAdjustSuccess = () => {
+    console.log('Stock adjusted successfully');
+    // Refresh data here
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -50,7 +66,10 @@ export const InventoryView: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Inventory Management</h2>
           <p className="text-sm text-gray-600 mt-1">Track medication stock levels and expiry dates</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all">
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all"
+        >
           <Icons.UserPlusIcon className="h-4 w-4 mr-2" />
           Add Medication
         </button>
@@ -159,10 +178,16 @@ export const InventoryView: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-blue-600 hover:text-blue-800 font-semibold mr-3">
+                      <button 
+                        onClick={() => setAdjustingMed(med)}
+                        className="text-blue-600 hover:text-blue-800 font-semibold mr-3"
+                      >
                         Adjust Stock
                       </button>
-                      <button className="text-gray-600 hover:text-gray-800 font-semibold">
+                      <button 
+                        onClick={() => setViewingMed(med)}
+                        className="text-gray-600 hover:text-gray-800 font-semibold"
+                      >
                         Details
                       </button>
                     </td>
@@ -216,6 +241,29 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {showAddModal && (
+        <AddMedicationModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleAddSuccess}
+        />
+      )}
+
+      {adjustingMed && (
+        <AdjustStockModal
+          medication={adjustingMed}
+          onClose={() => setAdjustingMed(null)}
+          onSuccess={handleAdjustSuccess}
+        />
+      )}
+
+      {viewingMed && (
+        <MedicationDetailsModal
+          medication={viewingMed}
+          onClose={() => setViewingMed(null)}
+        />
+      )}
     </div>
   );
 };
