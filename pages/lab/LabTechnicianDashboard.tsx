@@ -10,12 +10,13 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { LabQueueView } from './LabQueueView.tsx';
 import { CompletedTestsView } from './CompletedTestsView.tsx';
 import { CreateLabTestRequestModal } from './CreateLabTestRequestModal.tsx';
+import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
-type LabView = 'queue' | 'lookup' | 'history' | 'messages' | 'telemedicine' | 'settings';
+type LabView = 'queue' | 'lookup' | 'history' | 'dept-notes' | 'messages' | 'telemedicine' | 'settings';
 
 interface LabTechnicianDashboardProps {
   user: User;
@@ -29,8 +30,9 @@ const Sidebar: React.FC<{ activeView: LabView; setActiveView: (view: LabView) =>
   const navItems = [
     { id: 'queue', label: 'Lab Test Queue', icon: Icons.FlaskConicalIcon },
     { id: 'history', label: 'Completed Tests', icon: Icons.ClipboardListIcon },
+    { id: 'dept-notes', label: 'Team Messages', icon: Icons.BellIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
-    { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
+    { id: 'messages', label: 'Chat', icon: Icons.MessageSquareIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -191,6 +193,8 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
             currentUserId={props.user.id}
           />
         );
+      case 'dept-notes': 
+        return <InterDepartmentalNotesView />;
       case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
       case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => setActiveView('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;

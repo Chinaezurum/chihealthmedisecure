@@ -356,6 +356,8 @@ export const LabQueueView: React.FC<LabQueueViewProps> = ({
           patientName={messagingTest.patientName}
           relatedEntityId={messagingTest.id}
           relatedEntityType="lab"
+          currentUserId={currentUserId}
+          currentUserRole="lab_technician"
           onSendNote={(note) => {
             // Audit logging for message
             const auditLog = {

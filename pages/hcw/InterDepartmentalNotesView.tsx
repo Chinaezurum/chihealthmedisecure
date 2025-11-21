@@ -47,6 +47,19 @@ export const InterDepartmentalNotesView: React.FC<InterDepartmentalNotesViewProp
 
   const handleMarkAsRead = async (noteId: string) => {
     try {
+      // Audit logging
+      const note = notes.find(n => n.id === noteId);
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        action: 'mark_interdepartmental_note_read',
+        noteId,
+        fromUser: note?.fromUserName,
+        fromRole: note?.fromRole,
+        subject: note?.subject,
+        priority: note?.priority
+      };
+      console.log('Interdepartmental Note Read Audit:', auditLog);
+      
       await api.markNoteAsRead(noteId);
       setNotes(prevNotes =>
         prevNotes.map(note =>

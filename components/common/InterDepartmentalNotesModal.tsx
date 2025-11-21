@@ -15,6 +15,8 @@ interface InterDepartmentalNotesModalProps {
   relatedEntityType?: 'lab' | 'prescription' | 'vitals' | 'general';
   onSendNote: (note: Omit<InterDepartmentalNote, 'id' | 'timestamp' | 'isRead' | 'fromUserId' | 'fromUserName' | 'fromRole' | 'organizationId'>) => void;
   availableUsers?: User[]; // List of all staff in organization
+  currentUserId?: string; // For audit logging
+  currentUserRole?: UserRole; // For audit logging
 }
 
 export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalProps> = ({
@@ -25,7 +27,9 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
   relatedEntityId,
   relatedEntityType = 'general',
   onSendNote,
-  availableUsers = []
+  availableUsers = [],
+  currentUserId,
+  currentUserRole
 }) => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -59,6 +63,26 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
         message,
         priority
       };
+      
+      // Comprehensive audit logging
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId || 'unknown',
+        userRole: currentUserRole || 'unknown',
+        action: 'send_interdepartmental_note',
+        patientId,
+        patientName,
+        toRole: toRole,
+        toUserId: toUserId || 'all_in_role',
+        toUserName: selectedUser?.name || `All ${getRoleLabel(toRole)}`,
+        relatedEntityType,
+        relatedEntityId,
+        subject,
+        messageLength: message.length,
+        priority,
+        bidirectionalCommunication: true
+      };
+      console.log('Interdepartmental Note Audit:', auditLog);
 
       // Make API call
       await api.createInterDepartmentalNote(noteData);
@@ -249,6 +273,27 @@ export const InterDepartmentalNotesModal: React.FC<InterDepartmentalNotesModalPr
         <div className="text-xs text-text-tertiary">
           <p>💡 <strong>Tip:</strong> Be specific and include relevant details such as test values, observations, or time-sensitive information.</p>
         </div>
+        
+        {/* Audit UI Section */}
+        {currentUserId && (
+          <div className="border-t border-border-primary pt-4 mt-4">
+            <p className="text-xs text-text-tertiary mb-2">Audit Information</p>
+            <div className="bg-background-tertiary p-3 rounded-lg space-y-1">
+              <p className="text-xs text-text-secondary">
+                <span className="font-medium">Timestamp:</span> {new Date().toLocaleString()}
+              </p>
+              <p className="text-xs text-text-secondary">
+                <span className="font-medium">Sender ID:</span> {currentUserId}
+              </p>
+              <p className="text-xs text-text-secondary">
+                <span className="font-medium">Sender Role:</span> {getRoleLabel(currentUserRole || 'hcw')}
+              </p>
+              <p className="text-xs text-text-secondary">
+                <span className="font-medium">Action:</span> Bidirectional Team Communication
+              </p>
+            </div>
+          </div>
+        )}
       </form>
     </Modal>
   );
