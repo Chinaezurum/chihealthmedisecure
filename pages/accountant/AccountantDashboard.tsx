@@ -11,6 +11,8 @@ import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon, LayoutDas
 import { BillGenerationModal } from './BillGenerationModal.tsx';
 import { PaymentModal } from './PaymentModal.tsx';
 import { InsuranceClaimModal } from './InsuranceClaimModal.tsx';
+import { NewClaimModal } from './NewClaimModal.tsx';
+import { AddInsuranceProviderModal } from './AddInsuranceProviderModal.tsx';
 import { PricingCatalogView } from './PricingCatalogView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
 
@@ -125,6 +127,8 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   // State for claims view
   const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
   const [claimsStatusFilter, setClaimsStatusFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected'>('all');
+  const [showNewClaimModal, setShowNewClaimModal] = useState(false);
+  const [showAddProviderModal, setShowAddProviderModal] = useState(false);
   
   const { addToast } = useToast();
 
@@ -923,7 +927,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   </svg>
                 </div>
                 <button
-                  onClick={() => addToast('Add claim feature coming soon', 'info')}
+                  onClick={() => setShowNewClaimModal(true)}
                   className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-md transition-all duration-200"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1016,7 +1020,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 </p>
                 {allClaims.length === 0 && (
                   <button
-                    onClick={() => addToast('Add claim feature coming soon', 'info')}
+                    onClick={() => setShowNewClaimModal(true)}
                     className="mt-4 inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1039,7 +1043,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <p className="text-sm text-gray-600 mt-0.5">Manage insurance companies and contracts</p>
               </div>
               <button
-                onClick={() => addToast('Add insurance provider feature coming soon', 'info')}
+                onClick={() => setShowAddProviderModal(true)}
                 className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-indigo-800 hover:shadow-md transition-all duration-200"
               >
                 <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1082,7 +1086,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <Icons.ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No insurance providers configured</p>
                 <button
-                  onClick={() => addToast('Add insurance provider feature coming soon', 'info')}
+                  onClick={() => setShowAddProviderModal(true)}
                   className="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1398,6 +1402,33 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
           />
         );
       })()}
+
+      {/* New Claim Modal */}
+      {showNewClaimModal && data && (
+        <NewClaimModal
+          onClose={() => setShowNewClaimModal(false)}
+          onSuccess={() => {
+            setShowNewClaimModal(false);
+            fetchData();
+            addToast('Insurance claim created successfully', 'success');
+          }}
+          insuranceProviders={data.insuranceProviders || []}
+          bills={data.pendingBills || []}
+          patients={data.patients || []}
+        />
+      )}
+
+      {/* Add Insurance Provider Modal */}
+      {showAddProviderModal && (
+        <AddInsuranceProviderModal
+          onClose={() => setShowAddProviderModal(false)}
+          onSuccess={() => {
+            setShowAddProviderModal(false);
+            fetchData();
+            addToast('Insurance provider added successfully', 'success');
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };
