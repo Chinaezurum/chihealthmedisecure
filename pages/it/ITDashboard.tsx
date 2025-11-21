@@ -156,7 +156,6 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modal states
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isScheduleBackupModalOpen, setIsScheduleBackupModalOpen] = useState(false);
@@ -899,16 +898,10 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">User Management</h2>
-            <div className="flex gap-2">
-              <Button onClick={exportUsersToCSV}>
-                <Icons.DownloadCloudIcon className="w-4 h-4 mr-2" />
-                Export Users
-              </Button>
-              <Button onClick={() => setIsAddUserModalOpen(true)}>
-                <Icons.UserPlusIcon className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            </div>
+            <Button onClick={exportUsersToCSV}>
+              <Icons.DownloadCloudIcon className="w-4 h-4 mr-2" />
+              Export Users
+            </Button>
           </div>
           <div className="card-body">
             <div className="overflow-x-auto">
@@ -1679,70 +1672,6 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
       <div className="dashboard-content">
         {renderContent()}
       </div>
-
-      {/* Add User Modal */}
-      {isAddUserModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsAddUserModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h2>Add New User</h2>
-              <button onClick={() => setIsAddUserModalOpen(false)} className="modal-close">
-                <Icons.XIcon />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Full Name</label>
-                  <input type="text" className="input-field" placeholder="Enter full name" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Email</label>
-                  <input type="email" className="input-field" placeholder="user@chihealth.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
-                  <select className="input-field">
-                    <option value="">Select role</option>
-                    <option value="patient">Patient</option>
-                    <option value="hcw">Healthcare Worker (HCW)</option>
-                    <option value="nurse">Nurse</option>
-                    <option value="pharmacist">Pharmacist</option>
-                    <option value="lab_technician">Lab Technician</option>
-                    <option value="receptionist">Receptionist</option>
-                    <option value="logistics">Logistics</option>
-                    <option value="command_center">Command Center</option>
-                    <option value="accountant">Accountant</option>
-                    <option value="radiologist">Radiologist</option>
-                    <option value="dietician">Dietician</option>
-                    <option value="it_support">IT Support</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Department</label>
-                  <input type="text" className="input-field" placeholder="e.g., Cardiology" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Initial Password</label>
-                  <input type="password" className="input-field" placeholder="Enter temporary password" />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <Button onClick={() => setIsAddUserModalOpen(false)} style={{ backgroundColor: '#6b7280' }}>
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                addToast('User created successfully', 'success');
-                setIsAddUserModalOpen(false);
-              }}>
-                Create User
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* New Ticket Modal */}
       {isNewTicketModalOpen && (
