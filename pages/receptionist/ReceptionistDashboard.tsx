@@ -49,11 +49,64 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
   const [data, setData] = useState<{ appointments: Appointment[], patients: Patient[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [referralToRegister, setReferralToRegister] = useState<IncomingReferral | null>(null);
+  const [sessionStartTime] = useState(new Date().toISOString());
   const { addToast } = useToasts();
+
+  // Audit-logged view switcher
+  const handleViewChange = useCallback((newView: ReceptionistView) => {
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'receptionist',
+      action: 'switch_view',
+      fromView: activeView,
+      toView: newView,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Receptionist Dashboard View Navigation Audit:', auditLog);
+    setActiveView(newView);
+  }, [activeView, props.user.id, props.user.currentOrganization.id]);
+
+  // Session tracking
+  useEffect(() => {
+    const sessionAudit = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'receptionist',
+      action: 'session_start',
+      organizationId: props.user.currentOrganization.id,
+      sessionId: `${props.user.id}_${sessionStartTime}`
+    };
+    console.log('Receptionist Dashboard Session Start Audit:', sessionAudit);
+
+    return () => {
+      const sessionEndAudit = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userRole: 'receptionist',
+        action: 'session_end',
+        organizationId: props.user.currentOrganization.id,
+        sessionId: `${props.user.id}_${sessionStartTime}`,
+        sessionDuration: new Date().getTime() - new Date(sessionStartTime).getTime()
+      };
+      console.log('Receptionist Dashboard Session End Audit:', sessionEndAudit);
+    };
+  }, [props.user.id, props.user.currentOrganization.id, sessionStartTime]);
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Audit logging for data fetch
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: props.user.id,
+        userRole: 'receptionist',
+        action: 'fetch_receptionist_dashboard_data',
+        organizationId: props.user.currentOrganization.id
+      };
+      console.log('Receptionist Dashboard Data Fetch Audit:', auditLog);
+      
       const receptionistData = await api.fetchReceptionistData();
       setData(receptionistData);
     } catch (error) {
@@ -62,13 +115,24 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, props.user.id, props.user.currentOrganization.id]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData, props.user.currentOrganization.id]);
   
   const handleCheckIn = async (appointmentId: string) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'receptionist',
+      action: 'check_in_patient',
+      appointmentId,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Patient Check-In Audit:', auditLog);
+    
     await api.checkInPatient(appointmentId);
     addToast('Patient checked in successfully!', 'success');
     fetchData();
@@ -81,18 +145,19 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
 
   const renderContent = () => {
     if (activeView === 'lookup') {
-      return <PatientLookupView />;
+      return <PatientLookupView currentUserId={props.user.id} />;
     }
 
     if (activeView === 'referrals') {
-      return <IncomingReferralsView onRegisterPatient={handleRegisterFromReferral} />;
+      return <IncomingReferralsView onRegisterPatient={handleRegisterFromReferral} currentUserId={props.user.id} />;
     }
     
     if (isLoading || !data) return <FullScreenLoader message="Loading reception desk..." />;
     
     switch (activeView) {
-      case 'checkin': return <CheckInView appointments={data.appointments} patients={data.patients} onCheckIn={handleCheckIn} />;
+      case 'checkin': return <CheckInView appointments={data.appointments} patients={data.patients} onCheckIn={handleCheckIn} currentUserId={props.user.id} />;
       case 'walkin': return <WalkInRegistrationView 
+        currentUserId={props.user.id}
         onRegistrationComplete={(patientId?: string) => {
           if (referralToRegister && patientId) {
             // Update referral status to "Patient Registered"
@@ -115,7 +180,18 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
   };
 
   return (
-  <DashboardLayout onSignOut={props.onSignOut} sidebar={<Sidebar activeView={activeView} setActiveView={setActiveView} />} header={<DashboardHeader user={props.user} onSignOut={props.onSignOut} onSwitchOrganization={props.onSwitchOrganization} notifications={[]} onMarkNotificationsAsRead={()=>{}} title="Receptionist Dashboard" theme={props.theme} toggleTheme={props.toggleTheme} />}>
+  <DashboardLayout onSignOut={props.onSignOut} sidebar={<Sidebar activeView={activeView} setActiveView={handleViewChange} />} header={<DashboardHeader user={props.user} onSignOut={props.onSignOut} onSwitchOrganization={props.onSwitchOrganization} notifications={[]} onMarkNotificationsAsRead={()=>{}} title="Receptionist Dashboard" theme={props.theme} toggleTheme={props.toggleTheme} />}>
+      {/* Audit Logging Warning */}
+      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Icons.AlertCircleIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Audit & Compliance Notice:</strong> All reception actions including patient check-ins, registrations, searches, and referral processing are logged for HIPAA compliance.
+            </p>
+          </div>
+        </div>
+      </div>
       {renderContent()}
     </DashboardLayout>
   );

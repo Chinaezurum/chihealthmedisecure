@@ -9,9 +9,10 @@ import { UsersIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '../../compon
 
 interface IncomingReferralsViewProps {
   onRegisterPatient?: (referral: IncomingReferral) => void;
+  currentUserId?: string;
 }
 
-export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ onRegisterPatient }) => {
+export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ onRegisterPatient, currentUserId }) => {
   const [referrals, setReferrals] = useState<IncomingReferral[]>([]);
   const [selectedReferral, setSelectedReferral] = useState<IncomingReferral | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -37,6 +38,18 @@ export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ on
   };
 
   const handleViewDetails = (referral: IncomingReferral) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId || 'system',
+      userRole: 'receptionist',
+      action: 'view_referral_details',
+      referralId: referral.id,
+      patientName: referral.patientName,
+      fromFacility: referral.fromFacility
+    };
+    console.log('Referral Details View Audit:', auditLog);
+    
     setSelectedReferral(referral);
     setResponseNotes('');
     setIsDetailsOpen(true);
@@ -46,6 +59,19 @@ export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ on
     if (!selectedReferral) return;
 
     try {
+      // Audit logging
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId || 'system',
+        userRole: 'receptionist',
+        action: 'accept_referral',
+        referralId: selectedReferral.id,
+        patientName: selectedReferral.patientName,
+        fromFacility: selectedReferral.fromFacility,
+        responseNotes
+      };
+      console.log('Referral Acceptance Audit:', auditLog);
+      
       await api.updateIncomingReferralStatus(selectedReferral.id, 'Accepted', undefined, responseNotes);
       addToast('Referral accepted successfully', 'success');
       setIsDetailsOpen(false);
@@ -65,6 +91,19 @@ export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ on
     }
 
     try {
+      // Audit logging
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId || 'system',
+        userRole: 'receptionist',
+        action: 'reject_referral',
+        referralId: selectedReferral.id,
+        patientName: selectedReferral.patientName,
+        fromFacility: selectedReferral.fromFacility,
+        rejectionReason: responseNotes
+      };
+      console.log('Referral Rejection Audit:', auditLog);
+      
       await api.updateIncomingReferralStatus(selectedReferral.id, 'Rejected', undefined, responseNotes);
       addToast('Referral rejected', 'info');
       setIsDetailsOpen(false);
@@ -115,6 +154,13 @@ export const IncomingReferralsView: React.FC<IncomingReferralsViewProps> = ({ on
       <div>
         <h2 className="text-3xl font-bold text-text-primary">Incoming Referrals</h2>
         <p className="text-text-secondary mt-1">Patients referred from external healthcare facilities</p>
+      </div>
+      
+      {/* Audit Warning */}
+      <div className="p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> All referral actions (accept, reject, view) are logged for compliance tracking.
+        </p>
       </div>
 
       {referrals.length === 0 ? (

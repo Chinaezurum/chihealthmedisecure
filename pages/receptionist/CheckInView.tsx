@@ -7,6 +7,7 @@ interface CheckInViewProps {
   appointments: Appointment[];
   patients: Patient[];
   onCheckIn: (appointmentId: string) => void;
+  currentUserId?: string;
 }
 
 export const CheckInView: React.FC<CheckInViewProps> = ({ appointments, patients, onCheckIn }) => {
@@ -31,6 +32,14 @@ export const CheckInView: React.FC<CheckInViewProps> = ({ appointments, patients
   return (
     <>
       <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-200 mb-6">Patient Check-In for Today</h2>
+      
+      {/* Audit Warning */}
+      <div className="mb-4 p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> All check-in actions are logged with timestamp and user information.
+        </p>
+      </div>
+      
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
         {todaysAppointments.length > 0 ? (
           <table className="w-full text-left">

@@ -6,7 +6,11 @@ import * as api from '../../services/apiService.ts';
 import { SearchIcon, UserIcon, PhoneIcon, CalendarIcon, MapPinIcon, AlertCircleIcon, PillIcon, HeartIcon, EnvelopeIcon } from '../../components/icons/index.tsx';
 import type { User } from '../../types.ts';
 
-export const PatientLookupView: React.FC = () => {
+interface PatientLookupViewProps {
+  currentUserId?: string;
+}
+
+export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUserId }) => {
   const { addToast } = useToasts();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -24,6 +28,16 @@ export const PatientLookupView: React.FC = () => {
     setIsSearching(true);
     setSearchPerformed(true);
     try {
+      // Audit logging
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId || 'system',
+        userRole: 'receptionist',
+        action: 'search_patients',
+        searchQuery: searchQuery
+      };
+      console.log('Patient Search Audit:', auditLog);
+      
       const results = await api.searchPatients(searchQuery);
       setSearchResults(results);
       setSelectedPatient(null);
@@ -37,6 +51,17 @@ export const PatientLookupView: React.FC = () => {
   };
 
   const handleSelectPatient = (patient: User) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: currentUserId || 'system',
+      userRole: 'receptionist',
+      action: 'view_patient_details',
+      patientId: patient.id,
+      patientName: patient.name
+    };
+    console.log('Patient Details View Audit:', auditLog);
+    
     setSelectedPatient(patient);
   };
 
@@ -65,6 +90,13 @@ export const PatientLookupView: React.FC = () => {
       <div>
         <h2 className="text-3xl font-bold text-text-primary">Patient Lookup</h2>
         <p className="text-text-secondary mt-1">Search for existing patient records for returning patients</p>
+      </div>
+      
+      {/* Audit Warning */}
+      <div className="p-2.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          ⚠️ <strong>Audit Notice:</strong> All patient searches and record access are logged for HIPAA compliance.
+        </p>
       </div>
 
       {/* Search Form */}

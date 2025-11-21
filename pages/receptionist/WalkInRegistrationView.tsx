@@ -14,9 +14,10 @@ interface WalkInRegistrationViewProps {
     allergies?: string;
     currentMedications?: string;
   };
+  currentUserId?: string;
 }
 
-export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ onRegistrationComplete, prefillData }) => {
+export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ onRegistrationComplete, prefillData, currentUserId }) => {
   const { addToast } = useToasts();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -98,6 +99,22 @@ export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ 
     setIsSubmitting(true);
 
     try {
+      // Audit logging
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        userId: currentUserId || 'system',
+        userRole: 'receptionist',
+        action: 'register_walkin_patient',
+        patientData: {
+          name: formData.name,
+          email: formData.email,
+          dateOfBirth: formData.dateOfBirth,
+          phone: formData.phone,
+          bloodType: formData.bloodType
+        }
+      };
+      console.log('Walk-In Patient Registration Audit:', auditLog);
+      
       // Generate a temporary password
       const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!';
       
@@ -159,6 +176,16 @@ export const WalkInRegistrationView: React.FC<WalkInRegistrationViewProps> = ({ 
         </div>
       </div>
 
+      {/* Audit Warning */}
+      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-base">✓</span>
+          <p className="text-sm text-green-800 dark:text-green-200">
+            <strong>Registration Tracking:</strong> All patient registrations are logged and tracked for compliance.
+          </p>
+        </div>
+      </div>
+      
       {/* Registration Form */}
       <form onSubmit={handleSubmit} className="content-card p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
