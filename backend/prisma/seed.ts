@@ -117,7 +117,28 @@ export const seedData = () => {
     ];
     
     const messages = [
-        { id: 'msg-001', senderId: 'user-hcw-01', senderName: 'Dr. Adebayo', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Your lab results are in and look good. We can discuss them at your next visit.', timestamp: new Date(Date.now() - 3600000).toISOString() },
+        // Patient 1 (Amina Bello) - Dr. Adebayo conversation
+        { id: 'msg-001', senderId: 'user-hcw-01', senderName: 'Dr. Adebayo', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Good morning Amina! Your lab results are in and look good. We can discuss them at your next visit.', timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString() },
+        { id: 'msg-002', senderId: 'user-patient-01', senderName: 'Amina Bello', recipientId: 'user-hcw-01', patientId: 'user-patient-01', content: 'Thank you Doctor! Should I continue taking my current medication?', timestamp: new Date(Date.now() - 3600000 * 24 * 2 + 1800000).toISOString() },
+        { id: 'msg-003', senderId: 'user-hcw-01', senderName: 'Dr. Adebayo', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Yes, please continue with the current dosage. If you experience any side effects, let me know immediately.', timestamp: new Date(Date.now() - 3600000 * 24 * 2 + 3600000).toISOString() },
+        { id: 'msg-004', senderId: 'user-patient-01', senderName: 'Amina Bello', recipientId: 'user-hcw-01', patientId: 'user-patient-01', content: 'Will do. When should I schedule my follow-up appointment?', timestamp: new Date(Date.now() - 3600000 * 24 + 1800000).toISOString() },
+        { id: 'msg-005', senderId: 'user-hcw-01', senderName: 'Dr. Adebayo', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Let\'s schedule it for next week. The receptionist can help you book a convenient time.', timestamp: new Date(Date.now() - 3600000 * 24 + 5400000).toISOString() },
+        { id: 'msg-006', senderId: 'user-patient-01', senderName: 'Amina Bello', recipientId: 'user-hcw-01', patientId: 'user-patient-01', content: 'Perfect, thank you so much!', timestamp: new Date(Date.now() - 3600000 * 20).toISOString() },
+        
+        // Patient 2 (Chinedu Eze) - Nurse conversation
+        { id: 'msg-007', senderId: 'user-nurse-01', senderName: 'Nurse Funmi', recipientId: 'user-patient-02', patientId: 'user-patient-02', content: 'Hello Mr. Eze, I wanted to check on your recovery. How are you feeling today?', timestamp: new Date(Date.now() - 3600000 * 12).toISOString() },
+        { id: 'msg-008', senderId: 'user-patient-02', senderName: 'Chinedu Eze', recipientId: 'user-nurse-01', patientId: 'user-patient-02', content: 'Much better today, thank you. The pain has reduced significantly.', timestamp: new Date(Date.now() - 3600000 * 11).toISOString() },
+        { id: 'msg-009', senderId: 'user-nurse-01', senderName: 'Nurse Funmi', recipientId: 'user-patient-02', patientId: 'user-patient-02', content: 'That\'s great to hear! Remember to take your medication as prescribed and get plenty of rest.', timestamp: new Date(Date.now() - 3600000 * 10).toISOString() },
+        { id: 'msg-010', senderId: 'user-patient-02', senderName: 'Chinedu Eze', recipientId: 'user-nurse-01', patientId: 'user-patient-02', content: 'I will. When can I start light exercises?', timestamp: new Date(Date.now() - 3600000 * 6).toISOString() },
+        { id: 'msg-011', senderId: 'user-nurse-01', senderName: 'Nurse Funmi', recipientId: 'user-patient-02', patientId: 'user-patient-02', content: 'Let me check with Dr. Adebayo and get back to you on that.', timestamp: new Date(Date.now() - 3600000 * 5).toISOString() },
+        
+        // Patient 1 - Recent message from receptionist
+        { id: 'msg-012', senderId: 'user-recep-01', senderName: 'Receptionist Sarah', recipientId: 'user-patient-01', patientId: 'user-patient-01', content: 'Hi Amina, your appointment is confirmed for next Tuesday at 10:00 AM.', timestamp: new Date(Date.now() - 3600000 * 2).toISOString() },
+        { id: 'msg-013', senderId: 'user-patient-01', senderName: 'Amina Bello', recipientId: 'user-recep-01', patientId: 'user-patient-01', content: 'Thank you! I\'ll be there.', timestamp: new Date(Date.now() - 3600000).toISOString() },
+        
+        // Patient 2 - Pharmacist message
+        { id: 'msg-014', senderId: 'user-pharm-01', senderName: 'Pharmacist John', recipientId: 'user-patient-02', patientId: 'user-patient-02', content: 'Your prescription is ready for pickup. Please collect it before 5 PM today.', timestamp: new Date(Date.now() - 1800000).toISOString() },
+        { id: 'msg-015', senderId: 'user-patient-02', senderName: 'Chinedu Eze', recipientId: 'user-pharm-01', patientId: 'user-patient-02', content: 'I\'ll send someone to pick it up within the hour. Thank you!', timestamp: new Date(Date.now() - 900000).toISOString() },
     ];
 
     const triageQueue: any[] = [];

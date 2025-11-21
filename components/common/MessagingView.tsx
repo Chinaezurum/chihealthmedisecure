@@ -112,29 +112,48 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
               </button>
             </header>
             <div className="message-area">
-                {currentChatMessages.map(msg => {
-                    const isOwnMessage = msg.senderId === currentUser.id;
-                    const isAiMessage = msg.senderId === 'ai-assistant';
-                    const sender = isOwnMessage ? currentUser : contacts.find(c => c.id === msg.senderId);
-                    
-                    return (
-                        <div key={msg.id} className={`message-bubble-wrapper ${isOwnMessage ? 'sent' : 'received'}`}>
-                            {!isOwnMessage && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    {isAiMessage ? (
-                                        <BotMessageSquareIcon className="w-5 h-5 text-primary" />
-                                    ) : (
-                                        <img src={`https://i.pravatar.cc/150?u=${sender?.id}`} className="w-6 h-6 rounded-full" />
+                {currentChatMessages.length > 0 ? (
+                    currentChatMessages.map(msg => {
+                        const isOwnMessage = msg.senderId === currentUser.id;
+                        const isAiMessage = msg.senderId === 'ai-assistant';
+                        const sender = isOwnMessage ? currentUser : contacts.find(c => c.id === msg.senderId);
+                        
+                        // Format timestamp
+                        const messageDate = new Date(msg.timestamp);
+                        const timeString = messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        const dateString = messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const isToday = messageDate.toDateString() === new Date().toDateString();
+                        const displayTime = isToday ? timeString : `${dateString} ${timeString}`;
+                        
+                        return (
+                            <div key={msg.id} className={`message-bubble-wrapper ${isOwnMessage ? 'sent' : 'received'}`}>
+                                {!isOwnMessage && (
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {isAiMessage ? (
+                                            <BotMessageSquareIcon className="w-5 h-5 text-primary" />
+                                        ) : (
+                                            <img src={`https://i.pravatar.cc/150?u=${sender?.id}`} className="w-6 h-6 rounded-full" />
+                                        )}
+                                        <span className="text-xs font-bold text-text-secondary">{msg.senderName || sender?.name}</span>
+                                        <span className="text-xs text-text-secondary opacity-75">{displayTime}</span>
+                                    </div>
+                                )}
+                                <div className={`message-bubble ${isAiMessage ? 'bg-primary-light-bg text-text-primary' : ''}`}>
+                                    {msg.content}
+                                    {isOwnMessage && (
+                                        <div className="text-xs text-right mt-1 opacity-75">{displayTime}</div>
                                     )}
-                                    <span className="text-xs font-bold text-text-secondary">{msg.senderName || sender?.name}</span>
                                 </div>
-                            )}
-                            <div className={`message-bubble ${isAiMessage ? 'bg-primary-light-bg text-text-primary' : ''}`}>
-                                {msg.content}
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                        <BotMessageSquareIcon className="w-16 h-16 mb-4 text-text-secondary" />
+                        <p className="text-text-secondary">No messages yet</p>
+                        <p className="text-sm text-text-secondary mt-2">Start the conversation with {selectedPatient?.name}</p>
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
             <form onSubmit={handleSendMessage} className="message-input-form">
