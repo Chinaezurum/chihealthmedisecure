@@ -593,6 +593,21 @@ app.post('/api/appointments/:id/check-in', authenticate, async (req, res) => {
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
+// Triage check-in endpoint - marks patient for immediate triage assessment
+app.post('/api/appointments/:id/check-in-triage', authenticate, async (req, res) => {
+    try {
+        // Check in the patient (also adds to triage queue)
+        const appointment = await db.checkInPatient(req.params.id);
+        // Log triage check-in for audit
+        console.log(`[TRIAGE] Patient ${appointment.patientId} checked in for immediate triage assessment by receptionist ${req.user.id}`);
+        notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+        res.status(200).json({ message: 'Patient checked in for triage successfully' });
+    }
+    catch (error) {
+        console.error('Triage check-in error:', error);
+        res.status(500).json({ message: 'Failed to check in patient for triage' });
+    }
+});
 app.post('/api/triage/:patientId/vitals', authenticate, async (req, res) => {
     await db.recordVitals(req.params.patientId, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');

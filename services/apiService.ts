@@ -233,8 +233,11 @@ export const updatePrescriptionStatus = (id: string, status: Prescription['statu
 export const updateLabTest = (id: string, status: LabTest['status'], result?: string) => {
     return apiFetch(`/lab-tests/${id}`, { method: 'PUT', body: JSON.stringify({ status, result }) });
 };
-export const checkInPatient = (appointmentId: string) => {
-    return apiFetch(`/appointments/${appointmentId}/check-in`, { method: 'POST' });
+export const checkInPatient = (appointmentId: string, forTriage?: boolean) => {
+    const endpoint = forTriage 
+        ? `/appointments/${appointmentId}/check-in-triage` 
+        : `/appointments/${appointmentId}/check-in`;
+    return apiFetch(endpoint, { method: 'POST' });
 };
 export const saveVitals = (patientId: string, vitals: any) => {
     return apiFetch(`/triage/${patientId}/vitals`, { method: 'POST', body: JSON.stringify(vitals) });

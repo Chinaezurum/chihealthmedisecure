@@ -162,14 +162,14 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     console.log('Patient Triage Check-In Audit:', auditLog);
     
     try {
-      // Update appointment status to checked-in and flag for triage
-      await api.checkInPatient(appointmentId);
-      // TODO: Add triage-specific API call if needed
-      addToast('Patient checked in for triage successfully!', 'success');
+      // Check in patient with triage flag
+      await api.checkInPatient(appointmentId, true);
+      addToast('Patient checked in for triage successfully! Nurse will be notified.', 'success');
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Triage check-in failed:', error);
-      addToast('Failed to check in patient for triage', 'error');
+      const errorMessage = error?.message || 'Failed to check in patient for triage';
+      addToast(errorMessage, 'error');
     }
   };
 
