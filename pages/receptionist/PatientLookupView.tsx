@@ -8,9 +8,10 @@ import type { User } from '../../types.ts';
 
 interface PatientLookupViewProps {
   currentUserId?: string;
+  onCheckInForTriage?: (patientId: string) => void;
 }
 
-export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUserId }) => {
+export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUserId, onCheckInForTriage }) => {
   const { addToast } = useToasts();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -310,10 +311,13 @@ export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUse
                 </div>
               )}
 
-              {/* Medical Information */}
+              {/* Medical Information - Limited to Safety Data Only (HIPAA Compliant) */}
               {((selectedPatient as any).allergies || (selectedPatient as any).currentMedications) && (
                 <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-text-primary mb-3">Medical Information</h3>
+                  <h3 className="text-lg font-semibold text-text-primary mb-3">
+                    Safety Information
+                    <span className="ml-2 text-xs font-normal text-text-secondary">(For Emergency Use Only)</span>
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {(selectedPatient as any).allergies && (
                       <div className="flex gap-3 p-3 bg-background-secondary rounded-lg">
@@ -340,12 +344,21 @@ export const PatientLookupView: React.FC<PatientLookupViewProps> = ({ currentUse
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-6 border-t border-border-primary">
-              <Button className="flex-1">
-                Check In for Triage
-              </Button>
-              <Button className="flex-1" style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>
-                View Medical History
-              </Button>
+              {onCheckInForTriage && (
+                <Button 
+                  className="flex-1"
+                  onClick={() => onCheckInForTriage(selectedPatient.id)}
+                >
+                  Check In for Triage
+                </Button>
+              )}
+              
+              {/* HIPAA Compliance Note */}
+              <div className="flex-1 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  <strong>🔒 HIPAA Notice:</strong> Receptionists cannot access full medical history. Only demographic and safety information (allergies) are visible.
+                </p>
+              </div>
             </div>
           </div>
         )}

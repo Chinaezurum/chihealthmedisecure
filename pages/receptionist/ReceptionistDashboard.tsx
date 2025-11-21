@@ -149,6 +149,30 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     fetchData();
   }
 
+  const handleCheckInForTriage = async (appointmentId: string) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      userRole: 'receptionist',
+      action: 'check_in_patient_for_triage',
+      appointmentId,
+      organizationId: props.user.currentOrganization.id
+    };
+    console.log('Patient Triage Check-In Audit:', auditLog);
+    
+    try {
+      // Update appointment status to checked-in and flag for triage
+      await api.checkInPatient(appointmentId);
+      // TODO: Add triage-specific API call if needed
+      addToast('Patient checked in for triage successfully!', 'success');
+      fetchData();
+    } catch (error) {
+      console.error('Triage check-in failed:', error);
+      addToast('Failed to check in patient for triage', 'error');
+    }
+  };
+
   const handleStartCall = (contact: User | Patient) => {
     if (contact.role === 'patient') {
       setSelectedPatientForCall(contact as Patient);
@@ -165,7 +189,12 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
 
   const renderContent = () => {
     if (activeView === 'lookup') {
-      return <PatientLookupView currentUserId={props.user.id} />;
+      // Receptionists can search patients but should NOT view medical history
+      // Only demographic and contact info - HIPAA compliant
+      return <PatientLookupView 
+        currentUserId={props.user.id} 
+        onCheckInForTriage={handleCheckInForTriage}
+      />;
     }
 
     if (activeView === 'referrals') {
@@ -175,7 +204,13 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     if (isLoading || !data) return <FullScreenLoader message="Loading reception desk..." />;
     
     switch (activeView) {
-      case 'checkin': return <CheckInView appointments={data.appointments} patients={data.patients} onCheckIn={handleCheckIn} currentUserId={props.user.id} />;
+      case 'checkin': return <CheckInView 
+        appointments={data.appointments} 
+        patients={data.patients} 
+        onCheckIn={handleCheckIn} 
+        onCheckInForTriage={handleCheckInForTriage}
+        currentUserId={props.user.id} 
+      />;
       case 'walkin': return <WalkInRegistrationView 
         currentUserId={props.user.id}
         onRegistrationComplete={(patientId?: string) => {

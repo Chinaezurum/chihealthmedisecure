@@ -7,10 +7,11 @@ interface CheckInViewProps {
   appointments: Appointment[];
   patients: Patient[];
   onCheckIn: (appointmentId: string) => void;
+  onCheckInForTriage?: (appointmentId: string) => void;
   currentUserId?: string;
 }
 
-export const CheckInView: React.FC<CheckInViewProps> = ({ appointments, patients, onCheckIn }) => {
+export const CheckInView: React.FC<CheckInViewProps> = ({ appointments, patients, onCheckIn, onCheckInForTriage }) => {
   const today = new Date().toISOString().split('T')[0];
   const todaysAppointments = appointments.filter(a => a.date === today);
 
@@ -63,7 +64,19 @@ export const CheckInView: React.FC<CheckInViewProps> = ({ appointments, patients
                   </td>
                   <td className="p-4">
                       {appt.status === 'Confirmed' ? (
-                          <Button onClick={() => onCheckIn(appt.id)}>Check In</Button>
+                          <div className="flex gap-2">
+                            <Button onClick={() => onCheckIn(appt.id)}>Check In</Button>
+                            {onCheckInForTriage && (
+                              <Button 
+                                onClick={() => onCheckInForTriage(appt.id)}
+                                style={{ backgroundColor: 'var(--color-warning)', color: 'white' }}
+                              >
+                                Check In for Triage
+                              </Button>
+                            )}
+                          </div>
+                      ) : appt.status === 'Checked-in' ? (
+                          <span className="text-green-600 dark:text-green-400 text-sm font-medium">✓ Checked In</span>
                       ) : (
                           <span className="text-slate-400 dark:text-slate-500 text-sm">No Action</span>
                       )}
