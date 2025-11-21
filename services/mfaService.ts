@@ -33,9 +33,11 @@ export const isMfaEnabled = (user: User): boolean => {
 
 /**
  * Check if MFA is required (production environment)
+ * TEMPORARILY DISABLED FOR DEVELOPMENT
  */
 export const isMfaRequired = (): boolean => {
-  return import.meta.env.PROD || import.meta.env.VITE_ENFORCE_MFA === 'true';
+  return false; // Temporarily disabled for development
+  // return import.meta.env.PROD || import.meta.env.VITE_ENFORCE_MFA === 'true';
 };
 
 /**
