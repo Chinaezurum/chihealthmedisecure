@@ -1704,13 +1704,19 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
                   <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
                   <select className="input-field">
                     <option value="">Select role</option>
-                    <option value="healthcare_worker">Healthcare Worker</option>
+                    <option value="patient">Patient</option>
+                    <option value="hcw">Healthcare Worker (HCW)</option>
                     <option value="nurse">Nurse</option>
                     <option value="pharmacist">Pharmacist</option>
-                    <option value="lab_tech">Lab Technician</option>
+                    <option value="lab_technician">Lab Technician</option>
                     <option value="receptionist">Receptionist</option>
-                    <option value="admin">Administrator</option>
+                    <option value="logistics">Logistics</option>
+                    <option value="command_center">Command Center</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="radiologist">Radiologist</option>
+                    <option value="dietician">Dietician</option>
                     <option value="it_support">IT Support</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
                 <div>
