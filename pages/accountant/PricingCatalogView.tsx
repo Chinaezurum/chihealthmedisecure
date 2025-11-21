@@ -3,6 +3,7 @@ import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
 import { BillingCode } from '../../types.ts';
 import { AddBillingCodeModal } from './AddBillingCodeModal.tsx';
+import { EditBillingCodeModal } from './EditBillingCodeModal.tsx';
 
 interface PricingCatalogViewProps {
   billingCodes: BillingCode[];
@@ -13,6 +14,7 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCode, setEditingCode] = useState<BillingCode | null>(null);
 
   const filteredCodes = billingCodes.filter(code => {
     const matchesSearch = code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -27,6 +29,13 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
     if (onRefresh) {
       onRefresh();
     }
+  };
+
+  const handleEditSuccess = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+    setEditingCode(null);
   };
 
   return (
@@ -82,7 +91,7 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
                 <td className="font-mono">₦{code.price.toLocaleString()}</td>
                 <td>{code.insuranceCoverage}%</td>
                 <td>
-                  <Button onClick={() => alert('Edit functionality')}>
+                  <Button onClick={() => setEditingCode(code)}>
                     Edit
                   </Button>
                 </td>
@@ -99,6 +108,14 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
         <AddBillingCodeModal
           onClose={() => setShowAddModal(false)}
           onSuccess={handleAddSuccess}
+        />
+      )}
+
+      {editingCode && (
+        <EditBillingCodeModal
+          billingCode={editingCode}
+          onClose={() => setEditingCode(null)}
+          onSuccess={handleEditSuccess}
         />
       )}
     </div>

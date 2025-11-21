@@ -8,6 +8,7 @@ import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { LabQueueView } from './LabQueueView.tsx';
+import { CompletedTestsView } from './CompletedTestsView.tsx';
 import { PatientLookupView } from '../receptionist/PatientLookupView.tsx';
 import { MessagingView } from '../../components/common/MessagingView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
@@ -26,8 +27,8 @@ interface LabTechnicianDashboardProps {
 const Sidebar: React.FC<{ activeView: LabView; setActiveView: (view: LabView) => void }> = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: 'queue', label: 'Lab Test Queue', icon: Icons.FlaskConicalIcon },
+    { id: 'history', label: 'Completed Tests', icon: Icons.ClipboardListIcon },
     { id: 'lookup', label: 'Patient Lookup', icon: Icons.SearchIcon },
-    { id: 'history', label: 'Completed Tests (Soon)', icon: Icons.ClipboardListIcon },
     { id: 'messages', label: 'Messages', icon: Icons.MessageSquareIcon },
   ];
 
@@ -82,9 +83,53 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     fetchData();
   }, [fetchData, props.user.currentOrganization.id]);
 
-  const handleUpdateTest = async (testId: string, status: LabTest['status'], result?: string) => {
+  const handleUpdateTest = async (testId: string, status: LabTest['status'], result?: string, notes?: string) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      action: 'update_lab_test',
+      testId,
+      status,
+      result: result || null,
+      notes: notes || null
+    };
+    console.log('Lab Test Update Audit:', auditLog);
+    
     await api.updateLabTest(testId, status, result);
     addToast(`Test ${testId} updated to ${status}.`, 'success');
+    fetchData();
+  };
+  
+  const handleEditTest = async (testId: string, updates: Partial<LabTest>) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      action: 'edit_lab_test_request',
+      testId,
+      updates
+    };
+    console.log('Lab Test Request Edit Audit:', auditLog);
+    
+    await api.updateLabTest(testId, updates.status || 'Ordered', updates.result);
+    addToast(`Test request updated successfully.`, 'success');
+    fetchData();
+  };
+  
+  const handleCancelTest = async (testId: string, reason: string) => {
+    // Audit logging
+    const auditLog = {
+      timestamp: new Date().toISOString(),
+      userId: props.user.id,
+      action: 'cancel_lab_test',
+      testId,
+      cancellationReason: reason
+    };
+    console.log('Lab Test Cancellation Audit:', auditLog);
+    
+    await api.updateLabTest(testId, 'Ordered', reason);
+    addToast(`Test request cancelled: ${reason}`, 'info');
     fetchData();
   };
 
@@ -96,8 +141,24 @@ const LabTechnicianDashboard: React.FC<LabTechnicianDashboardProps> = (props) =>
     if (isLoading || !data) return <FullScreenLoader message="Loading laboratory dashboard..." />;
     
     switch (activeView) {
-      case 'queue': return <LabQueueView labTests={data.labTests} onUpdateTest={handleUpdateTest} />;
-      case 'history': return <div>Completed Test History Coming Soon</div>;
+      case 'queue': 
+        return (
+          <LabQueueView 
+            labTests={data.labTests} 
+            onUpdateTest={handleUpdateTest}
+            onEditTest={handleEditTest}
+            onCancelTest={handleCancelTest}
+            currentUserId={props.user.id}
+          />
+        );
+      case 'history': 
+        return (
+          <CompletedTestsView 
+            labTests={data.labTests} 
+            onUpdateTest={handleUpdateTest}
+            currentUserId={props.user.id}
+          />
+        );
       case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={[...(data.patients || []), ...staffUsers]} onSendMessage={async (rec, content, patId) => { await api.sendMessage({recipientId: rec, content, patientId: patId, senderId: props.user.id}); fetchData(); }} onStartCall={handleStartCall} onAiChannelCommand={async () => { addToast('AI feature coming soon', 'info'); return ''; }} />;
       case 'telemedicine': return selectedPatientForCall ? <TelemedicineView currentUser={props.user} availableContacts={data.patients || []} onEndCall={() => setActiveView('messages')} onStartCall={(contactId: string) => { const patient = data.patients.find((p: Patient) => p.id === contactId); if (patient) { setSelectedPatientForCall(patient); } }} /> : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;
