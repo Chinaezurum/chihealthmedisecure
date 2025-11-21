@@ -18,9 +18,10 @@ import { SymptomChecker } from './SymptomChecker.tsx';
 import { WearablesView } from './WearablesView.tsx';
 import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
+import { InsuranceView } from './InsuranceView.tsx';
 import { translations } from '../../translations.ts';
 
-export type PatientView = 'overview' | 'appointments' | 'telemedicine' | 'messages' | 'prescriptions' | 'billing' | 'records' | 'symptom-checker' | 'wearables' | 'settings';
+export type PatientView = 'overview' | 'appointments' | 'telemedicine' | 'messages' | 'prescriptions' | 'billing' | 'insurance' | 'records' | 'symptom-checker' | 'wearables' | 'settings';
 
 interface PatientDashboardProps {
   user: Patient;
@@ -38,6 +39,7 @@ const Sidebar: React.FC<{ activeView: PatientView; setActiveView: (view: Patient
     { id: 'messages', label: t('messages'), icon: Icons.MessageSquareIcon },
     { id: 'prescriptions', label: t('prescriptions'), icon: Icons.PillIcon },
     { id: 'billing', label: t('billing'), icon: Icons.CreditCardIcon },
+    { id: 'insurance', label: 'Insurance', icon: Icons.ShieldCheckIcon },
     { id: 'records', label: t('medicalRecords'), icon: Icons.FolderSearchIcon },
     { id: 'wearables', label: t('healthMetrics'), icon: Icons.HeartPulseIcon },
   ];
@@ -138,6 +140,7 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
       case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={data.contacts || data.doctors || []} onSendMessage={async (recId, content) => { await api.sendMessage({recipientId: recId, content, senderId: props.user.id}); fetchData(); }} onStartCall={() => {}} />;
       case 'prescriptions': return <PrescriptionsView prescriptions={data.prescriptions} />;
       case 'billing': return <BillingView bills={data.bills} onPayBill={async () => { addToast('Payment successful!', 'success'); fetchData();}} />;
+      case 'insurance': return <InsuranceView patient={props.user} />;
       case 'records': return <EHRView
         patient={props.user}
         currentUser={props.user}

@@ -311,3 +311,6 @@ export const getExternalLabResults = (patientId?: string) => {
 export const createExternalLabResult = (data: any) => apiFetch('/external-lab-results', { method: 'POST', body: JSON.stringify(data) });
 export const updateExternalLabResultStatus = (id: string, status: string) => 
     apiFetch(`/external-lab-results/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+
+// Export apiFetch for custom API calls
+export { apiFetch };

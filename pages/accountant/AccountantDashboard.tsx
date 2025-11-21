@@ -6,6 +6,7 @@ import { FullScreenLoader } from '../../components/common/FullScreenLoader.tsx';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
 import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
+import { Button } from '../../components/common/Button.tsx';
 import * as Icons from '../../components/icons/index.tsx';
 import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon, LayoutDashboardIcon, SettingsIcon } from '../../components/icons/index.tsx';
 import { BillGenerationModal } from './BillGenerationModal.tsx';
@@ -1104,12 +1105,43 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   // Transactions History
   const renderTransactionsView = () => {
+    const exportTransactions = () => {
+      if (!data || !data.recentTransactions.length) {
+        addToast('No transactions to export', 'error');
+        return;
+      }
+
+      const exportData = data.recentTransactions.map((txn: any) => {
+        const bill = data.pendingBills.find((b: Bill) => b.id === txn.billId);
+        const patient = bill ? data.patients?.find(p => p.id === bill.patientId) : null;
+        return {
+          'Date': new Date(txn.paymentDate).toLocaleDateString(),
+          'Transaction ID': txn.transactionId,
+          'Patient Name': patient?.name || 'Unknown',
+          'Amount': txn.amount,
+          'Method': txn.paymentMethod,
+          'Status': txn.status,
+        };
+      });
+
+      exportToCSV(exportData, 'Transactions');
+    };
+
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-base font-semibold text-gray-900">Transaction History</h3>
-            <p className="text-sm text-gray-600 mt-0.5">All payment transactions</p>
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">Transaction History</h3>
+              <p className="text-sm text-gray-600 mt-0.5">All payment transactions</p>
+            </div>
+            <Button
+              onClick={exportTransactions}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Icons.DownloadCloudIcon className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
           </div>
           <div className="overflow-x-auto">
             {data && data.recentTransactions.length > 0 ? (
@@ -1174,6 +1206,167 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   };
 
   // Reports & Analytics
+  // Helper function to export data as CSV
+  const exportToCSV = (data: any[], filename: string) => {
+    if (!data || data.length === 0) {
+      addToast('No data to export', 'error');
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          // Escape commas and quotes
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast(`${filename} exported successfully`, 'success');
+  };
+
+  // Generate various reports
+  const generateRevenueReport = () => {
+    if (!data) return;
+    
+    const reportData = [
+      { Metric: 'Total Revenue', Amount: data.stats.totalRevenue },
+      { Metric: 'Pending Revenue', Amount: data.stats.pendingRevenue || 0 },
+      { Metric: 'Cash Revenue', Amount: data.stats.cashRevenue || 0 },
+      { Metric: 'Insurance Revenue', Amount: data.stats.insuranceRevenue || 0 },
+    ];
+
+    exportToCSV(reportData, 'Revenue_Report');
+  };
+
+  const generateBillingReport = () => {
+    if (!data) return;
+
+    const reportData = data.pendingBills.map((bill: Bill) => {
+      const patient = data.patients?.find(p => p.id === bill.patientId);
+      return {
+        'Bill ID': bill.id,
+        'Patient Name': patient?.name || bill.patientId,
+        'Patient ID': bill.patientId,
+        Amount: bill.amount,
+        Status: bill.status,
+        'Date': new Date(bill.date).toLocaleDateString(),
+        'Due Date': bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'N/A',
+      };
+    });
+
+    exportToCSV(reportData, 'Billing_Report');
+  };
+
+  const generateClaimsReport = () => {
+    if (!data || !(data as any).insuranceClaims || (data as any).insuranceClaims.length === 0) {
+      addToast('No insurance claims data available', 'error');
+      return;
+    }
+
+    const reportData = (data as any).insuranceClaims.map((claim: any) => {
+      const patient = data.patients?.find(p => p.id === claim.patientId);
+      return {
+        'Claim ID': claim.id,
+        'Patient Name': patient?.name || claim.patientId,
+        'Provider': claim.provider,
+        'Amount': claim.claimAmount,
+        'Status': claim.status,
+        'Date Filed': new Date(claim.dateFiled).toLocaleDateString(),
+        'Policy Number': claim.policyNumber,
+      };
+    });
+
+    exportToCSV(reportData, 'Insurance_Claims_Report');
+  };
+
+  const generatePaymentReport = () => {
+    if (!data) return;
+
+    const reportData = data.recentTransactions.map((txn: any) => {
+      const bill = data.pendingBills.find((b: Bill) => b.id === txn.billId);
+      const patient = bill ? data.patients?.find(p => p.id === bill.patientId) : null;
+      return {
+        'Transaction ID': txn.transactionId,
+        'Date': new Date(txn.paymentDate).toLocaleDateString(),
+        'Patient Name': patient?.name || 'Unknown',
+        'Amount': txn.amount,
+        'Method': txn.paymentMethod,
+        'Status': txn.status,
+      };
+    });
+
+    exportToCSV(reportData, 'Payment_Report');
+  };
+
+  const generateTrendAnalysis = () => {
+    if (!data) return;
+
+    // Group transactions by date to show trends
+    const transactionsByDate: { [key: string]: number } = {};
+    data.recentTransactions.forEach((txn: any) => {
+      const date = new Date(txn.paymentDate).toLocaleDateString();
+      transactionsByDate[date] = (transactionsByDate[date] || 0) + txn.amount;
+    });
+
+    const reportData = Object.entries(transactionsByDate).map(([date, amount]) => ({
+      Date: date,
+      'Total Revenue': amount,
+    }));
+
+    exportToCSV(reportData, 'Revenue_Trend_Analysis');
+  };
+
+  const generatePatientAnalysis = () => {
+    if (!data) return;
+
+    // Aggregate billing data by patient
+    const patientBilling: { [key: string]: { name: string, totalBilled: number, totalPaid: number, pendingAmount: number } } = {};
+    
+    data.pendingBills.forEach((bill: Bill) => {
+      const patient = data.patients?.find(p => p.id === bill.patientId);
+      if (!patientBilling[bill.patientId]) {
+        patientBilling[bill.patientId] = {
+          name: patient?.name || bill.patientId,
+          totalBilled: 0,
+          totalPaid: 0,
+          pendingAmount: 0,
+        };
+      }
+      patientBilling[bill.patientId].totalBilled += bill.amount;
+      if (bill.status === 'Paid') {
+        patientBilling[bill.patientId].totalPaid += bill.amount;
+      } else {
+        patientBilling[bill.patientId].pendingAmount += bill.amount;
+      }
+    });
+
+    const reportData = Object.entries(patientBilling).map(([patientId, data]) => ({
+      'Patient ID': patientId,
+      'Patient Name': data.name,
+      'Total Billed': data.totalBilled,
+      'Total Paid': data.totalPaid,
+      'Pending Amount': data.pendingAmount,
+    }));
+
+    exportToCSV(reportData, 'Patient_Billing_Analysis');
+  };
+
   const renderReportsView = () => {
     return (
       <div className="space-y-6">
@@ -1218,42 +1411,60 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Generate Reports</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generateRevenueReport}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <Icons.FileTextIcon className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Revenue Report</p>
                 <p className="text-xs text-gray-600">Monthly revenue breakdown</p>
               </div>
             </button>
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generateBillingReport}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <Icons.FileTextIcon className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Billing Report</p>
                 <p className="text-xs text-gray-600">Bills and invoices summary</p>
               </div>
             </button>
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generateClaimsReport}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <Icons.ShieldCheckIcon className="h-8 w-8 text-purple-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Claims Report</p>
                 <p className="text-xs text-gray-600">Insurance claims analysis</p>
               </div>
             </button>
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generatePaymentReport}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <CreditCardIcon className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Payment Report</p>
                 <p className="text-xs text-gray-600">Payment transactions summary</p>
               </div>
             </button>
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generateTrendAnalysis}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <Icons.TrendingUpIcon className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Trend Analysis</p>
                 <p className="text-xs text-gray-600">Revenue trends over time</p>
               </div>
             </button>
-            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left">
+            <button 
+              onClick={generatePatientAnalysis}
+              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
               <Icons.UsersIcon className="h-8 w-8 text-indigo-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Patient Analysis</p>
@@ -1283,7 +1494,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
       case 'transactions':
         return renderTransactionsView();
       case 'pricing':
-        return <PricingCatalogView billingCodes={data.billingCodes} />;
+        return <PricingCatalogView billingCodes={data.billingCodes} onRefresh={fetchData} />;
       case 'reports':
         return renderReportsView();
       case 'settings':

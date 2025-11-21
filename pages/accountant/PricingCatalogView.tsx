@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { Button } from '../../components/common/Button.tsx';
 import { Input } from '../../components/common/Input.tsx';
 import { BillingCode } from '../../types.ts';
+import { AddBillingCodeModal } from './AddBillingCodeModal.tsx';
 
 interface PricingCatalogViewProps {
   billingCodes: BillingCode[];
+  onRefresh?: () => void;
 }
 
-export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingCodes }) => {
+export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingCodes, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const filteredCodes = billingCodes.filter(code => {
     const matchesSearch = code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -20,11 +23,17 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
 
   const categories = ['All', 'Consultation', 'Procedure', 'Lab', 'Imaging', 'Medication', 'Other'];
 
+  const handleAddSuccess = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-text-primary">Pricing Catalog</h2>
-        <Button onClick={() => alert('Add new billing code functionality')}>
+        <Button onClick={() => setShowAddModal(true)}>
           Add Billing Code
         </Button>
       </div>
@@ -85,6 +94,13 @@ export const PricingCatalogView: React.FC<PricingCatalogViewProps> = ({ billingC
           <p className="text-center text-text-secondary py-8">No billing codes found</p>
         )}
       </div>
+
+      {showAddModal && (
+        <AddBillingCodeModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleAddSuccess}
+        />
+      )}
     </div>
   );
 };

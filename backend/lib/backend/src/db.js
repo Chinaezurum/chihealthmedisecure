@@ -28,6 +28,17 @@ let departments = initialData.departments;
 let rooms = initialData.rooms;
 let beds = initialData.beds;
 let activityLogs = initialData.activityLogs;
+let billingCodes = initialData.billingCodes || [];
+let encounters = initialData.encounters || [];
+let insuranceProviders = initialData.insuranceProviders || [];
+let patientInsurances = initialData.patientInsurances || [];
+let insuranceClaims = initialData.insuranceClaims || [];
+let paymentTransactions = initialData.paymentTransactions || [];
+let pricingCatalogs = initialData.pricingCatalogs || [];
+// New data structures for incoming referrals and inter-departmental communication
+let incomingReferrals = [];
+let interDepartmentalNotes = [];
+let externalLabResults = [];
 // --- User Management ---
 export const findUserById = async (id) => users.find(u => u.id === id);
 export const findUserByEmail = async (email) => users.find(u => u.email === email);
@@ -90,6 +101,22 @@ export const switchUserOrganization = async (userId, organizationId) => {
     }
     user.currentOrganization = org;
     return user;
+};
+// --- Patient Search ---
+export const searchPatients = async (query, organizationId) => {
+    const searchTerm = query.toLowerCase().trim();
+    return users.filter(user => {
+        var _a, _b;
+        // Only return patients from the same organization
+        if (user.role !== 'patient')
+            return false;
+        if (!user.organizations.some((org) => org.id === organizationId))
+            return false;
+        // Search by name or email
+        const nameMatch = (_a = user.name) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes(searchTerm);
+        const emailMatch = (_b = user.email) === null || _b === void 0 ? void 0 : _b.toLowerCase().includes(searchTerm);
+        return nameMatch || emailMatch;
+    }).slice(0, 20); // Limit to 20 results
 };
 // --- Organization Management ---
 export const createOrganizationAndAdmin = async (orgData, adminData) => {
@@ -183,6 +210,8 @@ export const getHcwDashboardData = async (hcwId, orgId) => {
         messages: messages.filter(m => orgPatientIds.includes(m.patientId || '')),
         prescriptions: prescriptions.filter(p => orgPatientIds.includes(p.patientId)),
         labTests: labTests.filter(l => orgPatientIds.includes(l.patientId)),
+        clinicalNotes: clinicalNotes.filter(cn => orgPatientIds.includes(cn.patientId)),
+        referrals: referrals.filter(r => orgPatientIds.includes(r.patientId)),
     };
 };
 // --- Admin Dashboard ---
@@ -320,7 +349,7 @@ export const updatePrescription = async (id, status) => {
     return rx;
 };
 export const createReferral = async (fromDoctorId, data) => {
-    const newRef = Object.assign({ id: `ref-${Date.now()}`, fromDoctorId }, data);
+    const newRef = Object.assign({ id: `ref-${Date.now()}`, fromDoctorId, status: 'Pending', date: new Date().toISOString().split('T')[0] }, data);
     referrals.push(newRef);
     return newRef;
 };
@@ -456,5 +485,322 @@ export const removeWearableDevice = async (patientId, deviceId) => {
         return false;
     patient.wearableDevices.splice(idx, 1);
     return true;
+};
+// --- Billing System ---
+// Billing Codes Management
+export const getBillingCodes = async (orgId) => {
+    if (orgId) {
+        const catalog = pricingCatalogs.find(c => c.organizationId === orgId && c.isActive);
+        return catalog ? catalog.billingCodes : billingCodes.filter(bc => bc.isActive);
+    }
+    return billingCodes.filter(bc => bc.isActive);
+};
+export const createBillingCode = async (data) => {
+    const newCode = Object.assign({ id: `bc-${Date.now()}` }, data);
+    billingCodes.push(newCode);
+    return newCode;
+};
+export const updateBillingCode = async (id, updates) => {
+    const code = billingCodes.find(bc => bc.id === id);
+    if (!code)
+        throw new Error('Billing code not found');
+    Object.assign(code, updates);
+    return code;
+};
+// Pricing Catalog Management
+export const getPricingCatalog = async (orgId) => {
+    return pricingCatalogs.find(pc => pc.organizationId === orgId && pc.isActive);
+};
+export const createPricingCatalog = async (data) => {
+    const newCatalog = Object.assign({ id: `catalog-${Date.now()}` }, data);
+    pricingCatalogs.push(newCatalog);
+    return newCatalog;
+};
+// Encounter Management
+export const createEncounter = async (data) => {
+    const newEncounter = Object.assign(Object.assign({ id: `enc-${Date.now()}` }, data), { createdAt: new Date().toISOString() });
+    encounters.push(newEncounter);
+    return newEncounter;
+};
+export const getEncounterById = async (id) => {
+    return encounters.find(e => e.id === id);
+};
+export const getEncountersByOrganization = async (orgId) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return encounters.filter(e => orgPatientIds.includes(e.patientId));
+};
+export const getPendingEncounters = async (orgId) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return encounters.filter(e => orgPatientIds.includes(e.patientId) && e.status === 'Submitted' && !e.billId);
+};
+export const updateEncounter = async (id, updates) => {
+    const encounter = encounters.find(e => e.id === id);
+    if (!encounter)
+        throw new Error('Encounter not found');
+    Object.assign(encounter, updates);
+    return encounter;
+};
+// Bill Management
+export const createBill = async (data) => {
+    const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
+    const newBill = Object.assign({ id: `bill-${Date.now()}`, invoiceNumber }, data);
+    bills.push(newBill);
+    // Update encounter if linked
+    if (data.encounterId) {
+        const encounter = encounters.find(e => e.id === data.encounterId);
+        if (encounter) {
+            encounter.billId = newBill.id;
+            encounter.status = 'Billed';
+        }
+    }
+    return newBill;
+};
+export const getBillById = async (id) => {
+    return bills.find(b => b.id === id);
+};
+export const getBillsByOrganization = async (orgId) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return bills.filter(b => orgPatientIds.includes(b.patientId));
+};
+export const updateBillStatus = async (billId, status, updates) => {
+    const bill = bills.find(b => b.id === billId);
+    if (!bill)
+        throw new Error('Bill not found');
+    bill.status = status;
+    if (updates)
+        Object.assign(bill, updates);
+    if (status === 'Paid') {
+        bill.paidDate = new Date().toISOString();
+    }
+    return bill;
+};
+// Payment Processing
+export const processPayment = async (billId, paymentData) => {
+    const bill = bills.find(b => b.id === billId);
+    if (!bill)
+        throw new Error('Bill not found');
+    const transaction = {
+        id: `txn-${Date.now()}`,
+        billId,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        transactionId: paymentData.transactionId,
+        status: 'Completed',
+        paymentDate: new Date().toISOString(),
+        processedBy: paymentData.processedBy,
+        cardLast4: paymentData.cardLast4,
+        mobileMoneyNumber: paymentData.mobileMoneyNumber
+    };
+    paymentTransactions.push(transaction);
+    bill.status = 'Paid';
+    bill.paidDate = new Date().toISOString();
+    bill.paymentMethod = paymentData.paymentMethod;
+    bill.transactionId = paymentData.transactionId;
+    return { bill, transaction };
+};
+// Insurance Management
+export const getInsuranceProviders = async () => {
+    return insuranceProviders.filter(ip => ip.isActive);
+};
+export const createInsuranceProvider = async (data) => {
+    const newProvider = Object.assign({ id: `ins-provider-${Date.now()}` }, data);
+    insuranceProviders.push(newProvider);
+    return newProvider;
+};
+export const getPatientInsurance = async (patientId) => {
+    return patientInsurances.find(pi => pi.patientId === patientId && pi.isActive);
+};
+export const createPatientInsurance = async (data) => {
+    // Deactivate existing insurance for patient
+    patientInsurances.filter(pi => pi.patientId === data.patientId).forEach(pi => pi.isActive = false);
+    const newInsurance = Object.assign({ id: `pat-ins-${Date.now()}` }, data);
+    patientInsurances.push(newInsurance);
+    // Update patient object
+    const patient = users.find(u => u.id === data.patientId);
+    if (patient) {
+        patient.insurance = newInsurance;
+    }
+    return newInsurance;
+};
+export const verifyInsurance = async (patientId) => {
+    const insurance = patientInsurances.find(pi => pi.patientId === patientId && pi.isActive);
+    if (!insurance)
+        throw new Error('No active insurance found');
+    // Mock verification - in real system would call insurance API
+    const isValid = Math.random() > 0.1; // 90% success rate
+    insurance.verificationStatus = isValid ? 'Verified' : 'Failed';
+    insurance.lastVerified = new Date().toISOString();
+    return insurance;
+};
+// Insurance Claims
+export const createInsuranceClaim = async (data) => {
+    const claimNumber = `CLM-${Date.now().toString().slice(-10)}`;
+    const newClaim = Object.assign({ id: `claim-${Date.now()}`, claimNumber, submittedDate: new Date().toISOString() }, data);
+    insuranceClaims.push(newClaim);
+    // Update bill with claim info
+    const bill = bills.find(b => b.id === data.billId);
+    if (bill) {
+        bill.insuranceClaimId = newClaim.id;
+        bill.insuranceClaimStatus = 'Pending';
+    }
+    return newClaim;
+};
+export const updateInsuranceClaimStatus = async (claimId, status, updates) => {
+    const claim = insuranceClaims.find(c => c.id === claimId);
+    if (!claim)
+        throw new Error('Insurance claim not found');
+    claim.status = status;
+    claim.processedDate = new Date().toISOString();
+    if (updates)
+        Object.assign(claim, updates);
+    // Update bill
+    const bill = bills.find(b => b.id === claim.billId);
+    if (bill) {
+        bill.insuranceClaimStatus = status;
+        if (status === 'Approved' && claim.approvedAmount) {
+            bill.insuranceCoverage = claim.approvedAmount;
+            bill.patientResponsibility = bill.amount - claim.approvedAmount;
+        }
+    }
+    return claim;
+};
+export const getInsuranceClaimsByOrganization = async (orgId) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    return insuranceClaims.filter(c => orgPatientIds.includes(c.patientId));
+};
+// Accountant Dashboard
+export const getAccountantDashboardData = async (orgId) => {
+    const orgPatientIds = users.filter(u => u.role === 'patient' && u.currentOrganization.id === orgId).map(u => u.id);
+    const pendingEncounters = encounters.filter(e => orgPatientIds.includes(e.patientId) &&
+        e.status === 'Submitted' &&
+        !e.billId);
+    const draftBills = bills.filter(b => orgPatientIds.includes(b.patientId) &&
+        b.status === 'Draft');
+    const pendingBills = bills.filter(b => orgPatientIds.includes(b.patientId) &&
+        (b.status === 'Pending' || b.status === 'Due'));
+    const paidBills = bills.filter(b => orgPatientIds.includes(b.patientId) &&
+        b.status === 'Paid');
+    const recentTransactions = paymentTransactions
+        .filter(t => bills.find(b => b.id === t.billId && orgPatientIds.includes(b.patientId)))
+        .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+        .slice(0, 20);
+    const pendingClaims = insuranceClaims.filter(c => orgPatientIds.includes(c.patientId) &&
+        (c.status === 'Submitted' || c.status === 'Pending'));
+    const totalRevenue = paidBills.reduce((sum, b) => sum + b.amount, 0);
+    const pendingRevenue = pendingBills.reduce((sum, b) => sum + b.amount, 0);
+    const insuranceRevenue = paidBills
+        .filter(b => b.paymentType === 'Insurance' || b.paymentType === 'Mixed')
+        .reduce((sum, b) => sum + (b.insuranceCoverage || 0), 0);
+    return {
+        pendingEncounters,
+        draftBills,
+        pendingBills,
+        paidBills,
+        recentTransactions,
+        pendingClaims,
+        billingCodes: await getBillingCodes(orgId),
+        insuranceProviders: await getInsuranceProviders(),
+        patients: users.filter(u => u.role === 'patient' && orgPatientIds.includes(u.id)),
+        stats: {
+            totalRevenue,
+            pendingRevenue,
+            insuranceRevenue,
+            cashRevenue: totalRevenue - insuranceRevenue,
+            pendingEncountersCount: pendingEncounters.length,
+            pendingBillsCount: pendingBills.length,
+            pendingClaimsCount: pendingClaims.length
+        }
+    };
+};
+// --- Incoming Referrals Management ---
+export const getIncomingReferrals = async (orgId) => {
+    return incomingReferrals.filter(r => r.toOrganizationId === orgId);
+};
+export const createIncomingReferral = async (data) => {
+    const newReferral = Object.assign({ id: `inc-ref-${Date.now()}`, status: 'Pending', referralDate: new Date().toISOString() }, data);
+    incomingReferrals.push(newReferral);
+    return newReferral;
+};
+export const updateIncomingReferralStatus = async (id, status, acceptedBy, registeredPatientId, responseNotes) => {
+    const referral = incomingReferrals.find(r => r.id === id);
+    if (!referral)
+        throw new Error('Incoming referral not found');
+    referral.status = status;
+    if (acceptedBy)
+        referral.acceptedBy = acceptedBy;
+    if (registeredPatientId)
+        referral.registeredPatientId = registeredPatientId;
+    if (responseNotes)
+        referral.responseNotes = responseNotes;
+    if (status === 'Accepted') {
+        referral.acceptedDate = new Date().toISOString();
+    }
+    return referral;
+};
+// --- Inter-Departmental Notes Management ---
+export const getInterDepartmentalNotes = async (userId, userRole, orgId) => {
+    return interDepartmentalNotes
+        .filter(n => {
+        // Filter by organization
+        if (n.organizationId !== orgId)
+            return false;
+        // Show notes addressed to this specific user
+        if (n.toUserId && n.toUserId === userId)
+            return true;
+        // Show notes addressed to this user's role (if no specific user)
+        if (!n.toUserId && n.toRole === userRole)
+            return true;
+        // Show notes sent by this user
+        if (n.fromUserId === userId)
+            return true;
+        return false;
+    })
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+export const getInterDepartmentalNotesByPatient = async (patientId) => {
+    return interDepartmentalNotes
+        .filter(n => n.patientId === patientId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+export const createInterDepartmentalNote = async (data) => {
+    const newNote = Object.assign({ id: `dept-note-${Date.now()}`, timestamp: new Date().toISOString(), isRead: false }, data);
+    interDepartmentalNotes.push(newNote);
+    return newNote;
+};
+export const markInterDepartmentalNoteAsRead = async (id) => {
+    const note = interDepartmentalNotes.find(n => n.id === id);
+    if (!note)
+        throw new Error('Note not found');
+    note.isRead = true;
+    return note;
+};
+// --- Staff Management ---
+export const getStaffUsers = async (orgId) => {
+    return users.filter(u => u.role !== 'patient' &&
+        u.currentOrganization.id === orgId).map(u => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        email: u.email
+    }));
+};
+// --- External Lab Results Management ---
+export const getExternalLabResults = async (patientId) => {
+    if (patientId) {
+        return externalLabResults.filter(r => r.patientId === patientId);
+    }
+    return externalLabResults;
+};
+export const createExternalLabResult = async (data) => {
+    const newResult = Object.assign({ id: `ext-lab-${Date.now()}`, uploadedDate: new Date().toISOString(), status: 'Pending Review' }, data);
+    externalLabResults.push(newResult);
+    return newResult;
+};
+export const updateExternalLabResultStatus = async (id, status) => {
+    const result = externalLabResults.find(r => r.id === id);
+    if (!result)
+        throw new Error('External lab result not found');
+    result.status = status;
+    return result;
 };
 //# sourceMappingURL=db.js.map

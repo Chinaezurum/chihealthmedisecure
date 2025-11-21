@@ -30,11 +30,14 @@ try {
 catch (err) {
     console.warn('Optional dependency "multer" is not installed - avatar upload endpoints will be disabled.');
 }
+// Google Cloud Storage for avatar uploads
+import { Storage } from '@google-cloud/storage';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import process from 'process';
 import * as db from './db.js';
 import * as auth from './auth/auth.js';
+import * as rbac from './rbac.js';
 // Fix: __dirname is not available in ES modules, so we define it manually.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,27 +48,23 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
-// Ensure uploads dir exists
+// Google Cloud Storage setup for avatar uploads
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME || 'chihealth-avatars-5068';
+const bucket = storage.bucket(bucketName);
+// Ensure local uploads dir exists (fallback for development without GCS)
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
 const avatarDir = path.join(uploadsDir, 'avatars');
 if (!fs.existsSync(uploadsDir))
-    fs.mkdirSync(uploadsDir);
+    fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(avatarDir))
-    fs.mkdirSync(avatarDir);
+    fs.mkdirSync(avatarDir, { recursive: true });
 // Multer setup for avatar uploads (only if multer is available)
 let upload = null;
 if (multer) {
-    const storage = multer.diskStorage({
-        // use typed params for the multer callbacks
-        destination: function (req, file, cb) {
-            cb(null, avatarDir);
-        },
-        filename: function (req, file, cb) {
-            const ext = path.extname((file && file.originalname) || '') || '.png';
-            cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
-        }
-    });
-    upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+    // Use memory storage so we can upload directly to GCS
+    const memoryStorage = multer.memoryStorage();
+    upload = multer({ storage: memoryStorage, limits: { fileSize: 2 * 1024 * 1024 } });
 }
 // WebSocket connections map
 const clients = new Map();
@@ -165,6 +164,22 @@ app.use('/api/auth', auth.authRouter);
 app.get('/api/users/me', authenticate, (req, res) => {
     res.json(req.user);
 });
+// Patient search endpoint (for receptionists, HCWs, nurses, pharmacists, lab techs, and admin)
+app.get('/api/users/search', authenticate, rbac.requireRole(['receptionist', 'hcw', 'nurse', 'pharmacist', 'lab_technician', 'admin', 'command_center']), async (req, res) => {
+    try {
+        const user = req.user;
+        const query = req.query.q;
+        if (!query || query.trim().length < 2) {
+            return res.status(400).json({ message: 'Search query must be at least 2 characters' });
+        }
+        const patients = await db.searchPatients(query, user.currentOrganization.id);
+        return res.json(patients);
+    }
+    catch (error) {
+        console.error('Patient search error:', error);
+        return res.status(500).json({ message: 'Failed to search patients' });
+    }
+});
 app.post('/api/users/switch-organization', authenticate, async (req, res) => {
     const { organizationId } = req.body;
     const user = await db.switchUserOrganization(req.user.id, organizationId);
@@ -173,8 +188,8 @@ app.post('/api/users/switch-organization', authenticate, async (req, res) => {
     res.json({ user, token });
 });
 // Patient Routes
-app.get('/api/patient/dashboard', authenticate, async (req, res) => res.json(await db.getPatientDashboardData(req.user.id)));
-app.post('/api/patient/appointments', authenticate, async (req, res) => {
+app.get('/api/patient/dashboard', authenticate, rbac.requireRole('patient'), async (req, res) => res.json(await db.getPatientDashboardData(req.user.id)));
+app.post('/api/patient/appointments', authenticate, rbac.requirePermission(['create_own_appointments', 'create_appointments']), async (req, res) => {
     await db.createAppointment(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
@@ -235,18 +250,18 @@ app.delete('/api/patient/devices/:id', authenticate, async (req, res) => {
     }
 });
 // HCW Routes
-app.get('/api/hcw/dashboard', authenticate, async (req, res) => res.json(await db.getHcwDashboardData(req.user.id, req.organizationContext.id)));
-app.post('/api/hcw/notes', authenticate, async (req, res) => {
+app.get('/api/hcw/dashboard', authenticate, rbac.requireRole(['hcw', 'nurse']), async (req, res) => res.json(await db.getHcwDashboardData(req.user.id, req.organizationContext.id)));
+app.post('/api/hcw/notes', authenticate, rbac.requirePermission('create_medical_notes'), async (req, res) => {
     await db.createClinicalNote(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/lab-tests', authenticate, async (req, res) => {
+app.post('/api/hcw/lab-tests', authenticate, rbac.requirePermission('order_lab_tests'), async (req, res) => {
     await db.createLabTest(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/prescriptions', authenticate, async (req, res) => {
+app.post('/api/hcw/prescriptions', authenticate, rbac.requirePermission('create_prescriptions'), async (req, res) => {
     await db.createPrescription(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
@@ -257,13 +272,13 @@ app.post('/api/hcw/referrals', authenticate, async (req, res) => {
     res.status(201).send();
 });
 // Admin Routes
-app.get('/api/admin/dashboard', authenticate, async (req, res) => res.json(await db.getAdminDashboardData(req.organizationContext.id)));
-app.put('/api/users/:id', authenticate, async (req, res) => {
+app.get('/api/admin/dashboard', authenticate, rbac.requireRole(['admin', 'command_center']), async (req, res) => res.json(await db.getAdminDashboardData(req.organizationContext.id)));
+app.put('/api/users/:id', authenticate, rbac.requirePermission('manage_users'), async (req, res) => {
     await db.updateUser(req.params.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/admin/staff', authenticate, async (req, res) => {
+app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'), async (req, res) => {
     try {
         const { name, email, password, role, departmentIds, organizationIds } = req.body;
         // Validation
@@ -366,6 +381,202 @@ app.get('/api/nurse/dashboard', authenticate, async (req, res) => res.json(await
 app.get('/api/lab/dashboard', authenticate, async (req, res) => res.json(await db.getLabDashboardData(req.organizationContext.id)));
 app.get('/api/receptionist/dashboard', authenticate, async (req, res) => res.json(await db.getReceptionistDashboardData(req.organizationContext.id)));
 app.get('/api/logistics/dashboard', authenticate, async (req, res) => res.json(await db.getLogisticsDashboardData(req.organizationContext.id)));
+app.get('/api/accountant/dashboard', authenticate, async (req, res) => res.json(await db.getAccountantDashboardData(req.organizationContext.id)));
+// Incoming Referrals Endpoints
+app.get('/api/incoming-referrals', authenticate, async (req, res) => {
+    const referrals = await db.getIncomingReferrals(req.organizationContext.id);
+    res.json(referrals);
+});
+app.post('/api/incoming-referrals', async (req, res) => {
+    // This endpoint can be called by external facilities without authentication
+    // In production, you might want API key authentication here
+    try {
+        const newReferral = await db.createIncomingReferral(req.body);
+        // Notify the receiving organization
+        if (req.body.toOrganizationId) {
+            notifyAllOrgUsers(req.body.toOrganizationId, 'refetch');
+        }
+        res.status(201).json(newReferral);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+app.put('/api/incoming-referrals/:id/status', authenticate, async (req, res) => {
+    const { status, registeredPatientId, responseNotes } = req.body;
+    const updated = await db.updateIncomingReferralStatus(req.params.id, status, req.user.id, registeredPatientId, responseNotes);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+// Staff Users Endpoint
+app.get('/api/staff', authenticate, async (req, res) => {
+    const staff = await db.getStaffUsers(req.organizationContext.id);
+    res.json(staff);
+});
+// Inter-Departmental Notes Endpoints
+app.get('/api/inter-departmental-notes', authenticate, async (req, res) => {
+    const notes = await db.getInterDepartmentalNotes(req.user.id, req.user.role, req.organizationContext.id);
+    res.json(notes);
+});
+app.get('/api/inter-departmental-notes/patient/:patientId', authenticate, async (req, res) => {
+    const notes = await db.getInterDepartmentalNotesByPatient(req.params.patientId);
+    res.json(notes);
+});
+app.post('/api/inter-departmental-notes', authenticate, async (req, res) => {
+    const newNote = await db.createInterDepartmentalNote(Object.assign(Object.assign({}, req.body), { fromUserId: req.user.id, fromUserName: req.user.name, fromRole: req.user.role, organizationId: req.organizationContext.id }));
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(newNote);
+});
+app.put('/api/inter-departmental-notes/:id/read', authenticate, async (req, res) => {
+    const updated = await db.markInterDepartmentalNoteAsRead(req.params.id);
+    res.json(updated);
+});
+// External Lab Results Endpoints
+app.get('/api/external-lab-results', authenticate, async (req, res) => {
+    const patientId = req.query.patientId;
+    const results = await db.getExternalLabResults(patientId);
+    res.json(results);
+});
+app.post('/api/external-lab-results', async (req, res) => {
+    // This endpoint can be called by external labs without full authentication
+    // In production, you might want API key authentication here
+    try {
+        const newResult = await db.createExternalLabResult(req.body);
+        res.status(201).json(newResult);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+app.put('/api/external-lab-results/:id/status', authenticate, async (req, res) => {
+    const updated = await db.updateExternalLabResultStatus(req.params.id, req.body.status);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+// Billing System Endpoints
+// Billing Codes
+app.get('/api/billing-codes', authenticate, async (req, res) => {
+    const codes = await db.getBillingCodes(req.organizationContext.id);
+    res.json(codes);
+});
+app.post('/api/billing-codes', authenticate, async (req, res) => {
+    const newCode = await db.createBillingCode(req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(newCode);
+});
+app.put('/api/billing-codes/:id', authenticate, async (req, res) => {
+    const updated = await db.updateBillingCode(req.params.id, req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+// Encounters
+app.post('/api/encounters', authenticate, async (req, res) => {
+    const encounter = await db.createEncounter(req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(encounter);
+});
+app.get('/api/encounters/:id', authenticate, async (req, res) => {
+    const encounter = await db.getEncounterById(req.params.id);
+    if (!encounter) {
+        return res.status(404).json({ message: 'Encounter not found' });
+    }
+    return res.json(encounter);
+});
+app.get('/api/encounters/pending/list', authenticate, async (req, res) => {
+    const encounters = await db.getPendingEncounters(req.organizationContext.id);
+    res.json(encounters);
+});
+app.put('/api/encounters/:id', authenticate, async (req, res) => {
+    const updated = await db.updateEncounter(req.params.id, req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+// Bills
+app.post('/api/bills', authenticate, async (req, res) => {
+    const bill = await db.createBill(req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(bill);
+});
+app.get('/api/bills/:id', authenticate, async (req, res) => {
+    const bill = await db.getBillById(req.params.id);
+    if (!bill) {
+        return res.status(404).json({ message: 'Bill not found' });
+    }
+    return res.json(bill);
+});
+app.get('/api/bills', authenticate, async (req, res) => {
+    const bills = await db.getBillsByOrganization(req.organizationContext.id);
+    res.json(bills);
+});
+app.put('/api/bills/:id/status', authenticate, async (req, res) => {
+    const updated = await db.updateBillStatus(req.params.id, req.body.status, req.body.updates);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+app.post('/api/bills/:id/pay', authenticate, async (req, res) => {
+    try {
+        const result = await db.processPayment(req.params.id, Object.assign(Object.assign({}, req.body), { processedBy: req.user.id }));
+        notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+        return res.json(result);
+    }
+    catch (error) {
+        return res.status(400).json({ message: error.message });
+    }
+});
+// Insurance
+app.get('/api/insurance/providers', authenticate, async (req, res) => {
+    const providers = await db.getInsuranceProviders();
+    res.json(providers);
+});
+app.post('/api/insurance/providers', authenticate, async (req, res) => {
+    const provider = await db.createInsuranceProvider(req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(provider);
+});
+app.get('/api/patients/:patientId/insurance', authenticate, async (req, res) => {
+    const insurance = await db.getPatientInsurance(req.params.patientId);
+    res.json(insurance || null);
+});
+app.post('/api/patients/:patientId/insurance', authenticate, async (req, res) => {
+    const insurance = await db.createPatientInsurance(Object.assign(Object.assign({}, req.body), { patientId: req.params.patientId }));
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(insurance);
+});
+app.post('/api/patients/:patientId/insurance/verify', authenticate, async (req, res) => {
+    try {
+        const insurance = await db.verifyInsurance(req.params.patientId);
+        notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+        res.json(insurance);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+// Insurance Claims
+app.post('/api/insurance/claims', authenticate, async (req, res) => {
+    const claim = await db.createInsuranceClaim(req.body);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(claim);
+});
+app.put('/api/insurance/claims/:id/status', authenticate, async (req, res) => {
+    const updated = await db.updateInsuranceClaimStatus(req.params.id, req.body.status, req.body.updates);
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.json(updated);
+});
+app.get('/api/insurance/claims', authenticate, async (req, res) => {
+    const claims = await db.getInsuranceClaimsByOrganization(req.organizationContext.id);
+    res.json(claims);
+});
+// Pricing Catalog
+app.get('/api/pricing-catalog', authenticate, async (req, res) => {
+    const catalog = await db.getPricingCatalog(req.organizationContext.id);
+    res.json(catalog || null);
+});
+app.post('/api/pricing-catalog', authenticate, async (req, res) => {
+    const catalog = await db.createPricingCatalog(Object.assign(Object.assign({}, req.body), { organizationId: req.organizationContext.id }));
+    notifyAllOrgUsers(req.organizationContext.id, 'refetch');
+    res.status(201).json(catalog);
+});
 // Generic Update Routes
 app.put('/api/prescriptions/:id/status', authenticate, async (req, res) => {
     await db.updatePrescription(req.params.id, req.body.status);
@@ -505,6 +716,70 @@ app.post('/api/ai/generate', async (req, res) => {
         }
         // For structured queries or non-chat requests, return the original stub behavior
         const preview = typeof contents === 'string' ? contents.slice(0, 300) : JSON.stringify(contents);
+        // Development Mode: Return mock JSON for AI recommendation features
+        if (process.env.NODE_ENV !== 'production') {
+            // Proactive Care Plan
+            if (contentsStr.includes('proactive care plan') || contentsStr.includes('comprehensive proactive')) {
+                const mockCarePlan = {
+                    goals: [
+                        { category: 'Health Maintenance', description: 'Monitor vital signs weekly', priority: 'high' },
+                        { category: 'Lifestyle', description: 'Incorporate 30 minutes of daily exercise', priority: 'medium' },
+                        { category: 'Nutrition', description: 'Follow Mediterranean diet guidelines', priority: 'medium' }
+                    ],
+                    monitoring: [
+                        { parameter: 'Blood Pressure', frequency: 'Weekly', target: '< 130/80 mmHg' },
+                        { parameter: 'Blood Glucose', frequency: 'Monthly', target: 'Fasting < 100 mg/dL' },
+                        { parameter: 'Weight', frequency: 'Weekly', target: 'Maintain within 5% of current' }
+                    ],
+                    followUps: [
+                        { type: 'Primary Care Visit', timeframe: '3 months', reason: 'Routine checkup and medication review' },
+                        { type: 'Lab Work', timeframe: '6 months', reason: 'Lipid panel and metabolic panel' }
+                    ],
+                    medications: [
+                        { suggestion: 'Continue current medications', rationale: 'Well-controlled symptoms' },
+                        { suggestion: 'Consider vitamin D supplementation', rationale: 'Common deficiency, supports immune health' }
+                    ]
+                };
+                return res.json({ text: JSON.stringify(mockCarePlan) });
+            }
+            // Diagnostic Suggestions
+            if (contentsStr.includes('diagnostic tests') || contentsStr.includes('suggest likely diagnostic')) {
+                const mockDiagnostics = [
+                    { test: 'Complete Blood Count (CBC)', rationale: 'Baseline hematologic assessment', priority: 'routine' },
+                    { test: 'Comprehensive Metabolic Panel', rationale: 'Evaluate kidney and liver function, electrolytes', priority: 'routine' },
+                    { test: 'Lipid Panel', rationale: 'Cardiovascular risk assessment', priority: 'recommended' },
+                    { test: 'HbA1c', rationale: 'Screen for diabetes or monitor glycemic control', priority: 'recommended' },
+                    { test: 'Thyroid Function Tests (TSH, T4)', rationale: 'Rule out thyroid dysfunction if fatigue present', priority: 'optional' }
+                ];
+                return res.json({ text: JSON.stringify(mockDiagnostics) });
+            }
+            // Lifestyle & Diet Plan
+            if (contentsStr.includes('lifestyle and diet') || contentsStr.includes('lifestyle recommendation')) {
+                const mockLifestyle = [
+                    { category: 'Exercise', recommendation: 'Aim for 150 minutes of moderate aerobic activity per week', frequency: 'Daily 30min or 5x/week' },
+                    { category: 'Diet', recommendation: 'Increase intake of fruits, vegetables, whole grains, and lean proteins', frequency: 'Every meal' },
+                    { category: 'Hydration', recommendation: 'Drink 8-10 glasses of water daily', frequency: 'Throughout day' },
+                    { category: 'Sleep', recommendation: 'Maintain consistent sleep schedule with 7-9 hours nightly', frequency: 'Daily' },
+                    { category: 'Stress Management', recommendation: 'Practice mindfulness, meditation, or yoga', frequency: '10-20min daily' },
+                    { category: 'Social Connection', recommendation: 'Engage in regular social activities and maintain relationships', frequency: 'Weekly' }
+                ];
+                return res.json({ text: JSON.stringify(mockLifestyle) });
+            }
+            // Referral Suggestions
+            if (contentsStr.includes('specialty referral') || contentsStr.includes('Recommend specialty referral')) {
+                const mockReferral = {
+                    primarySpecialty: 'Cardiology',
+                    rationale: 'Based on patient history and current symptoms, cardiovascular evaluation recommended',
+                    additionalSpecialties: [
+                        { specialty: 'Endocrinology', reason: 'If metabolic concerns persist or diabetes management needed' },
+                        { specialty: 'Nutrition/Dietitian', reason: 'For comprehensive dietary counseling and meal planning' }
+                    ],
+                    urgency: 'routine',
+                    notes: 'Schedule within 4-6 weeks unless symptoms worsen'
+                };
+                return res.json({ text: JSON.stringify(mockReferral) });
+            }
+        }
         const text = `(dev AI) Response for model=${model || 'unknown'}\n\n${preview}${preview.length >= 300 ? '...' : ''}`;
         return res.json({ text });
     }
@@ -562,11 +837,33 @@ if (upload) {
         try {
             if (!req.file)
                 return res.status(400).json({ message: 'No file uploaded' });
-            // Build a URL for the uploaded file. In development we can serve from /uploads
-            const fileUrl = `/uploads/avatars/${path.basename(req.file.path)}`;
+            // Generate unique filename
+            const ext = path.extname(req.file.originalname) || '.png';
+            const filename = `avatars/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+            // Upload to Google Cloud Storage
+            const blob = bucket.file(filename);
+            const blobStream = blob.createWriteStream({
+                resumable: false,
+                metadata: {
+                    contentType: req.file.mimetype,
+                    cacheControl: 'public, max-age=31536000',
+                }
+            });
+            await new Promise((resolve, reject) => {
+                blobStream.on('error', (err) => {
+                    console.error('GCS upload error:', err);
+                    reject(err);
+                });
+                blobStream.on('finish', () => {
+                    resolve();
+                });
+                blobStream.end(req.file.buffer);
+            });
+            // Construct public URL for the uploaded file
+            const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
             // Update user record
-            const updated = await db.updateUser(req.user.id, { avatarUrl: fileUrl });
-            return res.json({ avatarUrl: fileUrl, user: updated });
+            const updated = await db.updateUser(req.user.id, { avatarUrl: publicUrl });
+            return res.json({ avatarUrl: publicUrl, user: updated });
         }
         catch (err) {
             console.error('Failed to upload avatar', err);
