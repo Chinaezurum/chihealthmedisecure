@@ -12,8 +12,11 @@ import { WalkInRegistrationView } from './WalkInRegistrationView.tsx';
 import { PatientLookupView } from './PatientLookupView.tsx';
 import { IncomingReferralsView } from './IncomingReferralsView.tsx';
 import { SettingsView } from '../common/SettingsView.tsx';
+import { InterDepartmentalNotesView } from '../hcw/InterDepartmentalNotesView.tsx';
+import { MessagingView } from '../../components/common/MessagingView.tsx';
+import { TelemedicineView } from '../common/TelemedicineView.tsx';
 
-type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'referrals' | 'settings';
+type ReceptionistView = 'lookup' | 'checkin' | 'walkin' | 'referrals' | 'dept-notes' | 'messages' | 'telemedicine' | 'settings';
 
 interface ReceptionistDashboardProps {
   user: User;
@@ -29,6 +32,8 @@ const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: Re
     { id: 'checkin', label: 'Patient Check-In', icon: Icons.ClipboardListIcon },
     { id: 'walkin', label: 'Register Walk-In', icon: Icons.UserPlusIcon },
     { id: 'referrals', label: 'Incoming Referrals', icon: Icons.UsersIcon },
+    { id: 'dept-notes', label: 'Team Messages', icon: Icons.BellIcon },
+    { id: 'messages', label: 'Chat', icon: Icons.MessageSquareIcon },
   ];
 
   const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
@@ -46,10 +51,12 @@ const Sidebar: React.FC<{ activeView: ReceptionistView; setActiveView: (view: Re
 
 const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
   const [activeView, setActiveView] = useState<ReceptionistView>('lookup');
-  const [data, setData] = useState<{ appointments: Appointment[], patients: Patient[] } | null>(null);
+  const [data, setData] = useState<{ appointments: Appointment[], patients: Patient[], messages?: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [referralToRegister, setReferralToRegister] = useState<IncomingReferral | null>(null);
   const [sessionStartTime] = useState(new Date().toISOString());
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
   const { addToast } = useToasts();
 
   // Audit-logged view switcher
@@ -109,6 +116,10 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
       
       const receptionistData = await api.fetchReceptionistData();
       setData(receptionistData);
+      
+      // Fetch staff users for messaging
+      const staff = await api.fetchStaffUsers();
+      setStaffUsers(staff);
     } catch (error) {
       console.error("Failed to fetch receptionist data:", error);
       addToast('Failed to load appointment data.', 'error');
@@ -137,6 +148,15 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
     addToast('Patient checked in successfully!', 'success');
     fetchData();
   }
+
+  const handleStartCall = (contact: User | Patient) => {
+    if (contact.role === 'patient') {
+      setSelectedPatientForCall(contact as Patient);
+      handleViewChange('telemedicine');
+    } else {
+      addToast('Video calls are available for patients only', 'info');
+    }
+  };
 
   const handleRegisterFromReferral = (referral: IncomingReferral) => {
     setReferralToRegister(referral);
@@ -174,6 +194,49 @@ const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = (props) => {
           currentMedications: referralToRegister.currentMedications || ''
         } : undefined}
       />;
+      case 'dept-notes': 
+        return <InterDepartmentalNotesView />;
+      case 'messages': 
+        return <MessagingView 
+          messages={data?.messages || []} 
+          currentUser={props.user} 
+          contacts={[...(data?.patients || []), ...staffUsers]} 
+          onSendMessage={async (recipientId, content, patientId) => {
+            // Audit logging
+            const auditLog = {
+              timestamp: new Date().toISOString(),
+              userId: props.user.id,
+              userRole: 'receptionist',
+              action: 'send_message',
+              recipientId,
+              patientId,
+              organizationId: props.user.currentOrganization.id
+            };
+            console.log('Receptionist Message Send Audit:', auditLog);
+            
+            await api.sendMessage({recipientId, content, patientId, senderId: props.user.id});
+            fetchData();
+          }} 
+          onStartCall={handleStartCall} 
+          onAiChannelCommand={async () => { 
+            addToast('AI feature coming soon', 'info'); 
+            return ''; 
+          }} 
+        />;
+      case 'telemedicine': 
+        return selectedPatientForCall ? (
+          <TelemedicineView 
+            currentUser={props.user} 
+            availableContacts={data?.patients || []} 
+            onEndCall={() => handleViewChange('messages')} 
+            onStartCall={(contactId: string) => { 
+              const patient = data?.patients.find((p: Patient) => p.id === contactId); 
+              if (patient) { 
+                setSelectedPatientForCall(patient); 
+              } 
+            }} 
+          />
+        ) : <div>Loading...</div>;
       case 'settings': return <SettingsView user={props.user} />;
       default: return <div>Check-In</div>;
     }
