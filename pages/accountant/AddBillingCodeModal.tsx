@@ -19,6 +19,10 @@ export const AddBillingCodeModal: React.FC<AddBillingCodeModalProps> = ({ onClos
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // Audit fields
+  const createdDateTime = new Date().toISOString();
+  const createdBy = 'ACC001'; // Would come from auth context
 
   const categories = ['Consultation', 'Procedure', 'Lab', 'Imaging', 'Medication', 'Other'];
 
@@ -56,6 +60,19 @@ export const AddBillingCodeModal: React.FC<AddBillingCodeModalProps> = ({ onClos
         insuranceCoverage: coverage,
         isActive: true,
       };
+
+      // Audit log for billing code creation
+      const auditLog = {
+        action: 'CREATE_BILLING_CODE',
+        code: billingCodeData.code,
+        description: billingCodeData.description,
+        category: billingCodeData.category,
+        price: billingCodeData.price,
+        createdDateTime,
+        createdBy,
+        createdByName: 'Current Accountant',
+      };
+      console.log('Billing code creation audit:', auditLog);
 
       await api.createBillingCode(billingCodeData);
       onSuccess();
@@ -137,6 +154,33 @@ export const AddBillingCodeModal: React.FC<AddBillingCodeModalProps> = ({ onClos
           step="1"
           required
         />
+
+        {/* Audit Information */}
+        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2">
+          <h4 className="text-sm font-semibold text-indigo-900 mb-2">📋 Audit Information</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-600">Created Date & Time:</p>
+              <p className="font-semibold text-gray-900">
+                {new Date(createdDateTime).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Created By:</p>
+              <p className="font-semibold text-gray-900">{createdBy}</p>
+            </div>
+          </div>
+          <p className="text-xs text-indigo-700 mt-2">
+            ℹ️ This billing code creation will be logged for audit purposes
+          </p>
+        </div>
 
         <div className="flex gap-3 pt-4">
           <Button

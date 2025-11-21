@@ -37,6 +37,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         mobileMoneyNumber: paymentMethod === 'Mobile Money' ? mobileNumber : undefined,
       };
 
+      // Audit log for payment processing
+      const auditLog = {
+        action: 'PROCESS_PAYMENT',
+        billId: bill.id,
+        invoiceNumber: bill.invoiceNumber,
+        patientId: bill.patientId,
+        patientName: patient.name,
+        amount,
+        paymentMethod,
+        transactionId,
+        processedDateTime: new Date().toISOString(),
+        processedBy: 'ACC001', // Would come from auth context
+        processedByName: 'Current Accountant',
+      };
+      console.log('Payment processing audit:', auditLog);
+
       await api.processPayment(bill.id, paymentData);
       onSuccess();
     } catch (error) {

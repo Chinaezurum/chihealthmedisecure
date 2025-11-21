@@ -1111,6 +1111,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         return;
       }
 
+      // Audit log for transaction export
+      const auditLog = {
+        action: 'EXPORT_TRANSACTIONS',
+        recordCount: data.recentTransactions.length,
+        exportedDateTime: new Date().toISOString(),
+        exportedBy: props.user.id || 'ACC001',
+        exportedByName: props.user.name || 'Current Accountant',
+      };
+      console.log('Transaction export audit:', auditLog);
+
       const exportData = data.recentTransactions.map((txn: any) => {
         const bill = data.pendingBills.find((b: Bill) => b.id === txn.billId);
         const patient = bill ? data.patients?.find(p => p.id === bill.patientId) : null;
@@ -1244,6 +1254,17 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   const generateRevenueReport = () => {
     if (!data) return;
     
+    // Audit log for report generation
+    const auditLog = {
+      action: 'GENERATE_REVENUE_REPORT',
+      totalRevenue: data.stats.totalRevenue,
+      pendingRevenue: data.stats.pendingRevenue || 0,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Revenue report generation audit:', auditLog);
+    
     const reportData = [
       { Metric: 'Total Revenue', Amount: data.stats.totalRevenue },
       { Metric: 'Pending Revenue', Amount: data.stats.pendingRevenue || 0 },
@@ -1256,6 +1277,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   const generateBillingReport = () => {
     if (!data) return;
+
+    // Audit log for billing report
+    const auditLog = {
+      action: 'GENERATE_BILLING_REPORT',
+      recordCount: data.pendingBills.length,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Billing report generation audit:', auditLog);
 
     const reportData = data.pendingBills.map((bill: Bill) => {
       const patient = data.patients?.find(p => p.id === bill.patientId);
@@ -1279,6 +1310,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
       return;
     }
 
+    // Audit log for claims report
+    const auditLog = {
+      action: 'GENERATE_CLAIMS_REPORT',
+      recordCount: (data as any).insuranceClaims.length,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Claims report generation audit:', auditLog);
+
     const reportData = (data as any).insuranceClaims.map((claim: any) => {
       const patient = data.patients?.find(p => p.id === claim.patientId);
       return {
@@ -1297,6 +1338,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   const generatePaymentReport = () => {
     if (!data) return;
+
+    // Audit log for payment report
+    const auditLog = {
+      action: 'GENERATE_PAYMENT_REPORT',
+      recordCount: data.recentTransactions.length,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Payment report generation audit:', auditLog);
 
     const reportData = data.recentTransactions.map((txn: any) => {
       const bill = data.pendingBills.find((b: Bill) => b.id === txn.billId);
@@ -1317,6 +1368,16 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   const generateTrendAnalysis = () => {
     if (!data) return;
 
+    // Audit log for trend analysis
+    const auditLog = {
+      action: 'GENERATE_TREND_ANALYSIS',
+      transactionCount: data.recentTransactions.length,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Trend analysis generation audit:', auditLog);
+
     // Group transactions by date to show trends
     const transactionsByDate: { [key: string]: number } = {};
     data.recentTransactions.forEach((txn: any) => {
@@ -1334,6 +1395,17 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   const generatePatientAnalysis = () => {
     if (!data) return;
+
+    // Audit log for patient analysis
+    const auditLog = {
+      action: 'GENERATE_PATIENT_ANALYSIS',
+      patientCount: data.patients?.length || 0,
+      billCount: data.pendingBills.length,
+      generatedDateTime: new Date().toISOString(),
+      generatedBy: props.user.id || 'ACC001',
+      generatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Patient analysis generation audit:', auditLog);
 
     // Aggregate billing data by patient
     const patientBilling: { [key: string]: { name: string, totalBilled: number, totalPaid: number, pendingAmount: number } } = {};

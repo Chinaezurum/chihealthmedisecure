@@ -39,6 +39,22 @@ export const InsuranceClaimModal: React.FC<InsuranceClaimModalProps> = ({
         status: 'Submitted' as const,
       };
 
+      // Audit log for insurance claim submission
+      const auditLog = {
+        action: 'SUBMIT_INSURANCE_CLAIM',
+        billId: bill.id,
+        invoiceNumber: bill.invoiceNumber,
+        patientId: patient.id,
+        patientName: patient.name,
+        insuranceProvider: patient.insurance.providerName,
+        policyNumber: patient.insurance.policyNumber,
+        claimAmount: claimData.claimAmount,
+        submittedDateTime: new Date().toISOString(),
+        submittedBy: 'ACC001', // Would come from auth context
+        submittedByName: 'Current Accountant',
+      };
+      console.log('Insurance claim submission audit:', auditLog);
+
       await api.createInsuranceClaim(claimData);
       onSuccess();
     } catch (error) {

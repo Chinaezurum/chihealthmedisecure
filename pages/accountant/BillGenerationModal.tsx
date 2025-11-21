@@ -62,6 +62,21 @@ export const BillGenerationModal: React.FC<BillGenerationModalProps> = ({
         createdBy: 'current-user-id', // Should be from auth context
       };
 
+      // Audit log for bill generation
+      const auditLog = {
+        action: 'GENERATE_BILL',
+        encounterId: encounter.id,
+        patientId: encounter.patientId,
+        patientName: encounter.patientName,
+        billAmount: totalAmount,
+        paymentType,
+        invoiceNumber: billData.invoiceNumber,
+        generatedDateTime: new Date().toISOString(),
+        generatedBy: 'ACC001', // Would come from auth context
+        generatedByName: 'Current Accountant',
+      };
+      console.log('Bill generation audit:', auditLog);
+
       await api.createBill(billData);
       onSuccess();
     } catch (error) {
