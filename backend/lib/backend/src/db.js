@@ -312,7 +312,8 @@ export const updateAppointment = async (appointmentId, updates) => {
     return appt;
 };
 export const createMessage = async (senderId, data) => {
-    const newMsg = Object.assign({ id: `msg-${Date.now()}`, senderId, timestamp: new Date().toISOString() }, data);
+    const sender = await findUserById(senderId);
+    const newMsg = Object.assign({ id: `msg-${Date.now()}`, senderId, senderName: (sender === null || sender === void 0 ? void 0 : sender.name) || 'Unknown User', timestamp: new Date().toISOString() }, data);
     messages.push(newMsg);
     return newMsg;
 };

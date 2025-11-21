@@ -159,12 +159,22 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
     const handleSsoLogin = async (provider: 'Google') => {
         setIsSsoLoading(true);
         try {
+            // Check if OAuth is configured
+            const response = await fetch(`${api.API_BASE_URL}/api/health`);
+            if (!response.ok) {
+                throw new Error('Backend server is not available');
+            }
+            
             await authService.signInWithSso(provider);
             // The browser will be redirected, so we don't need to do anything else here.
             // The loading state will be reset if the user navigates back.
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown SSO error occurred.';
-            addToast(message, 'error');
+            if (message.includes('not available') || message.includes('ECONNREFUSED')) {
+                addToast('OAuth is not configured. Please use email/password login or contact your administrator.', 'error');
+            } else {
+                addToast(`OAuth login failed: ${message}. Please try email/password login instead.`, 'error');
+            }
             setIsSsoLoading(false);
         }
     };

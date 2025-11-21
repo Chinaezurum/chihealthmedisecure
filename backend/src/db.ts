@@ -320,7 +320,14 @@ export const updateAppointment = async (appointmentId: string, updates: Partial<
     return appt;
 };
 export const createMessage = async (senderId: string, data: any) => {
-    const newMsg: Message = { id: `msg-${Date.now()}`, senderId, timestamp: new Date().toISOString(), ...data };
+    const sender = await findUserById(senderId);
+    const newMsg: Message = { 
+        id: `msg-${Date.now()}`, 
+        senderId, 
+        senderName: sender?.name || 'Unknown User',
+        timestamp: new Date().toISOString(), 
+        ...data 
+    };
     messages.push(newMsg);
     return newMsg;
 }
