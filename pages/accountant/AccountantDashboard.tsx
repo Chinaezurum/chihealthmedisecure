@@ -1116,58 +1116,79 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
       </div>
 
       {/* Modals */}
-      {showBillModal && selectedEncounter && (
-        <BillGenerationModal
-          encounter={selectedEncounter}
-          billingCodes={data.billingCodes}
-          patient={data.patients.find(p => p.id === selectedEncounter.patientId)!}
-          onClose={() => {
-            setShowBillModal(false);
-            setSelectedEncounter(null);
-          }}
-          onSuccess={() => {
-            setShowBillModal(false);
-            setSelectedEncounter(null);
-            fetchData();
-            addToast('Bill generated successfully', 'success');
-          }}
-        />
-      )}
+      {showBillModal && selectedEncounter && data?.patients && (() => {
+        const patient = data.patients.find(p => p.id === selectedEncounter.patientId);
+        if (!patient) {
+          console.error('Patient not found for encounter:', selectedEncounter.patientId);
+          return null;
+        }
+        return (
+          <BillGenerationModal
+            encounter={selectedEncounter}
+            billingCodes={data.billingCodes || []}
+            patient={patient}
+            onClose={() => {
+              setShowBillModal(false);
+              setSelectedEncounter(null);
+            }}
+            onSuccess={() => {
+              setShowBillModal(false);
+              setSelectedEncounter(null);
+              fetchData();
+              addToast('Bill generated successfully', 'success');
+            }}
+          />
+        );
+      })()}
 
-      {showPaymentModal && selectedBillForPayment && (
-        <PaymentModal
-          bill={selectedBillForPayment}
-          patient={data.patients.find(p => p.id === selectedBillForPayment.patientId)!}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setSelectedBillForPayment(null);
-          }}
-          onSuccess={() => {
-            setShowPaymentModal(false);
-            setSelectedBillForPayment(null);
-            fetchData();
-            addToast('Payment processed successfully', 'success');
-          }}
-        />
-      )}
+      {showPaymentModal && selectedBillForPayment && data?.patients && (() => {
+        const patient = data.patients.find(p => p.id === selectedBillForPayment.patientId);
+        if (!patient) {
+          console.error('Patient not found for bill:', selectedBillForPayment.patientId);
+          return null;
+        }
+        return (
+          <PaymentModal
+            bill={selectedBillForPayment}
+            patient={patient}
+            onClose={() => {
+              setShowPaymentModal(false);
+              setSelectedBillForPayment(null);
+            }}
+            onSuccess={() => {
+              setShowPaymentModal(false);
+              setSelectedBillForPayment(null);
+              fetchData();
+              addToast('Payment processed successfully', 'success');
+            }}
+          />
+        );
+      })()}
 
-      {showClaimModal && selectedBillForClaim && (
-        <InsuranceClaimModal
-          bill={selectedBillForClaim}
-          patient={data.patients.find(p => p.id === selectedBillForClaim.patientId)!}
-          insuranceProviders={data.insuranceProviders}
-          onClose={() => {
-            setShowClaimModal(false);
-            setSelectedBillForClaim(null);
-          }}
-          onSuccess={() => {
-            setShowClaimModal(false);
-            setSelectedBillForClaim(null);
-            fetchData();
-            addToast('Insurance claim submitted successfully', 'success');
-          }}
-        />
-      )}
+      {showClaimModal && selectedBillForClaim && data?.patients && (() => {
+        const patient = data.patients.find(p => p.id === selectedBillForClaim.patientId);
+        if (!patient) {
+          console.error('Patient not found for claim:', selectedBillForClaim.patientId);
+          return null;
+        }
+        return (
+          <InsuranceClaimModal
+            bill={selectedBillForClaim}
+            patient={patient}
+            insuranceProviders={data.insuranceProviders || []}
+            onClose={() => {
+              setShowClaimModal(false);
+              setSelectedBillForClaim(null);
+            }}
+            onSuccess={() => {
+              setShowClaimModal(false);
+              setSelectedBillForClaim(null);
+              fetchData();
+              addToast('Insurance claim submitted successfully', 'success');
+            }}
+          />
+        );
+      })()}
     </DashboardLayout>
   );
 };
