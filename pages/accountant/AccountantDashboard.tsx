@@ -122,6 +122,10 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   const [billsSearchTerm, setBillsSearchTerm] = useState('');
   const [billsStatusFilter, setBillsStatusFilter] = useState<'all' | 'Pending' | 'Paid'>('all');
   
+  // State for claims view
+  const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
+  const [claimsStatusFilter, setClaimsStatusFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected'>('all');
+  
   const { addToast } = useToast();
 
   const fetchData = useCallback(async () => {
@@ -822,28 +826,130 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
   // Insurance Claims
   const renderClaimsView = () => {
+    const allClaims = (data as any)?.insuranceClaims || [];
+    
+    const filteredClaims = allClaims.filter((claim: any) => {
+      const matchesSearch = 
+        claim.claimId?.toLowerCase().includes(claimsSearchTerm.toLowerCase()) ||
+        claim.patientName?.toLowerCase().includes(claimsSearchTerm.toLowerCase()) ||
+        claim.insuranceProvider?.toLowerCase().includes(claimsSearchTerm.toLowerCase());
+      const matchesStatus = claimsStatusFilter === 'all' || claim.status === claimsStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-base font-semibold text-gray-900">Insurance Claims</h3>
-            <p className="text-sm text-gray-600 mt-0.5">Submitted and pending claims</p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg border border-amber-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Claims</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {allClaims.filter((c: any) => c.status === 'Pending').length}
+                </p>
+              </div>
+              <Icons.ClockIcon className="h-8 w-8 text-amber-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg border border-green-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Approved Claims</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {allClaims.filter((c: any) => c.status === 'Approved').length}
+                </p>
+              </div>
+              <CheckCircleIcon className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg border border-red-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Rejected Claims</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {allClaims.filter((c: any) => c.status === 'Rejected').length}
+                </p>
+              </div>
+              <svg className="h-8 w-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg border border-purple-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  ₦{allClaims.reduce((sum: number, c: any) => sum + (c.claimAmount || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <svg className="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Claims Table */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Insurance Claims</h3>
+                <p className="text-sm text-gray-600 mt-0.5">Submitted and pending claims • {filteredClaims.length} total</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={claimsStatusFilter}
+                  onChange={(e) => setClaimsStatusFilter(e.target.value as any)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search claims..."
+                    value={claimsSearchTerm}
+                    onChange={(e) => setClaimsSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <button
+                  onClick={() => addToast('Add claim feature coming soon', 'info')}
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-md transition-all duration-200"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New Claim
+                </button>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            {data && (data as any).insuranceClaims && (data as any).insuranceClaims.length > 0 ? (
+            {filteredClaims.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Claim ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Insurer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Submission Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Claim ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Insurer</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {(data as any).insuranceClaims.map((claim: any) => (
+                  {filteredClaims.map((claim: any) => (
                     <tr key={claim.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(claim.submissionDate).toLocaleDateString()}
@@ -873,6 +979,29 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                           {claim.status}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                        <button
+                          onClick={() => addToast('View details feature coming soon', 'info')}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                          title="View Details"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        {claim.status === 'Pending' && (
+                          <button
+                            onClick={() => addToast('Follow up feature coming soon', 'info')}
+                            className="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 transition-colors"
+                            title="Follow Up"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -880,7 +1009,87 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
             ) : (
               <div className="px-6 py-12 text-center">
                 <Icons.ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">No insurance claims</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {claimsSearchTerm || claimsStatusFilter !== 'all' 
+                    ? 'No claims match your filters' 
+                    : 'No insurance claims'}
+                </p>
+                {allClaims.length === 0 && (
+                  <button
+                    onClick={() => addToast('Add claim feature coming soon', 'info')}
+                    className="mt-4 inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create First Claim
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Insurance Providers Management */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Insurance Providers</h3>
+                <p className="text-sm text-gray-600 mt-0.5">Manage insurance companies and contracts</p>
+              </div>
+              <button
+                onClick={() => addToast('Add insurance provider feature coming soon', 'info')}
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-indigo-800 hover:shadow-md transition-all duration-200"
+              >
+                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Provider
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
+            {data?.insuranceProviders && data.insuranceProviders.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.insuranceProviders.map((provider: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-gray-900">{provider.name || provider}</h4>
+                        {provider.contactEmail && (
+                          <p className="text-xs text-gray-600 mt-1">{provider.contactEmail}</p>
+                        )}
+                        {provider.phone && (
+                          <p className="text-xs text-gray-600">{provider.phone}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => addToast('Edit provider feature coming soon', 'info')}
+                        className="text-gray-400 hover:text-gray-600"
+                        title="Edit"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Icons.ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-600">No insurance providers configured</p>
+                <button
+                  onClick={() => addToast('Add insurance provider feature coming soon', 'info')}
+                  className="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add First Provider
+                </button>
               </div>
             )}
           </div>
