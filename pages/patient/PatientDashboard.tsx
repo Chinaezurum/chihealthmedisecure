@@ -63,6 +63,7 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [suggestedSpecialty, setSuggestedSpecialty] = useState<string | null>(null);
   const [language, setLanguage] = useState('en');
+  const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const { addToast } = useToasts();
   
   const t = useCallback((key: string) => {
@@ -74,6 +75,15 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
       setIsLoading(true);
       const patientData = await api.fetchPatientData();
       setData(patientData);
+      
+      // Fetch staff users (including receptionists) for messaging
+      try {
+        const staff = await api.fetchStaffUsers();
+        setStaffUsers(staff);
+      } catch (staffError) {
+        console.warn('Failed to fetch staff users:', staffError);
+        // Don't fail the whole dashboard if staff fetch fails
+      }
     } catch (error: any) {
       console.error("Failed to fetch patient data:", error);
       // Don't sign out on errors - just show a message
@@ -135,9 +145,27 @@ const PatientDashboard: React.FC<PatientDashboardProps> = (props) => {
     if (isLoading || !data) return <FullScreenLoader message="Loading your dashboard..." />;
     
     switch (activeView) {
-      case 'overview': return <DashboardOverview user={props.user} appointments={data.appointments} prescriptions={data.prescriptions} messages={data.messages} contacts={data.contacts} carePlan={data.carePlan} t={t} setActiveView={setActiveView} />;
+      case 'overview': return <DashboardOverview 
+        user={props.user} 
+        appointments={data.appointments} 
+        prescriptions={data.prescriptions} 
+        messages={data.messages} 
+        contacts={[...(data.contacts || []), ...staffUsers]} 
+        carePlan={data.carePlan} 
+        t={t} 
+        setActiveView={setActiveView} 
+      />;
   case 'appointments': return <AppointmentsView appointments={data.appointments} rooms={data.rooms} onBookAppointment={handleBookAppointment} suggestedSpecialty={suggestedSpecialty} onSuggestionHandled={() => setSuggestedSpecialty(null)} onRefresh={fetchData} />;
-      case 'messages': return <MessagingView messages={data.messages || []} currentUser={props.user} contacts={data.contacts || data.doctors || []} onSendMessage={async (recId, content) => { await api.sendMessage({recipientId: recId, content, senderId: props.user.id}); fetchData(); }} onStartCall={() => {}} />;
+      case 'messages': return <MessagingView 
+        messages={data.messages || []} 
+        currentUser={props.user} 
+        contacts={[...(data.contacts || data.doctors || []), ...staffUsers]} 
+        onSendMessage={async (recId, content, patientId) => { 
+          await api.sendMessage({recipientId: recId, content, patientId, senderId: props.user.id}); 
+          fetchData(); 
+        }} 
+        onStartCall={() => {}} 
+      />;
       case 'prescriptions': return <PrescriptionsView prescriptions={data.prescriptions} />;
       case 'billing': return <BillingView bills={data.bills} onPayBill={async () => { addToast('Payment successful!', 'success'); fetchData();}} />;
       case 'insurance': return <InsuranceView patient={props.user} />;
