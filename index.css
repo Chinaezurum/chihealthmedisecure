@@ -686,15 +686,17 @@ html.dark .sso-btn:hover:not(:disabled) {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  min-height: 0; /* Fix for flex overflow */
 }
 
 .dashboard-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
   position: relative;
-  overflow-x: hidden;
   background-color: var(--background-primary);
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .content-container {
