@@ -149,6 +149,11 @@ const Sidebar: React.FC<{
 const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrganization, theme, toggleTheme }) => {
   const [activeView, setActiveView] = useState<ITView>('overview');
   const { addToast } = useToasts();
+  
+  // Audit logs filters (moved to top level to fix hooks error)
+  const [categoryFilter, setCategoryFilter] = useState<AuditCategory | 'all'>('all');
+  const [severityFilter, setSeverityFilter] = useState<AuditSeverity | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Mock data
   const systems: SystemStatus[] = [
@@ -1219,10 +1224,7 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
   };
 
   const renderAuditLogs = () => {
-    const [categoryFilter, setCategoryFilter] = useState<AuditCategory | 'all'>('all');
-    const [severityFilter, setSeverityFilter] = useState<AuditSeverity | 'all'>('all');
-    const [searchTerm, setSearchTerm] = useState('');
-
+    // Filters are now at component top level
     const auditStats = getAuditStats();
     let auditLogs = getAuditLogs({ limit: 500 });
 
