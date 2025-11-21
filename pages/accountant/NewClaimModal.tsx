@@ -57,8 +57,7 @@ export const NewClaimModal: React.FC<NewClaimModalProps> = ({
     try {
       setIsSubmitting(true);
       
-      // Create claim (this endpoint would need to be implemented in the backend)
-      await api.createInsuranceClaim({
+      const claimData = {
         billId: formData.billId,
         patientId: formData.patientId,
         insuranceProvider: formData.insuranceProvider,
@@ -68,7 +67,27 @@ export const NewClaimModal: React.FC<NewClaimModalProps> = ({
         notes: formData.notes,
         submissionDate: new Date().toISOString(),
         status: 'Pending',
-      });
+      };
+
+      // Audit log for manual claim creation
+      const patient = patients.find(p => p.id === formData.patientId);
+      const auditLog = {
+        action: 'CREATE_MANUAL_INSURANCE_CLAIM',
+        billId: formData.billId,
+        patientId: formData.patientId,
+        patientName: patient?.name || 'Unknown',
+        insuranceProvider: formData.insuranceProvider,
+        policyNumber: formData.policyNumber,
+        claimAmount: parseFloat(formData.claimAmount),
+        diagnosisCode: formData.diagnosisCode,
+        createdDateTime: new Date().toISOString(),
+        createdBy: 'ACC001', // Would come from auth context
+        createdByName: 'Current Accountant',
+      };
+      console.log('Manual claim creation audit:', auditLog);
+      
+      // Create claim (this endpoint would need to be implemented in the backend)
+      await api.createInsuranceClaim(claimData);
 
       onSuccess();
     } catch (err: any) {
@@ -215,6 +234,33 @@ export const NewClaimModal: React.FC<NewClaimModalProps> = ({
             rows={3}
             disabled={isSubmitting}
           />
+        </div>
+
+        {/* Audit Information */}
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg space-y-2">
+          <h4 className="text-sm font-semibold text-purple-900 mb-2">📋 Audit Information</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-600">Submission Date & Time:</p>
+              <p className="font-semibold text-gray-900">
+                {new Date().toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Submitted By:</p>
+              <p className="font-semibold text-gray-900">ACC001</p>
+            </div>
+          </div>
+          <p className="text-xs text-purple-700 mt-2">
+            ⚠️ This claim submission will be logged for audit and compliance purposes
+          </p>
         </div>
 
         {/* Actions */}

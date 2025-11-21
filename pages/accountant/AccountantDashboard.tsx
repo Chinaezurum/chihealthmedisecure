@@ -133,6 +133,24 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   
   const { addToast } = useToast();
 
+  // Wrapper function to audit view access
+  const handleViewChange = (view: AccountantView) => {
+    // Audit log for accessing sensitive financial views
+    const sensitiveViews = ['bills', 'payments', 'transactions', 'claims', 'reports'];
+    if (sensitiveViews.includes(view)) {
+      const auditLog = {
+        action: 'ACCESS_FINANCIAL_VIEW',
+        viewName: view,
+        accessDateTime: new Date().toISOString(),
+        accessedBy: props.user.id || 'ACC001',
+        accessedByName: props.user.name || 'Current Accountant',
+        fromView: activeView,
+      };
+      console.log('Financial view access audit:', auditLog);
+    }
+    setActiveView(view);
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -151,6 +169,20 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
   }, [fetchData]);
 
   const handleGenerateBill = (encounter: Encounter) => {
+    // Audit log for initiating bill generation
+    const auditLog = {
+      action: 'INITIATE_BILL_GENERATION',
+      encounterId: encounter.id,
+      patientId: encounter.patientId,
+      patientName: encounter.patientName,
+      encounterDate: encounter.date,
+      totalAmount: encounter.totalAmount,
+      initiatedDateTime: new Date().toISOString(),
+      initiatedBy: props.user.id || 'ACC001',
+      initiatedByName: props.user.name || 'Current Accountant',
+    };
+    console.log('Bill generation initiated audit:', auditLog);
+    
     setSelectedEncounter(encounter);
     setShowBillModal(true);
   };
@@ -192,7 +224,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
           {/* Pending Revenue Card - Clickable */}
           <button
-            onClick={() => setActiveView('bills')}
+            onClick={() => handleViewChange('bills')}
             className="group bg-gradient-to-br from-amber-50 to-white rounded-xl border border-amber-200 p-5 hover:shadow-lg hover:scale-105 hover:border-amber-400 transition-all duration-200 text-left relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -217,7 +249,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
           {/* Pending Encounters Card - Clickable */}
           <button
-            onClick={() => setActiveView('encounters')}
+            onClick={() => handleViewChange('encounters')}
             className="group bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-200 p-5 hover:shadow-lg hover:scale-105 hover:border-blue-400 transition-all duration-200 text-left relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -242,7 +274,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
 
           {/* Pending Claims Card - Clickable */}
           <button
-            onClick={() => setActiveView('claims')}
+            onClick={() => handleViewChange('claims')}
             className="group bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-5 hover:shadow-lg hover:scale-105 hover:border-purple-400 transition-all duration-200 text-left relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-20 h-20 bg-purple-100 rounded-full -mr-10 -mt-10 opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -311,7 +343,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
             <h3 className="text-base font-semibold text-gray-900 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setActiveView('pricing')}
+                onClick={() => handleViewChange('pricing')}
                 className="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-200"
               >
                 <DocumentTextIcon className="w-8 h-8 text-indigo-600 mb-2" />
@@ -327,7 +359,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <span className="text-sm font-medium text-green-900">Refresh Data</span>
               </button>
               <button
-                onClick={() => setActiveView('reports')}
+                onClick={() => handleViewChange('reports')}
                 className="flex flex-col items-center justify-center p-4 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200"
               >
                 <svg className="w-8 h-8 text-amber-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +368,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 <span className="text-sm font-medium text-amber-900">Reports</span>
               </button>
               <button
-                onClick={() => setActiveView('settings')}
+                onClick={() => handleViewChange('settings')}
                 className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
               >
                 <svg className="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1586,7 +1618,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
       sidebar={
         <Sidebar 
           activeView={activeView} 
-          setActiveView={setActiveView} 
+          setActiveView={handleViewChange} 
           pendingCounts={{
             encounters: data?.stats.pendingEncountersCount || 0,
             bills: data?.stats.pendingBillsCount || 0,

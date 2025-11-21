@@ -36,6 +36,19 @@ export const AddInsuranceProviderModal: React.FC<AddInsuranceProviderModalProps>
     try {
       setIsSubmitting(true);
       
+      // Audit log for insurance provider creation
+      const auditLog = {
+        action: 'ADD_INSURANCE_PROVIDER',
+        providerName: formData.name,
+        contactPerson: formData.contactPerson,
+        contactEmail: formData.contactEmail,
+        phone: formData.phone,
+        createdDateTime: new Date().toISOString(),
+        createdBy: 'ACC001', // Would come from auth context
+        createdByName: 'Current Accountant',
+      };
+      console.log('Insurance provider creation audit:', auditLog);
+      
       // This would need to be implemented in the backend API
       const response = await fetch('/api/accountant/insurance-providers', {
         method: 'POST',
@@ -203,6 +216,33 @@ export const AddInsuranceProviderModal: React.FC<AddInsuranceProviderModalProps>
             rows={3}
             disabled={isSubmitting}
           />
+        </div>
+
+        {/* Audit Information */}
+        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2">
+          <h4 className="text-sm font-semibold text-indigo-900 mb-2">📋 Audit Information</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-600">Registration Date & Time:</p>
+              <p className="font-semibold text-gray-900">
+                {new Date().toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Registered By:</p>
+              <p className="font-semibold text-gray-900">ACC001</p>
+            </div>
+          </div>
+          <p className="text-xs text-indigo-700 mt-2">
+            ℹ️ This provider registration will be logged for audit purposes
+          </p>
         </div>
 
         {/* Actions */}
