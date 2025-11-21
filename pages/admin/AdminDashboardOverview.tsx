@@ -17,6 +17,7 @@ interface AdminDashboardOverviewProps {
   patientCount: number;
   appointmentCount: number;
   totalRevenue: number;
+  onNavigate?: (view: string) => void;
 }
 
 const StatCard: React.FC<{ 
@@ -205,7 +206,10 @@ export const AdminDashboardOverview: React.FC<AdminDashboardOverviewProps> = (pr
           <div className="admin-activity-card">
             <div className="admin-activity-header">
               <h3 className="admin-activity-title-header">Recent Activity</h3>
-              <button className="admin-activity-view-all">
+              <button 
+                className="admin-activity-view-all"
+                onClick={() => props.onNavigate?.('audit')}
+              >
                 View All
                 <ArrowRightIcon className="w-4 h-4" />
               </button>

@@ -168,6 +168,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             patientCount={data.patients.length}
             appointmentCount={data.appointments.length}
             totalRevenue={data.totalRevenue}
+            onNavigate={(view) => setActiveView(view as AdminView)}
           />
         );
       case "staff":
