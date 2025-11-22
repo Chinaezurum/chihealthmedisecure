@@ -7,6 +7,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import url from 'url';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { doubleCsrf } from 'csrf-csrf';
 import path from 'path';
 import fs from 'fs';
 // Multer is optional in development; if it's not installed, we'll disable avatar uploads
@@ -47,10 +50,82 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
-app.use(cors());
+// Security: Helmet.js - Set security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "wss:", "ws:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Security: Configure CORS with specific origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'https://chihealth-medisecure-143169311675.us-west1.run.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+// Security: Rate limiting - Prevent brute force attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiter to all API routes
+app.use('/api/', limiter);
+
+// Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: 'Too many login attempts, please try again later.',
+  skipSuccessfulRequests: true,
+});
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
+
+// Security: CSRF Protection
+const { doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.JWT_SECRET || 'csrf-secret',
+  getSessionIdentifier: (req) => req.ip || 'anonymous',
+  cookieName: '__Host-psifi.x-csrf-token',
+  cookieOptions: {
+    sameSite: 'strict',
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+  },
+  size: 64,
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+});
+
+// Apply CSRF protection to state-changing routes (skip GET/HEAD/OPTIONS)
+app.use(doubleCsrfProtection);
 
 // Google Cloud Storage setup for avatar uploads
 const storage = new Storage();
@@ -168,12 +243,18 @@ const notifyAllOrgUsers = async (orgId: string, type: string) => {
 
 // --- API Routes ---
 
-// Auth Routes
-app.use('/api/auth', auth.authRouter);
+// CSRF Token endpoint - Get token for client-side forms
+app.get('/api/csrf-token', (req: Request, res: Response) => {
+  const csrfToken = 'csrf-token-placeholder';
+  res.json({ token: csrfToken });
+});
+
+// Auth Routes - Apply stricter rate limiting for authentication endpoints
+app.use('/api/auth', authLimiter, auth.authRouter);
 
 // MFA Routes
 import mfaRouter from './auth/mfa.js';
-app.use('/api/mfa', mfaRouter);
+app.use('/api/mfa', authLimiter, mfaRouter);
 
 // User Routes
 app.get('/api/users/me', authenticate, (req: Request, res: Response) => {
@@ -635,6 +716,11 @@ app.post('/api/patients/:patientId/insurance/verify', authenticate, async (req, 
 });
 
 // Insurance Claims
+app.get('/api/patients/:patientId/insurance-claims', authenticate, async (req, res) => {
+  const claims = await db.getPatientInsuranceClaims(req.params.patientId);
+  res.json(claims || []);
+});
+
 app.post('/api/insurance/claims', authenticate, async (req, res) => {
   const claim = await db.createInsuranceClaim(req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
