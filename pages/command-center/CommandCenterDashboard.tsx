@@ -214,7 +214,7 @@ const ActivityFeed: React.FC<{ logs: any[] }> = ({ logs }) => {
                     // Security: Safely highlight keywords without XSS risk
                     const highlightedDetails = log.details.replace(
                         /(admitted to|discharged from)/gi,
-                        (match) => `**${match}**`
+                        (match: string) => `**${match}**`
                     );
                     const parts = highlightedDetails.split(/\*\*(.*?)\*\*/);
                     
@@ -223,7 +223,7 @@ const ActivityFeed: React.FC<{ logs: any[] }> = ({ logs }) => {
                             <div className={`activity-icon ${getColor(log.type)}`}>{getIcon(log.type)}</div>
                             <div>
                                 <p className="activity-details">
-                                    {parts.map((part, i) => 
+                                    {parts.map((part: string, i: number) => 
                                         i % 2 === 1 ? <strong key={i}>{part}</strong> : part
                                     )}
                                 </p>
