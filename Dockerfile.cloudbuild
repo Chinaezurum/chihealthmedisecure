@@ -13,6 +13,11 @@ RUN npm install
 # Copy frontend source
 COPY . .
 
+# Set backend API URL for production build
+# This will be baked into the frontend JavaScript bundle
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 # Build frontend
 RUN npm run build
 
