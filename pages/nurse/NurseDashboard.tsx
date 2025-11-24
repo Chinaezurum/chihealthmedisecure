@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Patient, TriageEntry } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
+import { useWebSocket } from '../../hooks/useWebSocket.ts';
 import * as Icons from '../../components/icons/index.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
@@ -53,7 +54,13 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
+  const [_lastUpdated, _setLastUpdated] = useState<Date>(new Date());
   const { addToast } = useToasts();
+
+  // WebSocket for real-time triage and patient updates
+  useWebSocket('nurse-dashboard', () => {
+    fetchData();
+  });
 
   const handleStartCall = (contact: User | Patient) => {
     if (contact.role === 'patient') {
@@ -73,6 +80,7 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
       ]);
       setData(nurseData);
       setStaffUsers(staff);
+      _setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch nurse data:", error);
       addToast('Failed to load nursing data.', 'error');
@@ -83,6 +91,9 @@ const NurseDashboard: React.FC<NurseDashboardProps> = (props) => {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleSaveVitals = async (patientId: string, vitals: any) => {

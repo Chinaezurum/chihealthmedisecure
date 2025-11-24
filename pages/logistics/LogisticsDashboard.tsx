@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, TransportRequest, LabTest } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
+import { useWebSocket } from '../../hooks/useWebSocket.ts';
 import * as Icons from '../../components/icons/index.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
@@ -48,7 +49,13 @@ const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [sessionStartTime] = useState(new Date().toISOString());
+  const [_lastUpdated, _setLastUpdated] = useState<Date>(new Date());
   const { addToast } = useToasts();
+
+  // WebSocket for real-time transport and sample tracking updates
+  useWebSocket('logistics-dashboard', () => {
+    fetchData();
+  });
 
   // Session tracking
   useEffect(() => {
@@ -105,6 +112,7 @@ const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
       
       const logisticsData = await api.fetchLogisticsData();
       setData(logisticsData);
+      _setLastUpdated(new Date());
       
       // Fetch staff users for messaging
       try {
@@ -124,6 +132,9 @@ const LogisticsDashboard: React.FC<LogisticsDashboardProps> = (props) => {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleUpdateTransportStatus = async (id: string, status: TransportRequest['status']) => {

@@ -45,10 +45,27 @@ function sanitizeAiText(text: string) {
   return stripped.trim();
 }
 
+// Chat history storage for maintaining conversation context
+const chatHistories = new Map<string, Array<{role: 'user' | 'assistant', content: string}>>();
+
 export const runModel = async (payload: RunModelPayload) => callAiProxy(payload);
 
-export const runChat = async (prompt: string) => {
-  const raw = await runModel({ model: 'gemini-2.5-flash', contents: prompt });
+export const runChat = async (prompt: string, sessionId: string = 'default') => {
+  // Get or create chat history for this session
+  if (!chatHistories.has(sessionId)) {
+    chatHistories.set(sessionId, []);
+  }
+  const history = chatHistories.get(sessionId)!;
+  
+  // Add user message to history
+  history.push({ role: 'user', content: prompt });
+  
+  // Build context-aware prompt with conversation history
+  const contextPrompt = history.length > 1
+    ? `Previous conversation:\n${history.slice(0, -1).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')}\n\nCurrent question: ${prompt}`
+    : prompt;
+  
+  const raw = await runModel({ model: 'gemini-2.5-flash', contents: contextPrompt });
   const cleaned = sanitizeAiText(raw);
   
   // Check if the response is just echoing the input (common in dev stubs)
@@ -80,7 +97,25 @@ export const runChat = async (prompt: string) => {
     return "Thank you for sharing your symptoms. I'm here to provide general health information, but I cannot provide a medical diagnosis.\n\nBased on what you've described, I recommend:\n\n• Monitoring your symptoms and noting any changes\n• Staying hydrated and getting adequate rest\n• Seeking professional medical advice if symptoms persist or worsen\n• Contacting a healthcare provider for proper evaluation\n\n**Remember:** This is not a medical diagnosis. For any health concerns, especially severe, sudden, or persistent symptoms, please consult with a qualified healthcare professional who can provide proper evaluation and treatment.\n\nWould you like me to help you book an appointment with a healthcare provider?";
   }
   
+  // Store assistant response in history
+  history.push({ role: 'assistant', content: cleaned });
+  
+  // Keep history reasonable (last 10 exchanges = 20 messages)
+  if (history.length > 20) {
+    history.splice(0, history.length - 20);
+  }
+  
   return cleaned;
+};
+
+// Clear chat history for a session
+export const clearChatHistory = (sessionId: string = 'default') => {
+  chatHistories.delete(sessionId);
+};
+
+// Get chat history for a session
+export const getChatHistory = (sessionId: string = 'default') => {
+  return chatHistories.get(sessionId) || [];
 };
 
 export const getTriageSuggestion = async (symptoms: string) => runModel({ model: 'gemini-2.5-flash', contents: symptoms });

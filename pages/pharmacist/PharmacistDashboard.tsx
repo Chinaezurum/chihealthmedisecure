@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Patient, Prescription } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
+import { useWebSocket } from '../../hooks/useWebSocket.ts';
 import * as Icons from '../../components/icons/index.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
@@ -60,7 +61,13 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
   const [isSafetyCheckLoading, setIsSafetyCheckLoading] = useState(false);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [selectedPatientForCall, setSelectedPatientForCall] = useState<Patient | null>(null);
+  const [_lastUpdated, _setLastUpdated] = useState<Date>(new Date());
   const { addToast } = useToasts();
+
+  // WebSocket for real-time prescription updates
+  useWebSocket('pharmacist-dashboard', () => {
+    fetchData();
+  });
 
   const handleStartCall = (contact: User | Patient) => {
     if (contact.role === 'patient') {
@@ -80,6 +87,7 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
       ]);
       setData(pharmacistData);
       setStaffUsers(staff);
+      _setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch pharmacist data:", error);
       addToast('Failed to load pharmacy data.', 'error');
@@ -90,6 +98,9 @@ const PharmacistDashboard: React.FC<PharmacistDashboardProps> = (props) => {
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleUpdateStatus = async (prescriptionId: string, status: Prescription['status']) => {

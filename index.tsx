@@ -5,6 +5,10 @@ import App from "./App.tsx";
 import "./index.css";
 import { ToastProvider } from "./contexts/ToastContext.tsx";
 import { ErrorBoundary } from "./components/common/ErrorBoundary.tsx";
+import { initializeApp } from "./services/nativeService.ts";
+
+// Initialize native features if running as native app
+initializeApp().catch(console.error);
 
 console.log("index.tsx: Starting app initialization");
 console.log("index.tsx: React version:", React.version);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Notification } from '../../types.ts';
 import * as Icons from '../icons/index.tsx';
 import { ThemeToggle } from './ThemeToggle.tsx';
@@ -24,8 +24,44 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
     const { user, onSignOut, theme, toggleTheme, title, language, onLanguageChange, onSwitchOrganization } = props;
     const [isNotificationsOpen, setNotificationsOpen] = useState(false);
     const [isSignOutModalOpen, setSignOutModalOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     const unreadCount = props.notifications.filter(n => !n.isRead).length;
+
+    // Toggle mobile sidebar
+    const toggleMobileMenu = () => {
+      const newState = !isMobileMenuOpen;
+      setIsMobileMenuOpen(newState);
+      
+      // Toggle sidebar visibility
+      const sidebarWrapper = document.querySelector('.dashboard-sidebar-wrapper');
+      if (sidebarWrapper) {
+        if (newState) {
+          sidebarWrapper.classList.add('mobile-open');
+          document.body.classList.add('sidebar-open');
+        } else {
+          sidebarWrapper.classList.remove('mobile-open');
+          document.body.classList.remove('sidebar-open');
+        }
+      }
+    };
+
+    // Close sidebar when clicking backdrop
+    useEffect(() => {
+      const handleBackdropClick = (e: MouseEvent) => {
+        const sidebar = document.querySelector('.dashboard-sidebar-wrapper');
+        const target = e.target as HTMLElement;
+        
+        if (isMobileMenuOpen && sidebar && !sidebar.contains(target) && !target.closest('.mobile-menu-toggle')) {
+          toggleMobileMenu();
+        }
+      };
+
+      if (isMobileMenuOpen) {
+        document.addEventListener('click', handleBackdropClick);
+        return () => document.removeEventListener('click', handleBackdropClick);
+      }
+    }, [isMobileMenuOpen]);
 
     const UserAvatar: React.FC = () => {
         const avatarSrc = (user as any).avatarUrl 
@@ -60,6 +96,24 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
     return (
         <>
             <header className="dashboard-header">
+                {/* Mobile Hamburger Menu Button */}
+                <button 
+                  className="mobile-menu-toggle"
+                  onClick={toggleMobileMenu}
+                  aria-label="Toggle navigation menu"
+                  aria-expanded={isMobileMenuOpen}
+                >
+                  {isMobileMenuOpen ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12h18M3 6h18M3 18h18" />
+                    </svg>
+                  )}
+                </button>
+
                 <h1 className="text-lg font-bold text-slate-800 dark:text-slate-200" style={{ flex: '0 0 auto' }}>{title}</h1>
                 <div className="dashboard-header-right">
                     {user.organizations && user.organizations.length > 1 && onSwitchOrganization && (

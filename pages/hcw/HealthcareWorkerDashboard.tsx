@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Patient, LabTest, Message } from '../../types.ts';
 import * as api from '../../services/apiService.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
+import { useWebSocket } from '../../hooks/useWebSocket.ts';
 import * as Icons from '../../components/icons/index.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
@@ -19,7 +20,7 @@ import { TelemedicineView } from '../common/TelemedicineView.tsx';
 import { ClinicalNoteModal } from '../../components/hcw/ClinicalNoteModal.tsx';
 import { InterDepartmentalNotesView } from './InterDepartmentalNotesView.tsx';
 import { generatePdfFromHtml } from '../../utils/generatePdf.ts';
-import { generateAiChannelResponse } from '../../services/geminiService.ts';
+import { runChat } from '../../services/geminiService.ts';
 import { SettingsView } from '../common/SettingsView.tsx';
 
 type HcwView = 'overview' | 'schedule' | 'patients' | 'lookup' | 'ehr' | 'prescriptions' | 'labs' | 'messages' | 'dept-notes' | 'telemedicine' | 'settings';
@@ -66,7 +67,13 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
   const [noteFromCall, setNoteFromCall] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [_lastUpdated, _setLastUpdated] = useState<Date>(new Date());
   const { addToast } = useToasts();
+
+  // WebSocket for real-time updates
+  useWebSocket('hcw-dashboard', () => {
+    fetchData(); // Refresh on prescription, lab, or patient updates
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -78,6 +85,7 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
       setRefreshTrigger(prev => prev + 1);
       setData(hcwData);
       setStaffUsers(staff);
+      _setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch HCW data:", error);
       addToast('Failed to load dashboard data.', 'error');
@@ -88,6 +96,9 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [fetchData, props.user.currentOrganization.id]);
 
   const handleSelectPatient = (patient: Patient) => {
@@ -115,10 +126,10 @@ const HealthcareWorkerDashboard: React.FC<HealthcareWorkerDashboardProps> = (pro
   const handleAiCommand = async (command: string, patientId: string) => {
     const patient = data.patients.find((p: Patient) => p.id === patientId);
     if (!patient) return;
-    const patientNotes = await Promise.resolve([]); // Fetch notes for patient if not already loaded
-    const patientLabs = data.labTests.filter((l: LabTest) => l.patientId === patientId);
     
-    const response = await generateAiChannelResponse(command, patient, patientNotes, patientLabs);
+    // Use session-based chat for conversation history per patient channel
+    const sessionId = `ai-channel-${patientId}`;
+    const response = await runChat(command, sessionId);
     
     const aiMessage: Message = {
       id: `msg-${Date.now()}`,

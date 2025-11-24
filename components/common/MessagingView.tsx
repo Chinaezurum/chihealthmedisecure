@@ -53,7 +53,7 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
     }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!messageContent.trim() && !selectedImage) || !selectedPatient) return;
     
@@ -62,9 +62,11 @@ export const MessagingView: React.FC<MessagingViewProps> = (props) => {
       finalMessage = `${messageContent} [Image: ${selectedImage.name}]`.trim();
     }
     
-    if (messageContent.startsWith('@ai ') && onAiChannelCommand) {
-        const command = messageContent.substring(4);
-        onAiChannelCommand(command, selectedPatient.id);
+    if (messageContent.startsWith('@ai ')) {
+        const command = messageContent.substring(4).trim();
+        if (command && onAiChannelCommand) {
+            onAiChannelCommand(command, selectedPatient.id);
+        }
     } else {
         // Broadcast to a channel - in this mock, we send to the first other non-patient user.
         // A real implementation would have channel IDs.

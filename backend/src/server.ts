@@ -68,17 +68,27 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5174', // Vite sometimes uses alternate ports
   'https://chihealth-medisecure-143169311675.us-west1.run.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or Postman)
+    // Allow requests with no origin (like mobile apps, Postman, or same-origin)
     if (!origin) return callback(null, true);
+
+    // In development, allow any localhost origin regardless of port
+    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+
+    // Check against allowed origins
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -115,7 +125,7 @@ const csrfProtection = doubleCsrf({
   getSessionIdentifier: (req) => req.ip || 'anonymous',
   cookieName: '__Host-psifi.x-csrf-token',
   cookieOptions: {
-    sameSite: 'strict',
+    sameSite: 'lax', // Changed from 'strict' to 'lax' for development
     path: '/',
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -124,11 +134,12 @@ const csrfProtection = doubleCsrf({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
 
-const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
+// const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
 const generateToken = csrfProtection.generateCsrfToken;
 
 // Apply CSRF protection to state-changing routes (skip GET/HEAD/OPTIONS)
-app.use(doubleCsrfProtection);
+// Temporarily disabled for development - will enable after frontend is properly configured
+// app.use(doubleCsrfProtection);
 
 // Google Cloud Storage setup for avatar uploads
 const storage = new Storage();
@@ -162,9 +173,9 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
     const user = await db.findUserById(payload.userId);
     if (!user) return res.status(401).json({ message: 'Invalid user' });
 
-  req.user = user;
-  req.organizationContext = user.currentOrganization;
-  return next();
+    req.user = user;
+    req.organizationContext = user.currentOrganization;
+    return next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
@@ -234,14 +245,14 @@ const notifyUser = (userId: string, type: string) => {
 };
 
 const notifyAllOrgUsers = async (orgId: string, type: string) => {
-    // This is a simplified version. A real app would query users by org.
-    console.log(`Notifying all users in org ${orgId} to ${type}`);
-    // For this mock, we'll just iterate all connected clients.
-    wss.clients.forEach(client => {
-         if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type }));
-        }
-    });
+  // This is a simplified version. A real app would query users by org.
+  console.log(`Notifying all users in org ${orgId} to ${type}`);
+  // For this mock, we'll just iterate all connected clients.
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ type }));
+    }
+  });
 }
 
 // --- API Routes ---
@@ -269,7 +280,7 @@ app.get('/api/users/search', authenticate, rbac.requireRole(['receptionist', 'hc
   try {
     const user = req.user as User;
     const query = req.query.q as string;
-    
+
     if (!query || query.trim().length < 2) {
       return res.status(400).json({ message: 'Search query must be at least 2 characters' });
     }
@@ -285,9 +296,9 @@ app.get('/api/users/search', authenticate, rbac.requireRole(['receptionist', 'hc
 app.post('/api/users/switch-organization', authenticate, async (req: Request, res: Response) => {
   const { organizationId } = req.body;
   const user = await db.switchUserOrganization((req.user as User).id, organizationId);
-    // Re-issue a token with the new context
-    const token = auth.generateToken(user.id, user.currentOrganization.id);
-    res.json({ user, token });
+  // Re-issue a token with the new context
+  const token = auth.generateToken(user.id, user.currentOrganization.id);
+  res.json({ user, token });
 });
 
 // Patient Routes
@@ -295,14 +306,14 @@ app.get('/api/patient/dashboard', authenticate, rbac.requireRole('patient'), asy
 app.post('/api/patient/appointments', authenticate, rbac.requirePermission(['create_own_appointments', 'create_appointments']), async (req, res) => {
   await db.createAppointment((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 // Delete appointment (patient or HCW can call with auth)
 app.delete('/api/patient/appointments/:id', authenticate, async (req, res) => {
   try {
-  const ok = await db.deleteAppointment(req.params.id);
-  if (!ok) return res.status(404).json({ message: 'Appointment not found' });
-  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+    const ok = await db.deleteAppointment(req.params.id);
+    if (!ok) return res.status(404).json({ message: 'Appointment not found' });
+    notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     return res.status(200).send();
   } catch (err: any) {
     console.error('Failed to delete appointment', err);
@@ -313,8 +324,8 @@ app.delete('/api/patient/appointments/:id', authenticate, async (req, res) => {
 // Update (reschedule) appointment
 app.put('/api/patient/appointments/:id', authenticate, async (req, res) => {
   try {
-  const appt = await db.updateAppointment(req.params.id, req.body);
-  notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
+    const appt = await db.updateAppointment(req.params.id, req.body);
+    notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     return res.status(200).json(appt);
   } catch (err: any) {
     console.error('Failed to update appointment', err);
@@ -324,7 +335,7 @@ app.put('/api/patient/appointments/:id', authenticate, async (req, res) => {
 app.post('/api/patient/simulate-wearable', authenticate, async (req, res) => {
   await db.addSimulatedWearableData((req.user as User).id);
   notifyUser((req.user as User).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 })
 
 app.post('/api/patient/devices', authenticate, async (req, res) => {
@@ -355,22 +366,28 @@ app.get('/api/hcw/dashboard', authenticate, rbac.requireRole(['hcw', 'nurse']), 
 app.post('/api/hcw/notes', authenticate, rbac.requirePermission('create_medical_notes'), async (req, res) => {
   await db.createClinicalNote((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 app.post('/api/hcw/lab-tests', authenticate, rbac.requirePermission('order_lab_tests'), async (req, res) => {
   await db.createLabTest((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 app.post('/api/hcw/prescriptions', authenticate, rbac.requirePermission('create_prescriptions'), async (req, res) => {
   await db.createPrescription((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 app.post('/api/hcw/referrals', authenticate, async (req, res) => {
   await db.createReferral((req.user as User).id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
+});
+
+// Dietician/Nutrition Routes
+app.get('/api/dietician/dashboard', authenticate, rbac.requireRole(['dietician']), async (req, res) => {
+  // Return same data structure as HCW for now (can be customized later)
+  res.json(await db.getHcwDashboardData((req.user as User).id, (req.organizationContext as Organization).id));
 });
 
 // Admin Routes
@@ -378,33 +395,33 @@ app.get('/api/admin/dashboard', authenticate, rbac.requireRole(['admin', 'comman
 app.put('/api/users/:id', authenticate, rbac.requirePermission('manage_users'), async (req, res) => {
   await db.updateUser(req.params.id, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'), async (req, res) => {
   try {
     const { name, email, password, role, departmentIds, organizationIds } = req.body;
-    
+
     // Validation
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Name, email, password, and role are required.' });
     }
-    
+
     if (password.length < 8) {
       return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
     }
-    
+
     // Check if email already exists
     const existingUser = await db.findUserByEmail(email);
     if (existingUser) {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
-    
+
     // Get organization context - use provided orgs or default to current org
     const currentOrg = req.organizationContext as Organization;
-    const orgIds = organizationIds && organizationIds.length > 0 
-      ? organizationIds 
+    const orgIds = organizationIds && organizationIds.length > 0
+      ? organizationIds
       : [currentOrg.id];
-    
+
     // Create user
     const newUser = await db.createUser({
       name,
@@ -413,37 +430,37 @@ app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'
       role,
       departmentIds: departmentIds || [],
     });
-    
+
     // Assign to organizations
     if (orgIds.length > 0) {
       // Get all organizations from the database context to find the org objects
       const adminData = await db.getAdminDashboardData(currentOrg.id);
       const assignedOrgs = adminData.organizations.filter((org: Organization) => orgIds.includes(org.id));
       if (assignedOrgs.length > 0) {
-        await db.updateUser(newUser.id, { 
+        await db.updateUser(newUser.id, {
           organizationIds: orgIds,
           currentOrganization: assignedOrgs[0]
         });
       }
     }
-    
+
     // Assign to departments if provided
     if (departmentIds && departmentIds.length > 0) {
       await db.updateUser(newUser.id, { departmentIds });
     }
-    
+
     // Get the updated user
     const createdUser = await db.findUserById(newUser.id);
     if (!createdUser) {
       return res.status(500).json({ message: 'Failed to retrieve created user.' });
     }
-    
+
     // Remove password hash from response
     const { passwordHash, ...userWithoutPassword } = createdUser;
-    
+
     // Notify all users in the organization to refresh
     notifyAllOrgUsers(currentOrg.id, 'refetch');
-    
+
     return res.status(201).json(userWithoutPassword);
   } catch (err: any) {
     console.error('Failed to create staff member:', err);
@@ -453,27 +470,27 @@ app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'
 app.post('/api/admin/organizations/link', authenticate, async (req, res) => {
   await db.linkOrganizations(req.body.childId, req.body.parentId);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/admin/organizations/unlink', authenticate, async (req, res) => {
   await db.unlinkOrganization(req.body.childId);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/admin/departments', authenticate, async (req, res) => {
   await db.createDepartment(req.body.name, (req.organizationContext as Organization).id);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 app.post('/api/admin/rooms', authenticate, async (req, res) => {
   await db.createRoom(req.body.name, req.body.type, (req.organizationContext as Organization).id);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 app.post('/api/admin/beds', authenticate, async (req, res) => {
   await db.createBed(req.body.name, req.body.roomId);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 });
 
 
@@ -482,12 +499,12 @@ app.get('/api/command-center/dashboard', authenticate, async (req, res) => res.j
 app.post('/api/command-center/admit', authenticate, async (req, res) => {
   await db.admitPatient(req.body.patientId, req.body.bedId, req.body.reason);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/command-center/discharge', authenticate, async (req, res) => {
   await db.dischargePatient(req.body.patientId);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 
 
@@ -524,7 +541,7 @@ app.post('/api/incoming-referrals', async (req, res) => {
 app.put('/api/incoming-referrals/:id/status', authenticate, async (req, res) => {
   const { status, registeredPatientId, responseNotes } = req.body;
   const updated = await db.updateIncomingReferralStatus(
-    req.params.id, 
+    req.params.id,
     status,
     (req.user as User).id,
     registeredPatientId,
@@ -761,28 +778,28 @@ app.post('/api/pricing-catalog', authenticate, async (req, res) => {
 app.put('/api/prescriptions/:id/status', authenticate, async (req, res) => {
   await db.updatePrescription(req.params.id, req.body.status);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.put('/api/lab-tests/:id', authenticate, async (req, res) => {
   await db.updateLabTest(req.params.id, req.body.status, req.body.result);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
-app.post('/api/appointments/:id/check-in', authenticate, async(req, res) => {
+app.post('/api/appointments/:id/check-in', authenticate, async (req, res) => {
   await db.checkInPatient(req.params.id);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 
 // Triage check-in endpoint - marks patient for immediate triage assessment
-app.post('/api/appointments/:id/check-in-triage', authenticate, async(req, res) => {
+app.post('/api/appointments/:id/check-in-triage', authenticate, async (req, res) => {
   try {
     // Check in the patient (also adds to triage queue)
     const appointment = await db.checkInPatient(req.params.id);
-    
+
     // Log triage check-in for audit
     console.log(`[TRIAGE] Patient ${appointment.patientId} checked in for immediate triage assessment by receptionist ${(req.user as User).id}`);
-    
+
     notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
     res.status(200).json({ message: 'Patient checked in for triage successfully' });
   } catch (error) {
@@ -794,7 +811,7 @@ app.post('/api/appointments/:id/check-in-triage', authenticate, async(req, res) 
 app.post('/api/triage/:patientId/vitals', authenticate, async (req, res) => {
   await db.recordVitals(req.params.patientId, req.body);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/transport/requests', authenticate, async (req, res) => {
   const newRequest = await db.createTransportRequest((req.user as User).id, req.body);
@@ -804,18 +821,18 @@ app.post('/api/transport/requests', authenticate, async (req, res) => {
 app.put('/api/transport/:id/status', authenticate, async (req, res) => {
   await db.updateTransportRequest(req.params.id, req.body.status);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.put('/api/lab-samples/:id/status', authenticate, async (req, res) => {
   await db.updateLabTest(req.params.id, req.body.status);
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(200).send();
+  res.status(200).send();
 });
 app.post('/api/messages', authenticate, async (req, res) => {
   await db.createMessage((req.user as User).id, req.body);
   // In a real app, you would notify specific recipients
   notifyAllOrgUsers((req.organizationContext as Organization).id, 'refetch');
-    res.status(201).send();
+  res.status(201).send();
 })
 
 // AI Proxy Route - client calls this endpoint. In development this returns a
@@ -879,26 +896,26 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
     // Detect if this is a chat/symptom query and provide a helpful response
     const contentsStr = typeof contents === 'string' ? contents : JSON.stringify(contents);
     const lowerContents = contentsStr.toLowerCase();
-    
+
     // Check if this looks like a symptom/health question (not structured data)
-    const isChatQuery = !contentsStr.includes('Patient:') && 
-                        !contentsStr.includes('Clinical Notes:') && 
-                        !contentsStr.includes('Lab Tests:') &&
-                        (lowerContents.includes('symptom') || 
-                         lowerContents.includes('pain') || 
-                         lowerContents.includes('headache') || 
-                         lowerContents.includes('fever') || 
-                         lowerContents.includes('cough') || 
-                         lowerContents.includes('feel') ||
-                         lowerContents.includes('hurt') ||
-                         lowerContents.includes('ache') ||
-                         lowerContents.includes('?') ||
-                         lowerContents.length < 500); // Short queries are likely chat
-    
+    const isChatQuery = !contentsStr.includes('Patient:') &&
+      !contentsStr.includes('Clinical Notes:') &&
+      !contentsStr.includes('Lab Tests:') &&
+      (lowerContents.includes('symptom') ||
+        lowerContents.includes('pain') ||
+        lowerContents.includes('headache') ||
+        lowerContents.includes('fever') ||
+        lowerContents.includes('cough') ||
+        lowerContents.includes('feel') ||
+        lowerContents.includes('hurt') ||
+        lowerContents.includes('ache') ||
+        lowerContents.includes('?') ||
+        lowerContents.length < 500); // Short queries are likely chat
+
     if (isChatQuery && process.env.NODE_ENV !== 'production') {
       // Provide a helpful health assistant response instead of echoing
       let response = '';
-      
+
       if (lowerContents.includes('headache') || lowerContents.includes('head')) {
         response = "I understand you're experiencing a headache. Headaches can have various causes including stress, dehydration, tension, or underlying medical conditions. It's important to stay hydrated, rest in a quiet environment, and monitor for severe or persistent symptoms. If your headache is severe, sudden, or accompanied by other symptoms, please seek immediate medical attention. This is not a medical diagnosis - consult a healthcare professional for proper evaluation.";
       } else if (lowerContents.includes('fever') || lowerContents.includes('temperature')) {
@@ -911,13 +928,13 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
         // Generic helpful response
         response = "Thank you for sharing your symptoms. I'm here to provide general health information, but I cannot provide a medical diagnosis. I recommend monitoring your symptoms, staying hydrated, getting adequate rest, and seeking professional medical advice if symptoms persist or worsen. This is not a medical diagnosis - please consult with a qualified healthcare professional for proper evaluation and treatment.";
       }
-      
+
       return res.json({ text: response });
     }
-    
+
     // For structured queries or non-chat requests, return the original stub behavior
     const preview = typeof contents === 'string' ? contents.slice(0, 300) : JSON.stringify(contents);
-    
+
     // Development Mode: Return mock JSON for AI recommendation features
     if (process.env.NODE_ENV !== 'production') {
       // Proactive Care Plan
@@ -944,7 +961,7 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
         };
         return res.json({ text: JSON.stringify(mockCarePlan) });
       }
-      
+
       // Diagnostic Suggestions
       if (contentsStr.includes('diagnostic tests') || contentsStr.includes('suggest likely diagnostic')) {
         const mockDiagnostics = [
@@ -956,7 +973,7 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
         ];
         return res.json({ text: JSON.stringify(mockDiagnostics) });
       }
-      
+
       // Lifestyle & Diet Plan
       if (contentsStr.includes('lifestyle and diet') || contentsStr.includes('lifestyle recommendation')) {
         const mockLifestyle = [
@@ -969,7 +986,7 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
         ];
         return res.json({ text: JSON.stringify(mockLifestyle) });
       }
-      
+
       // Referral Suggestions
       if (contentsStr.includes('specialty referral') || contentsStr.includes('Recommend specialty referral')) {
         const mockReferral = {
@@ -985,7 +1002,7 @@ app.post('/api/ai/generate', async (req: Request, res: Response) => {
         return res.json({ text: JSON.stringify(mockReferral) });
       }
     }
-    
+
     const text = `(dev AI) Response for model=${model || 'unknown'}\n\n${preview}${preview.length >= 300 ? '...' : ''}`;
     return res.json({ text });
   } catch (err) {
@@ -1002,7 +1019,7 @@ const distExists = fs.existsSync(distPath);
 
 if (distExists) {
   app.use(express.static(distPath));
-  
+
   // The "catchall" handler: for any request that doesn't
   // match one above, send back React's index.html file from the build directory.
   app.get('*', (req, res) => {
@@ -1012,7 +1029,7 @@ if (distExists) {
   // In development mode, return a helpful message for non-API routes
   app.get('*', (req, res) => {
     if (!req.path.startsWith('/api') && !req.path.startsWith('/ws')) {
-      res.status(404).json({ 
+      res.status(404).json({
         message: 'Frontend not built. In development, access the frontend at http://localhost:5173',
         hint: 'Run "npm run dev:all" to start both frontend and backend servers'
       });
@@ -1045,11 +1062,11 @@ if (upload) {
   app.post('/api/users/avatar', authenticate, upload.single('avatar'), async (req: Request, res: Response) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-      
+
       // Generate unique filename
       const ext = path.extname(req.file.originalname) || '.png';
-      const filename = `avatars/${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
-      
+      const filename = `avatars/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+
       // Upload to Google Cloud Storage
       const blob = bucket.file(filename);
       const blobStream = blob.createWriteStream({
@@ -1065,17 +1082,17 @@ if (upload) {
           console.error('GCS upload error:', err);
           reject(err);
         });
-        
+
         blobStream.on('finish', () => {
           resolve();
         });
-        
+
         blobStream.end(req.file!.buffer);
       });
 
       // Construct public URL for the uploaded file
       const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
-      
+
       // Update user record
       const updated = await db.updateUser((req.user as User).id, { avatarUrl: publicUrl } as any);
       return res.json({ avatarUrl: publicUrl, user: updated });

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChatMessage, MessageRole, TriageSuggestion } from '../../types.ts';
-import { runChat, getTriageSuggestion } from '../../services/geminiService.ts';
+import { runChat, getTriageSuggestion, clearChatHistory } from '../../services/geminiService.ts';
 import { AISuggestionCard } from '../../components/patient/AISuggestionCard.tsx';
 import { HealthAssistantIcon, UserIcon, SendIcon as SendIconSVG, SparklesIcon } from '../../components/icons/index.tsx';
 
@@ -48,6 +48,7 @@ const SendIcon: React.FC<{ isLoading: boolean }> = ({ isLoading }) => (
 );
 
 export const SymptomChecker: React.FC<SymptomCheckerProps> = ({ onBookAppointmentWithSuggestion }) => {
+  const sessionId = useMemo(() => `symptom-checker-${Date.now()}`, []); // Unique session per component mount
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: MessageRole.MODEL, content: "Hello! I'm your AI Health Assistant. Please describe your symptoms, and I'll provide you with some information. \n\n**Remember, this is not a medical diagnosis. Please consult a qualified healthcare professional for any health concerns.**" },
   ]);
@@ -60,6 +61,13 @@ export const SymptomChecker: React.FC<SymptomCheckerProps> = ({ onBookAppointmen
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, aiSuggestion]);
+
+  // Cleanup chat history on unmount
+  React.useEffect(() => {
+    return () => {
+      clearChatHistory(sessionId);
+    };
+  }, [sessionId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +82,8 @@ export const SymptomChecker: React.FC<SymptomCheckerProps> = ({ onBookAppointmen
     setAiSuggestion(null);
 
     try {
-      // Get conversational response
-      const response = await runChat(currentInput);
+      // Get conversational response with session-based history
+      const response = await runChat(currentInput, sessionId);
       const modelMessage: ChatMessage = { role: MessageRole.MODEL, content: response };
       setMessages((prev) => [...prev, modelMessage]);
 
@@ -94,6 +102,15 @@ export const SymptomChecker: React.FC<SymptomCheckerProps> = ({ onBookAppointmen
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      { role: MessageRole.MODEL, content: "Hello! I'm your AI Health Assistant. Please describe your symptoms, and I'll provide you with some information. \n\n**Remember, this is not a medical diagnosis. Please consult a qualified healthcare professional for any health concerns.**" },
+    ]);
+    setAiSuggestion(null);
+    setError(null);
+    clearChatHistory(sessionId);
   };
 
   return (
@@ -154,6 +171,16 @@ export const SymptomChecker: React.FC<SymptomCheckerProps> = ({ onBookAppointmen
       </div>
       
       <div className="ai-assistant-input-area">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-gray-500">AI remembers your conversation for context</p>
+          <button 
+            type="button"
+            onClick={handleClearChat}
+            className="text-xs text-primary hover:text-primary-dark"
+          >
+            Clear Chat History
+          </button>
+        </div>
         <form onSubmit={handleSendMessage} className="ai-assistant-form">
           <div className="ai-assistant-input-wrapper">
             <input 

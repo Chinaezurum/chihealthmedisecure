@@ -51,6 +51,7 @@ export const BotMessageSquareIcon = createIcon(
 );
 export const SendIcon = createIcon("M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z");
 export const XIcon = createIcon("M18 6L6 18M6 6l12 12");
+export const MenuIcon = createIcon("M4 6h16M4 12h16M4 18h16");
 export const MicIcon = createIcon(
   "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4"
 );
@@ -328,3 +329,7 @@ export const BarChart3Icon = createIcon(
 export const ArrowLeftRightIcon = createIcon(
   "M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4m4 4H4"
 );
+export const PackageIcon = createIcon(
+  "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"
+);
+

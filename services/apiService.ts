@@ -244,6 +244,10 @@ export const fetchStaffUsers = () => apiFetch('/staff');
 
 // --- HCW Dashboard ---
 export const fetchHcwData = () => apiFetch('/hcw/dashboard');
+
+// --- Dietician Dashboard ---
+export const fetchDieticianData = () => apiFetch('/dietician/dashboard');
+
 export const createClinicalNote = (note: Omit<ClinicalNote, 'id' | 'doctorId' | 'doctorName'>) => {
     return apiFetch('/hcw/notes', { method: 'POST', body: JSON.stringify(note) });
 };

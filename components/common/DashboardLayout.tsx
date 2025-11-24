@@ -11,17 +11,45 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ sidebar, header, children, onSignOut }) => {
     const [showSignOutModal, setShowSignOutModal] = React.useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
     const handleSignOut = () => {
         setShowSignOutModal(false);
         onSignOut?.();
     };
 
+    const closeMobileSidebar = () => {
+        setIsMobileSidebarOpen(false);
+    };
+
     return (
         <div className="dashboard">
             <a href="#main-content" className="skip-link">Skip to main content</a>
-            <div className="dashboard-sidebar-wrapper">
-                {sidebar}
+            
+            {/* Mobile Hamburger Menu */}
+            <button 
+                className="mobile-menu-button"
+                onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                aria-label="Toggle navigation menu"
+                aria-expanded={isMobileSidebarOpen}
+            >
+                {isMobileSidebarOpen ? <Icons.XIcon /> : <Icons.MenuIcon />}
+            </button>
+
+            {/* Mobile Overlay */}
+            {isMobileSidebarOpen && (
+                <div 
+                    className="mobile-sidebar-overlay"
+                    onClick={closeMobileSidebar}
+                    aria-hidden="true"
+                />
+            )}
+
+            {/* Sidebar */}
+            <div className={`dashboard-sidebar-wrapper ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
+                <div onClick={closeMobileSidebar}>
+                    {sidebar}
+                </div>
                 {onSignOut && (
                     <div className="dashboard-sidebar-footer">
                         <button 
