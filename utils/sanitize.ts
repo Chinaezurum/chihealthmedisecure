@@ -3,17 +3,26 @@
  */
 
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 /**
- * Sanitize HTML content to prevent XSS attacks
- * Note: DOMPurify should be installed for production use
+ * Sanitize HTML content to prevent XSS attacks using DOMPurify
  * @param dirty - Potentially unsafe HTML string
+ * @param options - DOMPurify configuration options
  * @returns Sanitized HTML string safe for rendering
  */
-export const sanitizeHtml = (dirty: string): string => {
-  // For now, strip all HTML tags as a basic sanitization
-  // TODO: Install and use DOMPurify for production
-  return dirty.replace(/<[^>]*>/g, '');
+export const sanitizeHtml = (
+  dirty: string,
+  options?: {
+    ALLOWED_TAGS?: string[];
+    ALLOWED_ATTR?: string[];
+  }
+): string => {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: options?.ALLOWED_TAGS || ['b', 'i', 'em', 'strong', 'a', 'p', 'br'],
+    ALLOWED_ATTR: options?.ALLOWED_ATTR || ['href'],
+    ...options,
+  });
 };
 
 /**

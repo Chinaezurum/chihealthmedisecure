@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 // A simple markdown parser function
 const parseMarkdown = (text: string): string => {
@@ -42,10 +43,15 @@ interface MarkdownRendererProps {
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
     const html = parseMarkdown(content);
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedHtml = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['strong', 'em', 'code', 'pre', 'ul', 'li', 'br'],
+        ALLOWED_ATTR: [],
+    });
     return (
         <div 
             className={`prose ${className}`} 
-            dangerouslySetInnerHTML={{ __html: html }} 
+            dangerouslySetInnerHTML={{ __html: sanitizedHtml }} 
         />
     );
 };

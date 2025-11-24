@@ -1,6 +1,7 @@
 
 
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { ChatMessage, MessageRole } from '../types.ts';
 
 interface MessageProps {
@@ -67,7 +68,11 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
   }`;
   
   const contentHtml = parseMarkdown(message.content || '');
-
+  // Sanitize the HTML to prevent XSS attacks
+  const sanitizedHtml = DOMPurify.sanitize(contentHtml, {
+    ALLOWED_TAGS: ['strong', 'em', 'code', 'pre', 'ul', 'li', 'br'],
+    ALLOWED_ATTR: [],
+  });
 
   return (
     <div className={containerClasses}>
@@ -80,7 +85,7 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                 className="mb-3 rounded-lg max-w-xs h-auto"
             />
         )}
-        {message.content && <div className="prose" dangerouslySetInnerHTML={{ __html: contentHtml }} />}
+        {message.content && <div className="prose" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />}
       </div>
     </div>
   );
