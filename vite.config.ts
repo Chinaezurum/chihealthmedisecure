@@ -126,7 +126,7 @@ export default defineConfig({
             return 'command-center-dashboard';
           }
           // UI components chunk
-          if (id.includes('/components/common/')) {
+          if (id.includes('/components/common/') || id.includes('/contexts/')) {
             return 'ui-components';
           }
           // Services chunk
