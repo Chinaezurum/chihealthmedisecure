@@ -53,6 +53,8 @@ RUN npm install && \
 
 # Copy built frontend from stage 1 to where server expects it
 # Server looks for dist at __dirname/../../dist which is /workspace/backend/lib/dist
+# Ensure no stale assets remain from previous builds
+RUN rm -rf /workspace/backend/lib/dist || true && mkdir -p /workspace/backend/lib/dist
 COPY --from=frontend-builder /app/dist /workspace/backend/lib/dist
 
 # Create uploads directory for avatar uploads
