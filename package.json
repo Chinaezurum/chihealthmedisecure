@@ -33,6 +33,7 @@
     "@capacitor/splash-screen": "^7.0.3",
     "@capacitor/status-bar": "^7.0.3",
     "@google/genai": "^1.24.0",
+    "@tanstack/react-query": "^5.90.10",
     "@types/dompurify": "^3.0.5",
     "dompurify": "^3.3.0",
     "react": "^19.2.0",

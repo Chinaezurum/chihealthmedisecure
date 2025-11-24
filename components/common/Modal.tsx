@@ -8,7 +8,7 @@ interface ModalProps {
   footer?: ReactNode;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
+export const Modal = React.memo<ModalProps>(({ isOpen, onClose, title, children, footer }) => {
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -70,4 +70,4 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       </div>
     </div>
   );
-};
+});

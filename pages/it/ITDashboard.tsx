@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { User } from '../../types.ts';
 import { useToasts } from '../../hooks/useToasts.ts';
 import { DashboardLayout } from '../../components/common/DashboardLayout.tsx';
@@ -91,12 +91,12 @@ interface ITReport {
   status: 'ready' | 'generating' | 'scheduled';
 }
 
-const Sidebar: React.FC<{ 
+const Sidebar = React.memo<{ 
   activeView: ITView; 
   setActiveView: (view: ITView) => void;
   alertCount: number;
   ticketCount: number;
-}> = ({ activeView, setActiveView, alertCount, ticketCount }) => {
+}>(({ activeView, setActiveView, alertCount, ticketCount }) => {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Icons.LayoutDashboardIcon, count: 0 },
     { id: 'systems', label: 'System Status', icon: Icons.ActivityIcon, count: 0 },
@@ -109,7 +109,7 @@ const Sidebar: React.FC<{
     { id: 'reports', label: 'Reports', icon: Icons.BarChart3Icon, count: 0 },
   ];
 
-  const NavLink: React.FC<{ item: typeof navItems[0] }> = ({ item }) => (
+  const NavLink = React.memo<{ item: typeof navItems[0] }>(({ item }) => (
     <button 
       onClick={() => setActiveView(item.id as ITView)} 
       className={`sidebar-link ${activeView === item.id ? 'active' : ''}`}
@@ -122,7 +122,7 @@ const Sidebar: React.FC<{
         </span>
       )}
     </button>
-  );
+  ));
   
   return (
     <aside className="sidebar">
@@ -144,7 +144,7 @@ const Sidebar: React.FC<{
       </div>
     </aside>
   );
-};
+});
 
 const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrganization, theme, toggleTheme }) => {
   const [activeView, setActiveView] = useState<ITView>('overview');
@@ -220,35 +220,42 @@ const ITDashboard: React.FC<ITDashboardProps> = ({ user, onSignOut, onSwitchOrga
     { id: '4', type: 'backup-status', title: 'Backup Status Report', description: 'Backup completion rates and storage usage', generated: new Date().toISOString(), status: 'generating' },
   ]);
 
-  const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in-progress');
-  const unresolvedAlerts = securityAlerts.filter(a => !a.resolved);
+  const openTickets = useMemo(() => 
+    tickets.filter(t => t.status === 'open' || t.status === 'in-progress'),
+    [tickets]
+  );
+  
+  const unresolvedAlerts = useMemo(() => 
+    securityAlerts.filter(a => !a.resolved),
+    [securityAlerts]
+  );
 
-  const getStatusColor = (status: SystemStatus['status']) => {
+  const getStatusColor = useCallback((status: SystemStatus['status']) => {
     switch (status) {
       case 'operational': return 'text-green-600 bg-green-100';
       case 'degraded': return 'text-yellow-600 bg-yellow-100';
       case 'down': return 'text-red-600 bg-red-100';
       case 'maintenance': return 'text-blue-600 bg-blue-100';
     }
-  };
+  }, []);
 
-  const getPriorityColor = (priority: SupportTicket['priority']) => {
+  const getPriorityColor = useCallback((priority: SupportTicket['priority']) => {
     switch (priority) {
       case 'low': return 'text-gray-600 bg-gray-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'high': return 'text-orange-600 bg-orange-100';
       case 'critical': return 'text-red-600 bg-red-100';
     }
-  };
+  }, []);
 
-  const getSeverityColor = (severity: SecurityAlert['severity']) => {
+  const getSeverityColor = useCallback((severity: SecurityAlert['severity']) => {
     switch (severity) {
       case 'low': return 'text-gray-600 bg-gray-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'high': return 'text-orange-600 bg-orange-100';
       case 'critical': return 'text-red-600 bg-red-100';
     }
-  };
+  }, []);
 
   // Utility functions for exports
   const exportUsersToCSV = () => {

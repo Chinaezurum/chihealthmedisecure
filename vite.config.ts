@@ -96,6 +96,50 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunk for React and related libraries
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            return 'vendor';
+          }
+          // Dashboard chunks - split heavy dashboards into separate bundles
+          if (id.includes('/pages/patient/PatientDashboard')) {
+            return 'patient-dashboard';
+          }
+          if (id.includes('/pages/it/ITDashboard')) {
+            return 'it-dashboard';
+          }
+          if (id.includes('/pages/accountant/AccountantDashboard')) {
+            return 'accountant-dashboard';
+          }
+          if (id.includes('/pages/command-center/CommandCenterDashboard')) {
+            return 'command-center-dashboard';
+          }
+          // UI components chunk
+          if (id.includes('/components/common/')) {
+            return 'ui-components';
+          }
+          // Services chunk
+          if (id.includes('/services/')) {
+            return 'services';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500, // Warn if chunks exceed 500KB
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true
+      }
+    }
+  },
   optimizeDeps: {
     // Do not pre-bundle the Node-only SDK. Use a browser shim via alias instead.
     // Excluding the package prevents Vite's optimizeDeps from attempting to

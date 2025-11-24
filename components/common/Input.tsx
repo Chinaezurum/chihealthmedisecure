@@ -7,7 +7,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTe
   rows?: number;
 }
 
-export const Input: React.FC<InputProps> = ({ label, name, error, multiline, rows = 3, ...props }) => {
+export const Input = React.memo<InputProps>(({ label, name, error, multiline, rows = 3, ...props }) => {
   const inputClasses = `form-input ${error ? 'form-input-error' : ''} ${multiline ? 'form-textarea' : ''}`;
   
   return (
@@ -34,4 +34,4 @@ export const Input: React.FC<InputProps> = ({ label, name, error, multiline, row
       {error && <p className="form-error-text">{error}</p>}
     </div>
   );
-};
+});

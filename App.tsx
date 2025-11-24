@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Auth from './pages/auth/Auth';
 import SsoComplete from './pages/auth/SsoComplete';
 import RegisterOrg from './pages/auth/RegisterOrg';
@@ -6,19 +7,20 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import { AuthLayout } from './pages/auth/AuthLayout';
 import { PricingPage } from './pages/auth/PricingPage';
 
-import PatientDashboard from './pages/patient/PatientDashboard';
-import HealthcareWorkerDashboard from './pages/hcw/HealthcareWorkerDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import NurseDashboard from './pages/nurse/NurseDashboard';
-import PharmacistDashboard from './pages/pharmacist/PharmacistDashboard';
-import LabTechnicianDashboard from './pages/lab/LabTechnicianDashboard';
-import ReceptionistDashboard from './pages/receptionist/ReceptionistDashboard';
-import LogisticsDashboard from './pages/logistics/LogisticsDashboard';
-import CommandCenterDashboard from './pages/command-center/CommandCenterDashboard.tsx';
-import { AccountantDashboard } from './pages/accountant/AccountantDashboard.tsx';
-import RadiologistDashboard from './pages/radiologist/RadiologistDashboard.tsx';
-import DieticianDashboard from './pages/dietician/DieticianDashboard.tsx';
-import ITDashboard from './pages/it/ITDashboard.tsx';
+// Lazy load heavy dashboards for code splitting
+const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
+const HealthcareWorkerDashboard = lazy(() => import('./pages/hcw/HealthcareWorkerDashboard'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const NurseDashboard = lazy(() => import('./pages/nurse/NurseDashboard'));
+const PharmacistDashboard = lazy(() => import('./pages/pharmacist/PharmacistDashboard'));
+const LabTechnicianDashboard = lazy(() => import('./pages/lab/LabTechnicianDashboard'));
+const ReceptionistDashboard = lazy(() => import('./pages/receptionist/ReceptionistDashboard'));
+const LogisticsDashboard = lazy(() => import('./pages/logistics/LogisticsDashboard'));
+const CommandCenterDashboard = lazy(() => import('./pages/command-center/CommandCenterDashboard.tsx'));
+const AccountantDashboard = lazy(() => import('./pages/accountant/AccountantDashboard.tsx').then(m => ({ default: m.AccountantDashboard })));
+const RadiologistDashboard = lazy(() => import('./pages/radiologist/RadiologistDashboard.tsx'));
+const DieticianDashboard = lazy(() => import('./pages/dietician/DieticianDashboard.tsx'));
+const ITDashboard = lazy(() => import('./pages/it/ITDashboard.tsx'));
 
 import { FullScreenLoader } from './components/common/FullScreenLoader';
 import { SessionTimeoutModal } from './components/common/SessionTimeoutModal';
@@ -30,6 +32,18 @@ import * as api from './services/apiService';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { useWebSocket } from './hooks/useWebSocket';
+
+// Create a QueryClient instance for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // Data is fresh for 1 minute
+      gcTime: 300000, // Cache kept for 5 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false, // Don't refetch when window regains focus
+      retry: 1, // Only retry failed requests once
+    },
+  },
+});
 
 type View = 'auth' | 'ssoComplete' | 'dashboard' | 'registerOrg' | 'forgotPassword' | 'pricing';
 
@@ -232,36 +246,44 @@ const App: React.FC = () => {
 
   const renderDashboard = () => {
     if (!user) return <Auth onAuthSuccess={handleAuthSuccess} onSsoSuccess={setSsoUser} onForgotPassword={() => setView('forgotPassword')} onNavigateToPricing={() => setView('pricing')} />;
-    switch (user.role) {
-      case 'patient':
-        return <PatientDashboard user={user as Patient} onSignOut={() => handleSignOut()} theme={theme} toggleTheme={toggleTheme} />;
-      case 'hcw':
-        return <HealthcareWorkerDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'admin':
-        return <AdminDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'nurse':
-        return <NurseDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'pharmacist':
-        return <PharmacistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'accountant':
-        return <AccountantDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'lab_technician':
-        return <LabTechnicianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'receptionist':
-         return <ReceptionistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'logistics':
-        return <LogisticsDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'command_center':
-        return <CommandCenterDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'radiologist':
-        return <RadiologistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'dietician':
-        return <DieticianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      case 'it_support':
-        return <ITDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
-      default:
-        return <div>Unknown user role. Please contact support.</div>;
-    }
+    
+    // Wrap all dashboards in Suspense for lazy loading
+    return (
+      <Suspense fallback={<FullScreenLoader message="Loading dashboard..." />}>
+        {(() => {
+          switch (user.role) {
+            case 'patient':
+              return <PatientDashboard user={user as Patient} onSignOut={() => handleSignOut()} theme={theme} toggleTheme={toggleTheme} />;
+            case 'hcw':
+              return <HealthcareWorkerDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'admin':
+              return <AdminDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'nurse':
+              return <NurseDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'pharmacist':
+              return <PharmacistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'accountant':
+              return <AccountantDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'lab_technician':
+              return <LabTechnicianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'receptionist':
+              return <ReceptionistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'logistics':
+              return <LogisticsDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'command_center':
+              return <CommandCenterDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'radiologist':
+              return <RadiologistDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'dietician':
+              return <DieticianDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            case 'it_support':
+              return <ITDashboard user={user} onSignOut={handleSignOut} onSwitchOrganization={api.switchOrganization} theme={theme} toggleTheme={toggleTheme} />;
+            default:
+              return <div>Unknown user role. Please contact support.</div>;
+          }
+        })()}
+      </Suspense>
+    );
   };
   
   const renderContent = () => {
@@ -374,12 +396,12 @@ const App: React.FC = () => {
     console.log("App: Content rendered successfully");
     
     return (
-      <>
+      <QueryClientProvider client={queryClient}>
         {content}
         <SessionTimeoutModal isOpen={isWarningModalOpen} countdown={countdown} onStay={handleStay} onLogout={handleSignOut} />
         <PwaInstallPrompt />
         <PwaUpdatePrompt />
-      </>
+      </QueryClientProvider>
     );
   } catch (error) {
     console.error("App: Error during render:", error);

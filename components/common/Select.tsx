@@ -6,7 +6,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;
 }
 
-export const Select: React.FC<SelectProps> = ({ label, name, error, children, ...props }) => {
+export const Select = React.memo<SelectProps>(({ label, name, error, children, ...props }) => {
   return (
     <div className="form-group">
       <label htmlFor={name} className="form-label">
@@ -28,4 +28,4 @@ export const Select: React.FC<SelectProps> = ({ label, name, error, children, ..
       {error && <p className="form-error-text">{error}</p>}
     </div>
   );
-};
+});

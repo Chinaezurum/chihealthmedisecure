@@ -5,7 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({ children, isLoading = false, fullWidth = false, ...props }) => {
+export const Button = React.memo<ButtonProps>(({ children, isLoading = false, fullWidth = false, ...props }) => {
   const classNames = ['btn', 'btn-primary'];
   if (fullWidth) {
     classNames.push('btn-full-width');
@@ -29,4 +29,4 @@ export const Button: React.FC<ButtonProps> = ({ children, isLoading = false, ful
       <span style={{ opacity: isLoading ? 0 : 1 }}>{children}</span>
     </button>
   );
-};
+});
