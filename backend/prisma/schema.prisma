@@ -1,14 +1,5 @@
 // Prisma Schema for ChiHealth MediSecure
-// 
-// NOTE: This schema is currently NOT being used by the application.
-// The backend currently uses an in-memory database (see backend/src/db.ts).
-// This schema is provided for reference and future migration to PostgreSQL.
-//
-// To use this schema:
-// 1. Install Prisma: npm install @prisma/client
-// 2. Generate client: npx prisma generate
-// 3. Run migrations: npx prisma migrate dev
-// 4. Update backend/src/db.ts to use Prisma client instead of in-memory arrays
+// PostgreSQL Database Configuration
 
 generator client {
   provider = "prisma-client-js"
@@ -27,7 +18,8 @@ model Organization {
   parentOrganizationId String?
   parentOrganization  Organization? @relation("OrganizationHierarchy", fields: [parentOrganizationId], references: [id])
   childOrganizations  Organization[] @relation("OrganizationHierarchy")
-  users               User[]
+  users               User[] @relation("UserOrganizations")
+  currentUsers        User[] @relation("CurrentOrganization")
   departments         Department[]
   rooms               Room[]
   createdAt           DateTime @default(now())
@@ -43,21 +35,21 @@ model User {
   dateOfBirth         String?  // For patients
   lastVisit           String?  // For patients
   departmentIds       String[] // Array of department IDs
-  organizations       Organization[]
+  organizations       Organization[] @relation("UserOrganizations")
   currentOrganizationId String
-  currentOrganization Organization @relation(fields: [currentOrganizationId], references: [id])
+  currentOrganization Organization @relation("CurrentOrganization", fields: [currentOrganizationId], references: [id])
   appointmentsAsPatient Appointment[] @relation("PatientAppointments")
   appointmentsAsDoctor Appointment[] @relation("DoctorAppointments")
-  prescriptionsAsPatient Prescription[]
-  prescriptionsAsPrescriber Prescription[]
+  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+  prescriptionsAsPrescriber Prescription[] @relation("PrescriberPrescriptions")
   labTestsAsPatient   LabTest[] @relation("PatientLabTests")
   labTestsAsOrderer   LabTest[] @relation("OrdererLabTests")
   clinicalNotes       ClinicalNote[]
   messagesAsSender    Message[] @relation("SenderMessages")
   messagesAsRecipient Message[] @relation("RecipientMessages")
   bills               Bill[]
-  referralsAsPatient  Referral[]
-  referralsAsDoctor   Referral[]
+  referralsAsPatient  Referral[] @relation("PatientReferrals")
+  referralsAsDoctor   Referral[] @relation("DoctorReferrals")
   // MFA fields for enhanced security
   mfaEnabled          Boolean? @default(false)
   mfaMethod           String?  // 'totp' | 'webauthn' | 'both'
@@ -92,9 +84,9 @@ model Appointment {
 model Prescription {
   id          String   @id @default(cuid())
   patientId  String
-  patient     User     @relation(fields: [patientId], references: [id])
+  patient     User     @relation("PatientPrescriptions", fields: [patientId], references: [id])
   prescriberId String
-  prescriber  User     @relation(fields: [prescriberId], references: [id])
+  prescriber  User     @relation("PrescriberPrescriptions", fields: [prescriberId], references: [id])
   medication String
   dosage     String
   frequency  String
@@ -158,9 +150,9 @@ model Bill {
 model Referral {
   id          String   @id @default(cuid())
   patientId  String
-  patient     User     @relation(fields: [patientId], references: [id])
+  patient     User     @relation("PatientReferrals", fields: [patientId], references: [id])
   fromDoctorId String
-  fromDoctor  User     @relation(fields: [fromDoctorId], references: [id])
+  fromDoctor  User     @relation("DoctorReferrals", fields: [fromDoctorId], references: [id])
   toSpecialty String
   reason      String   @db.Text
   date        String
