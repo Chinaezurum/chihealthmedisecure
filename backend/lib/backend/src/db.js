@@ -641,6 +641,9 @@ export const verifyInsurance = async (patientId) => {
     return insurance;
 };
 // Insurance Claims
+export const getPatientInsuranceClaims = async (patientId) => {
+    return insuranceClaims.filter(claim => claim.patientId === patientId);
+};
 export const createInsuranceClaim = async (data) => {
     const claimNumber = `CLM-${Date.now().toString().slice(-10)}`;
     const newClaim = Object.assign({ id: `claim-${Date.now()}`, claimNumber, submittedDate: new Date().toISOString() }, data);

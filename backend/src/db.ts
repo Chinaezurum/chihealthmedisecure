@@ -709,6 +709,10 @@ export const verifyInsurance = async (patientId: string) => {
 };
 
 // Insurance Claims
+export const getPatientInsuranceClaims = async (patientId: string) => {
+    return insuranceClaims.filter(claim => claim.patientId === patientId);
+};
+
 export const createInsuranceClaim = async (data: Omit<InsuranceClaim, 'id' | 'claimNumber' | 'submittedDate'>) => {
     const claimNumber = `CLM-${Date.now().toString().slice(-10)}`;
     const newClaim: InsuranceClaim = {

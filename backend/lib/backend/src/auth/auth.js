@@ -1,10 +1,17 @@
 import { Router } from 'express';
-import { body, validationResult } from 'express-validator';
+import { validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import * as db from '../db.js';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-default-super-secret-key-that-is-long';
+import { validateRegister, validateLogin } from '../validators.js';
+// Security: Require JWT_SECRET to be set, no fallback for production
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not set!');
+    console.error('Please set JWT_SECRET in your .env file before starting the server.');
+    process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const router = Router();
 // --- Token Generation & Verification ---
 export const generateToken = (userId, orgId) => {
@@ -88,7 +95,7 @@ router.get('/oauth/status', (req, res) => {
     });
 });
 // Local Email/Password Registration
-router.post('/register', body('email').isEmail().normalizeEmail(), body('password').isLength({ min: 8 }), body('fullName').not().isEmpty().trim().escape(), async (req, res) => {
+router.post('/register', ...validateRegister, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ message: errors.array().map(e => e.msg).join(', ') });
@@ -115,7 +122,7 @@ router.post('/register', body('email').isEmail().normalizeEmail(), body('passwor
     }
 });
 // Local Email/Password Login
-router.post('/login', body('email').isEmail().normalizeEmail(), body('password').not().isEmpty(), async (req, res) => {
+router.post('/login', ...validateLogin, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ message: 'Invalid input.' });

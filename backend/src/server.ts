@@ -110,7 +110,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // Security: CSRF Protection
-const { doubleCsrfProtection, generateToken } = doubleCsrf({
+const csrfProtection = doubleCsrf({
   getSecret: () => process.env.JWT_SECRET || 'csrf-secret',
   getSessionIdentifier: (req) => req.ip || 'anonymous',
   cookieName: '__Host-psifi.x-csrf-token',
@@ -123,6 +123,9 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
+
+const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
+const generateToken = csrfProtection.generateCsrfToken;
 
 // Apply CSRF protection to state-changing routes (skip GET/HEAD/OPTIONS)
 app.use(doubleCsrfProtection);
