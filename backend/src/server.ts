@@ -134,12 +134,11 @@ const csrfProtection = doubleCsrf({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
 
-// const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
+const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
 const generateToken = csrfProtection.generateCsrfToken;
 
 // Apply CSRF protection to state-changing routes (skip GET/HEAD/OPTIONS)
-// Temporarily disabled for development - will enable after frontend is properly configured
-// app.use(doubleCsrfProtection);
+app.use(doubleCsrfProtection);
 
 // Google Cloud Storage setup for avatar uploads
 const storage = new Storage();

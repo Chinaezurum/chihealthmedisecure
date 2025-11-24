@@ -64,18 +64,26 @@ app.use(helmet({
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:8080',
+    'http://localhost:3000',
+    'http://localhost:5174', // Vite sometimes uses alternate ports
     'https://chihealth-medisecure-143169311675.us-west1.run.app',
     process.env.FRONTEND_URL,
 ].filter(Boolean);
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or Postman)
+        // Allow requests with no origin (like mobile apps, Postman, or same-origin)
         if (!origin)
             return callback(null, true);
+        // In development, allow any localhost origin regardless of port
+        if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:')) {
+            return callback(null, true);
+        }
+        // Check against allowed origins
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         }
         else {
+            console.warn(`CORS blocked origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -115,11 +123,10 @@ const csrfProtection = doubleCsrf({
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
-// const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
+const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
 const generateToken = csrfProtection.generateCsrfToken;
 // Apply CSRF protection to state-changing routes (skip GET/HEAD/OPTIONS)
-// Temporarily disabled for development - will enable after frontend is properly configured
-// app.use(doubleCsrfProtection);
+app.use(doubleCsrfProtection);
 // Google Cloud Storage setup for avatar uploads
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME || 'chihealth-avatars-5068';
