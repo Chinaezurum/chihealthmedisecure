@@ -38,7 +38,7 @@ import { Storage } from '@google-cloud/storage';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import process from 'process';
-import * as db from './database.js';
+import * as db from './db.js';
 import * as auth from './auth/auth.js';
 import * as rbac from './rbac.js';
 import * as validators from './validators.js';
@@ -49,13 +49,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
+// Trust proxy - Required for Cloud Run to get correct client IPs
+app.set('trust proxy', true);
 // Security: Helmet.js - Set security headers
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // Required for Vite/React inline module scripts
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "wss:", "ws:"],
         },
@@ -98,6 +100,8 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    // Validate trust proxy - we're behind Cloud Run's proxy
+    validate: { trustProxy: false },
 });
 // Apply rate limiter to all API routes
 app.use('/api/', limiter);
@@ -107,6 +111,8 @@ const authLimiter = rateLimit({
     max: 5, // Limit each IP to 5 requests per windowMs
     message: 'Too many login attempts, please try again later.',
     skipSuccessfulRequests: true,
+    // Validate trust proxy - we're behind Cloud Run's proxy
+    validate: { trustProxy: false },
 });
 app.use(express.json());
 app.use(cookieParser());
@@ -924,10 +930,25 @@ app.post('/api/ai/generate', async (req, res) => {
 const distPath = path.join(__dirname, '..', '..', 'dist');
 const distExists = fs.existsSync(distPath);
 if (distExists) {
-    app.use(express.static(distPath));
+    // Serve static assets with cache control
+    app.use(express.static(distPath, {
+        maxAge: '1h', // Cache assets for 1 hour
+        etag: true,
+        setHeaders: (res, filePath) => {
+            // Don't cache service worker or manifest
+            if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            }
+            // Cache-bust HTML files
+            if (filePath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+            }
+        }
+    }));
     // The "catchall" handler: for any request that doesn't
     // match one above, send back React's index.html file from the build directory.
     app.get('*', (req, res) => {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
         res.sendFile(path.join(distPath, 'index.html'));
     });
 }

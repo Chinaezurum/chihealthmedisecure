@@ -1,6 +1,6 @@
 // This service now communicates with our Express backend API.
 import { User, Patient } from "../types.ts";
-import { API_BASE_URL } from "./apiService.ts";
+import { API_BASE_URL, getCsrfToken, fetchCsrfToken } from "./apiService.ts";
 
 /**
  * Registers a new user via the backend API.
@@ -11,9 +11,19 @@ export const registerWithEmail = async (
   password: string
 ): Promise<{ user: User }> => {
   try {
+    // Ensure we have a CSRF token
+    let csrf = getCsrfToken();
+    if (!csrf) {
+      csrf = await fetchCsrfToken();
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-csrf-token": csrf,
+      },
+      credentials: "include",
       body: JSON.stringify({ fullName, email, password }),
     });
     const raw = await response.text().catch(() => "");
@@ -53,9 +63,19 @@ export const signInWithEmail = async (
   password: string
 ): Promise<{ user: User; token: string }> => {
   try {
+    // Ensure we have a CSRF token
+    let csrf = getCsrfToken();
+    if (!csrf) {
+      csrf = await fetchCsrfToken();
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-csrf-token": csrf,
+      },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
     const raw = await response.text().catch(() => "");
@@ -106,9 +126,19 @@ export const completeSsoRegistration = async (
   details: { dateOfBirth: string }
 ): Promise<{ user: Patient; token: string }> => {
   try {
+    // Ensure we have a CSRF token
+    let csrf = getCsrfToken();
+    if (!csrf) {
+      csrf = await fetchCsrfToken();
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/auth/sso/complete`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-csrf-token": csrf,
+      },
+      credentials: "include",
       body: JSON.stringify({ tempToken, ...details }),
     });
     const raw = await response.text().catch(() => "");
