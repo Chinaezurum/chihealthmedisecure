@@ -52,6 +52,9 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
+// Trust proxy - Required for Cloud Run to get correct client IPs
+app.set('trust proxy', true);
+
 // Security: Helmet.js - Set security headers
 app.use(helmet({
   contentSecurityPolicy: {
