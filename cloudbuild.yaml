@@ -50,6 +50,10 @@ steps:
       - '10'
       - '--set-env-vars'
       - 'NODE_ENV=production'
+      - '--add-cloudsql-instances'
+      - 'numeric-skill-379315:us-west1:chihealth-sql'
+      - '--update-secrets'
+      - 'DATABASE_URL=DATABASE_URL:latest'
     timeout: 600s
 
 # Image to be pushed

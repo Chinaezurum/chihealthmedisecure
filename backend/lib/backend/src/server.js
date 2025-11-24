@@ -38,7 +38,7 @@ import { Storage } from '@google-cloud/storage';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import process from 'process';
-import * as db from './db.js';
+import * as db from './database.js';
 import * as auth from './auth/auth.js';
 import * as rbac from './rbac.js';
 import * as validators from './validators.js';
