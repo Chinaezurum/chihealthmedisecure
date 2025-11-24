@@ -244,3 +244,261 @@ export const validateMfaSetup: ValidationChain[] = [
     .trim()
     .isLength({ min: 16, max: 64 }).withMessage('Invalid secret length'),
 ];
+
+// --- Staff Management Validation ---
+
+export const validateStaff: ValidationChain[] = [
+  body('name')
+    .notEmpty().withMessage('Staff name is required')
+    .trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters')
+    .matches(/^[a-zA-Z\s'-]+$/).withMessage('Name contains invalid characters')
+    .escape(),
+  body('email')
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Valid email is required')
+    .normalizeEmail(),
+  body('role')
+    .notEmpty().withMessage('Role is required')
+    .isIn(['patient', 'hcw', 'nurse', 'admin', 'pharmacist', 'lab', 'receptionist', 'logistics', 'accountant', 'radiologist', 'dietician', 'it'])
+    .withMessage('Invalid role'),
+  body('department')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Department name too long')
+    .escape(),
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^[\d\s\-\+\(\)]+$/).withMessage('Invalid phone number format')
+    .isLength({ max: 20 }).withMessage('Phone number too long'),
+];
+
+// --- Department Management Validation ---
+
+export const validateDepartment: ValidationChain[] = [
+  body('name')
+    .notEmpty().withMessage('Department name is required')
+    .trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters')
+    .escape(),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Description too long')
+    .escape(),
+  body('headId')
+    .optional()
+    .trim()
+    .escape(),
+];
+
+// --- Room Management Validation ---
+
+export const validateRoom: ValidationChain[] = [
+  body('roomNumber')
+    .notEmpty().withMessage('Room number is required')
+    .trim()
+    .isLength({ min: 1, max: 20 }).withMessage('Room number must be 1-20 characters')
+    .escape(),
+  body('type')
+    .notEmpty().withMessage('Room type is required')
+    .isIn(['ICU', 'General', 'Private', 'Emergency', 'Operating', 'Consultation'])
+    .withMessage('Invalid room type'),
+  body('departmentId')
+    .optional()
+    .trim()
+    .escape(),
+  body('floor')
+    .optional()
+    .isInt({ min: 0, max: 100 }).withMessage('Floor must be between 0-100'),
+];
+
+// --- Bed Management Validation ---
+
+export const validateBed: ValidationChain[] = [
+  body('bedNumber')
+    .notEmpty().withMessage('Bed number is required')
+    .trim()
+    .isLength({ min: 1, max: 20 }).withMessage('Bed number must be 1-20 characters')
+    .escape(),
+  body('roomId')
+    .notEmpty().withMessage('Room ID is required')
+    .trim()
+    .escape(),
+  body('status')
+    .optional()
+    .isIn(['Available', 'Occupied', 'Maintenance', 'Reserved'])
+    .withMessage('Invalid bed status'),
+];
+
+// --- Admission/Discharge Validation ---
+
+export const validateAdmission: ValidationChain[] = [
+  body('patientId')
+    .notEmpty().withMessage('Patient ID is required')
+    .trim()
+    .escape(),
+  body('bedId')
+    .notEmpty().withMessage('Bed ID is required')
+    .trim()
+    .escape(),
+  body('admissionReason')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Admission reason too long')
+    .escape(),
+  body('expectedDuration')
+    .optional()
+    .isInt({ min: 1 }).withMessage('Expected duration must be positive'),
+];
+
+export const validateDischarge: ValidationChain[] = [
+  body('patientId')
+    .notEmpty().withMessage('Patient ID is required')
+    .trim()
+    .escape(),
+  body('dischargeReason')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Discharge reason too long')
+    .escape(),
+  body('followUpInstructions')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Follow-up instructions too long')
+    .escape(),
+];
+
+// --- Referral Validation ---
+
+export const validateReferral: ValidationChain[] = [
+  body('patientId')
+    .notEmpty().withMessage('Patient ID is required')
+    .trim()
+    .escape(),
+  body('referralType')
+    .notEmpty().withMessage('Referral type is required')
+    .isIn(['Specialist', 'Hospital', 'Imaging', 'Laboratory', 'Therapy'])
+    .withMessage('Invalid referral type'),
+  body('reason')
+    .notEmpty().withMessage('Referral reason is required')
+    .trim()
+    .isLength({ min: 10, max: 1000 }).withMessage('Reason must be 10-1000 characters')
+    .escape(),
+  body('urgency')
+    .optional()
+    .isIn(['Routine', 'Urgent', 'Emergency'])
+    .withMessage('Invalid urgency level'),
+];
+
+// --- Billing Code Validation ---
+
+export const validateBillingCode: ValidationChain[] = [
+  body('code')
+    .notEmpty().withMessage('Billing code is required')
+    .trim()
+    .isLength({ min: 1, max: 50 }).withMessage('Code must be 1-50 characters')
+    .matches(/^[A-Z0-9\-\.]+$/).withMessage('Invalid code format')
+    .escape(),
+  body('description')
+    .notEmpty().withMessage('Description is required')
+    .trim()
+    .isLength({ min: 5, max: 500 }).withMessage('Description must be 5-500 characters')
+    .escape(),
+  body('amount')
+    .notEmpty().withMessage('Amount is required')
+    .isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+  body('category')
+    .optional()
+    .isIn(['Consultation', 'Procedure', 'Medication', 'Laboratory', 'Imaging', 'Room', 'Other'])
+    .withMessage('Invalid category'),
+];
+
+// --- Lab Sample Validation ---
+
+export const validateLabSample: ValidationChain[] = [
+  body('status')
+    .notEmpty().withMessage('Status is required')
+    .isIn(['Collected', 'Processing', 'Completed', 'Rejected'])
+    .withMessage('Invalid lab sample status'),
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Notes too long')
+    .escape(),
+];
+
+// --- Wearable Device Validation ---
+
+export const validateWearableData: ValidationChain[] = [
+  body('heartRate')
+    .optional()
+    .isInt({ min: 30, max: 300 }).withMessage('Heart rate must be 30-300 bpm'),
+  body('bloodPressure')
+    .optional()
+    .matches(/^\d{2,3}\/\d{2,3}$/).withMessage('Invalid blood pressure format (e.g., 120/80)'),
+  body('steps')
+    .optional()
+    .isInt({ min: 0, max: 1000000 }).withMessage('Steps must be 0-1,000,000'),
+  body('sleepHours')
+    .optional()
+    .isFloat({ min: 0, max: 24 }).withMessage('Sleep hours must be 0-24'),
+];
+
+export const validateDevice: ValidationChain[] = [
+  body('deviceType')
+    .notEmpty().withMessage('Device type is required')
+    .isIn(['Smartwatch', 'Fitness Tracker', 'Blood Pressure Monitor', 'Glucose Monitor', 'Other'])
+    .withMessage('Invalid device type'),
+  body('deviceName')
+    .notEmpty().withMessage('Device name is required')
+    .trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Device name must be 2-100 characters')
+    .escape(),
+  body('serialNumber')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Serial number too long')
+    .escape(),
+];
+
+// --- Organization Link Validation ---
+
+export const validateOrgLink: ValidationChain[] = [
+  body('userId')
+    .notEmpty().withMessage('User ID is required')
+    .trim()
+    .escape(),
+  body('organizationId')
+    .notEmpty().withMessage('Organization ID is required')
+    .trim()
+    .escape(),
+  body('role')
+    .optional()
+    .isIn(['patient', 'hcw', 'nurse', 'admin', 'pharmacist', 'lab', 'receptionist', 'logistics', 'accountant', 'radiologist', 'dietician', 'it'])
+    .withMessage('Invalid role'),
+];
+
+// --- Incoming Referral Validation ---
+
+export const validateIncomingReferral: ValidationChain[] = [
+  body('patientName')
+    .notEmpty().withMessage('Patient name is required')
+    .trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters')
+    .escape(),
+  body('patientDOB')
+    .optional()
+    .isISO8601().withMessage('Invalid date format'),
+  body('referringFacility')
+    .notEmpty().withMessage('Referring facility is required')
+    .trim()
+    .isLength({ max: 200 }).withMessage('Facility name too long')
+    .escape(),
+  body('reason')
+    .notEmpty().withMessage('Referral reason is required')
+    .trim()
+    .isLength({ min: 10, max: 2000 }).withMessage('Reason must be 10-2000 characters')
+    .escape(),
+];

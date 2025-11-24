@@ -41,6 +41,8 @@ import process from 'process';
 import * as db from './db.js';
 import * as auth from './auth/auth.js';
 import * as rbac from './rbac.js';
+import * as validators from './validators.js';
+import { validationResult } from 'express-validator';
 // Fix: __dirname is not available in ES modules, so we define it manually.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,6 +149,18 @@ if (multer) {
 }
 // WebSocket connections map
 const clients = new Map();
+// Validation Middleware - checks validation errors
+const validate = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({
+            message: 'Validation failed',
+            errors: errors.array()
+        });
+        return;
+    }
+    next();
+};
 // Auth Middleware
 const authenticate = async (req, res, next) => {
     var _a;
@@ -267,7 +281,7 @@ app.get('/api/users/search', authenticate, rbac.requireRole(['receptionist', 'hc
         return res.status(500).json({ message: 'Failed to search patients' });
     }
 });
-app.post('/api/users/switch-organization', authenticate, async (req, res) => {
+app.post('/api/users/switch-organization', authenticate, validators.validateOrgSwitch, validate, async (req, res) => {
     const { organizationId } = req.body;
     const user = await db.switchUserOrganization(req.user.id, organizationId);
     // Re-issue a token with the new context
@@ -276,13 +290,13 @@ app.post('/api/users/switch-organization', authenticate, async (req, res) => {
 });
 // Patient Routes
 app.get('/api/patient/dashboard', authenticate, rbac.requireRole('patient'), async (req, res) => res.json(await db.getPatientDashboardData(req.user.id)));
-app.post('/api/patient/appointments', authenticate, rbac.requirePermission(['create_own_appointments', 'create_appointments']), async (req, res) => {
+app.post('/api/patient/appointments', authenticate, rbac.requirePermission(['create_own_appointments', 'create_appointments']), validators.validateAppointment, validate, async (req, res) => {
     await db.createAppointment(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
 // Delete appointment (patient or HCW can call with auth)
-app.delete('/api/patient/appointments/:id', authenticate, async (req, res) => {
+app.delete('/api/patient/appointments/:id', authenticate, validators.validateId, validate, async (req, res) => {
     try {
         const ok = await db.deleteAppointment(req.params.id);
         if (!ok)
@@ -296,7 +310,7 @@ app.delete('/api/patient/appointments/:id', authenticate, async (req, res) => {
     }
 });
 // Update (reschedule) appointment
-app.put('/api/patient/appointments/:id', authenticate, async (req, res) => {
+app.put('/api/patient/appointments/:id', authenticate, validators.validateId, validate, async (req, res) => {
     try {
         const appt = await db.updateAppointment(req.params.id, req.body);
         notifyAllOrgUsers(req.organizationContext.id, 'refetch');
@@ -307,12 +321,12 @@ app.put('/api/patient/appointments/:id', authenticate, async (req, res) => {
         return res.status(400).json({ message: err.message || 'Failed to update appointment' });
     }
 });
-app.post('/api/patient/simulate-wearable', authenticate, async (req, res) => {
+app.post('/api/patient/simulate-wearable', authenticate, validators.validateWearableData, validate, async (req, res) => {
     await db.addSimulatedWearableData(req.user.id);
     notifyUser(req.user.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/patient/devices', authenticate, async (req, res) => {
+app.post('/api/patient/devices', authenticate, validators.validateDevice, validate, async (req, res) => {
     try {
         const device = await db.addWearableDevice(req.user.id, req.body);
         notifyUser(req.user.id, 'refetch');
@@ -323,7 +337,7 @@ app.post('/api/patient/devices', authenticate, async (req, res) => {
         return res.status(400).json({ message: err.message || 'Failed to add device' });
     }
 });
-app.delete('/api/patient/devices/:id', authenticate, async (req, res) => {
+app.delete('/api/patient/devices/:id', authenticate, validators.validateId, validate, async (req, res) => {
     try {
         const ok = await db.removeWearableDevice(req.user.id, req.params.id);
         if (!ok)
@@ -338,22 +352,22 @@ app.delete('/api/patient/devices/:id', authenticate, async (req, res) => {
 });
 // HCW Routes
 app.get('/api/hcw/dashboard', authenticate, rbac.requireRole(['hcw', 'nurse']), async (req, res) => res.json(await db.getHcwDashboardData(req.user.id, req.organizationContext.id)));
-app.post('/api/hcw/notes', authenticate, rbac.requirePermission('create_medical_notes'), async (req, res) => {
+app.post('/api/hcw/notes', authenticate, rbac.requirePermission('create_medical_notes'), validators.validateClinicalNote, validate, async (req, res) => {
     await db.createClinicalNote(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/lab-tests', authenticate, rbac.requirePermission('order_lab_tests'), async (req, res) => {
+app.post('/api/hcw/lab-tests', authenticate, rbac.requirePermission('order_lab_tests'), validators.validateLabTest, validate, async (req, res) => {
     await db.createLabTest(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/prescriptions', authenticate, rbac.requirePermission('create_prescriptions'), async (req, res) => {
+app.post('/api/hcw/prescriptions', authenticate, rbac.requirePermission('create_prescriptions'), validators.validatePrescription, validate, async (req, res) => {
     await db.createPrescription(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/hcw/referrals', authenticate, async (req, res) => {
+app.post('/api/hcw/referrals', authenticate, validators.validateReferral, validate, async (req, res) => {
     await db.createReferral(req.user.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
@@ -365,12 +379,12 @@ app.get('/api/dietician/dashboard', authenticate, rbac.requireRole(['dietician']
 });
 // Admin Routes
 app.get('/api/admin/dashboard', authenticate, rbac.requireRole(['admin', 'command_center']), async (req, res) => res.json(await db.getAdminDashboardData(req.organizationContext.id)));
-app.put('/api/users/:id', authenticate, rbac.requirePermission('manage_users'), async (req, res) => {
+app.put('/api/users/:id', authenticate, rbac.requirePermission('manage_users'), validators.validateId, validators.validateUserUpdate, validate, async (req, res) => {
     await db.updateUser(req.params.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'), async (req, res) => {
+app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'), validators.validateStaff, validate, async (req, res) => {
     try {
         const { name, email, password, role, departmentIds, organizationIds } = req.body;
         // Validation
@@ -430,39 +444,39 @@ app.post('/api/admin/staff', authenticate, rbac.requirePermission('manage_staff'
         return res.status(500).json({ message: err.message || 'Failed to create staff member.' });
     }
 });
-app.post('/api/admin/organizations/link', authenticate, async (req, res) => {
+app.post('/api/admin/organizations/link', authenticate, validators.validateOrgLink, validate, async (req, res) => {
     await db.linkOrganizations(req.body.childId, req.body.parentId);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/admin/organizations/unlink', authenticate, async (req, res) => {
+app.post('/api/admin/organizations/unlink', authenticate, validators.validateOrgLink, validate, async (req, res) => {
     await db.unlinkOrganization(req.body.childId);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/admin/departments', authenticate, async (req, res) => {
+app.post('/api/admin/departments', authenticate, validators.validateDepartment, validate, async (req, res) => {
     await db.createDepartment(req.body.name, req.organizationContext.id);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/admin/rooms', authenticate, async (req, res) => {
+app.post('/api/admin/rooms', authenticate, validators.validateRoom, validate, async (req, res) => {
     await db.createRoom(req.body.name, req.body.type, req.organizationContext.id);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
-app.post('/api/admin/beds', authenticate, async (req, res) => {
+app.post('/api/admin/beds', authenticate, validators.validateBed, validate, async (req, res) => {
     await db.createBed(req.body.name, req.body.roomId);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).send();
 });
 // Command Center Routes
 app.get('/api/command-center/dashboard', authenticate, async (req, res) => res.json(await db.getCommandCenterDashboardData(req.organizationContext.id)));
-app.post('/api/command-center/admit', authenticate, async (req, res) => {
+app.post('/api/command-center/admit', authenticate, validators.validateAdmission, validate, async (req, res) => {
     await db.admitPatient(req.body.patientId, req.body.bedId, req.body.reason);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.post('/api/command-center/discharge', authenticate, async (req, res) => {
+app.post('/api/command-center/discharge', authenticate, validators.validateDischarge, validate, async (req, res) => {
     await db.dischargePatient(req.body.patientId);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
@@ -479,7 +493,7 @@ app.get('/api/incoming-referrals', authenticate, async (req, res) => {
     const referrals = await db.getIncomingReferrals(req.organizationContext.id);
     res.json(referrals);
 });
-app.post('/api/incoming-referrals', async (req, res) => {
+app.post('/api/incoming-referrals', validators.validateIncomingReferral, validate, async (req, res) => {
     // This endpoint can be called by external facilities without authentication
     // In production, you might want API key authentication here
     try {
@@ -551,12 +565,12 @@ app.get('/api/billing-codes', authenticate, async (req, res) => {
     const codes = await db.getBillingCodes(req.organizationContext.id);
     res.json(codes);
 });
-app.post('/api/billing-codes', authenticate, async (req, res) => {
+app.post('/api/billing-codes', authenticate, validators.validateBillingCode, validate, async (req, res) => {
     const newCode = await db.createBillingCode(req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(201).json(newCode);
 });
-app.put('/api/billing-codes/:id', authenticate, async (req, res) => {
+app.put('/api/billing-codes/:id', authenticate, validators.validateId, validators.validateBillingCode, validate, async (req, res) => {
     const updated = await db.updateBillingCode(req.params.id, req.body);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.json(updated);
@@ -679,7 +693,7 @@ app.put('/api/prescriptions/:id/status', authenticate, async (req, res) => {
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.put('/api/lab-tests/:id', authenticate, async (req, res) => {
+app.put('/api/lab-tests/:id', authenticate, validators.validateId, validate, async (req, res) => {
     await db.updateLabTest(req.params.id, req.body.status, req.body.result);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
@@ -719,7 +733,7 @@ app.put('/api/transport/:id/status', authenticate, async (req, res) => {
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
 });
-app.put('/api/lab-samples/:id/status', authenticate, async (req, res) => {
+app.put('/api/lab-samples/:id/status', authenticate, validators.validateId, validators.validateLabSample, validate, async (req, res) => {
     await db.updateLabTest(req.params.id, req.body.status);
     notifyAllOrgUsers(req.organizationContext.id, 'refetch');
     res.status(200).send();
