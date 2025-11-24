@@ -99,37 +99,53 @@ const DieticianDashboard: React.FC<DieticianDashboardProps> = (props) => {
               <h2 className="text-3xl font-bold text-text-primary">My Patients</h2>
               <p className="text-text-secondary mt-1">Patients under nutritional care and monitoring</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.patients?.map((patient: Patient) => (
-                <div key={patient.id} className="bg-background-secondary border border-border-primary rounded-lg p-4 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icons.UsersIcon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-text-primary">{patient.name}</h3>
-                      <p className="text-sm text-text-secondary">ID: {patient.id}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Last Visit:</span>
-                      <span className="text-text-primary font-medium">{patient.lastVisit}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">DOB:</span>
-                      <span className="text-text-primary">{patient.dateOfBirth}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => addToast('Opening patient nutrition profile...', 'info')}
-                    className="mt-4 w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
-                  >
-                    View Nutrition Plan
-                  </button>
+            {!data.patients || data.patients.length === 0 ? (
+              <div className="bg-background-secondary border border-border-primary rounded-lg p-12 text-center">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Icons.UsersIcon className="w-10 h-10 text-primary" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-xl font-bold text-text-primary mb-2">No Patients Yet</h3>
+                <p className="text-text-secondary mb-6">You don't have any patients assigned for nutritional care yet.</p>
+                <button
+                  onClick={() => setActiveView('lookup')}
+                  className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Search Patients
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.patients.map((patient: Patient) => (
+                  <div key={patient.id} className="bg-background-secondary border border-border-primary rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Icons.UsersIcon className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-text-primary">{patient.name}</h3>
+                        <p className="text-sm text-text-secondary">ID: {patient.id}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">Last Visit:</span>
+                        <span className="text-text-primary font-medium">{patient.lastVisit || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">DOB:</span>
+                        <span className="text-text-primary">{patient.dateOfBirth || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => addToast('Opening patient nutrition profile...', 'info')}
+                      className="mt-4 w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+                    >
+                      View Nutrition Plan
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         );
 
@@ -140,35 +156,48 @@ const DieticianDashboard: React.FC<DieticianDashboardProps> = (props) => {
               <h2 className="text-3xl font-bold text-text-primary">Nutrition Consultations</h2>
               <p className="text-text-secondary mt-1">Scheduled and completed dietary assessments</p>
             </div>
-            <div className="space-y-4">
-              {data.appointments?.map((appt: any) => (
-                <div key={appt.id} className="bg-background-secondary border border-border-primary rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-text-primary">{appt.patientName}</h3>
-                      <p className="text-sm text-text-secondary mt-1">
-                        <Icons.CalendarIcon className="inline w-4 h-4 mr-1" />
-                        {appt.date} at {appt.time}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      appt.status === 'Confirmed' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                      appt.status === 'Completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                      'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
-                    }`}>
-                      {appt.status}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    {appt.status === 'Confirmed' && (
-                      <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm">
-                        Start Consultation
-                      </button>
-                    )}
-                  </div>
+            {!data.appointments || data.appointments.length === 0 ? (
+              <div className="bg-background-secondary border border-border-primary rounded-lg p-12 text-center">
+                <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                  <Icons.CalendarIcon className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-xl font-bold text-text-primary mb-2">No Consultations Scheduled</h3>
+                <p className="text-text-secondary mb-6">You don't have any upcoming nutrition consultations.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {data.appointments.map((appt: any) => (
+                  <div key={appt.id} className="bg-background-secondary border border-border-primary rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-text-primary">{appt.patientName}</h3>
+                        <p className="text-sm text-text-secondary mt-1">
+                          <Icons.CalendarIcon className="inline w-4 h-4 mr-1" />
+                          {appt.date} at {appt.time}
+                        </p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        appt.status === 'Confirmed' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                        appt.status === 'Completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                        'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                      }`}>
+                        {appt.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      {appt.status === 'Confirmed' && (
+                        <button 
+                          onClick={() => addToast('Starting nutrition consultation...', 'info')}
+                          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+                        >
+                          Start Consultation
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         );
 
@@ -180,12 +209,16 @@ const DieticianDashboard: React.FC<DieticianDashboardProps> = (props) => {
                 <h2 className="text-3xl font-bold text-text-primary">Meal Plans</h2>
                 <p className="text-text-secondary mt-1">Customized nutrition plans and dietary guidelines</p>
               </div>
-              <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+              <button 
+                onClick={() => addToast('Creating new meal plan...', 'info')}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
                 <span className="text-xl mr-2">+</span>
                 Create New Plan
               </button>
             </div>
             <div className="grid gap-4">
+              {/* Sample meal plan templates */}
               <div className="bg-background-secondary border border-border-primary rounded-lg p-6">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-16 h-16 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -205,10 +238,84 @@ const DieticianDashboard: React.FC<DieticianDashboardProps> = (props) => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                  <button 
+                    onClick={() => addToast('Opening meal plan details...', 'info')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
                     View Details
                   </button>
-                  <button className="px-4 py-2 border border-border-primary text-text-primary rounded-lg hover:bg-background-tertiary transition-colors text-sm">
+                  <button 
+                    onClick={() => addToast('Assigning meal plan to patient...', 'info')}
+                    className="px-4 py-2 border border-border-primary text-text-primary rounded-lg hover:bg-background-tertiary transition-colors text-sm"
+                  >
+                    Assign to Patient
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-background-secondary border border-border-primary rounded-lg p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                    <Icons.DietIcon className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-text-primary text-lg">Weight Management Plan</h3>
+                    <p className="text-text-secondary text-sm mt-1">Calorie deficit, high protein</p>
+                    <div className="flex gap-4 mt-2 text-sm">
+                      <span className="text-text-secondary">
+                        <strong className="text-text-primary">Calories:</strong> 1500 kcal/day
+                      </span>
+                      <span className="text-text-secondary">
+                        <strong className="text-text-primary">Duration:</strong> 8 weeks
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => addToast('Opening meal plan details...', 'info')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    View Details
+                  </button>
+                  <button 
+                    onClick={() => addToast('Assigning meal plan to patient...', 'info')}
+                    className="px-4 py-2 border border-border-primary text-text-primary rounded-lg hover:bg-background-tertiary transition-colors text-sm"
+                  >
+                    Assign to Patient
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-background-secondary border border-border-primary rounded-lg p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Icons.DietIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-text-primary text-lg">Heart-Healthy Diet</h3>
+                    <p className="text-text-secondary text-sm mt-1">Low sodium, healthy fats, fiber-rich</p>
+                    <div className="flex gap-4 mt-2 text-sm">
+                      <span className="text-text-secondary">
+                        <strong className="text-text-primary">Calories:</strong> 2000 kcal/day
+                      </span>
+                      <span className="text-text-secondary">
+                        <strong className="text-text-primary">Duration:</strong> 12 weeks
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => addToast('Opening meal plan details...', 'info')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    View Details
+                  </button>
+                  <button 
+                    onClick={() => addToast('Assigning meal plan to patient...', 'info')}
+                    className="px-4 py-2 border border-border-primary text-text-primary rounded-lg hover:bg-background-tertiary transition-colors text-sm"
+                  >
                     Assign to Patient
                   </button>
                 </div>

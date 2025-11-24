@@ -110,7 +110,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // Security: CSRF Protection
-const { doubleCsrfProtection } = doubleCsrf({
+const { doubleCsrfProtection, generateToken } = doubleCsrf({
   getSecret: () => process.env.JWT_SECRET || 'csrf-secret',
   getSessionIdentifier: (req) => req.ip || 'anonymous',
   cookieName: '__Host-psifi.x-csrf-token',
@@ -245,7 +245,7 @@ const notifyAllOrgUsers = async (orgId: string, type: string) => {
 
 // CSRF Token endpoint - Get token for client-side forms
 app.get('/api/csrf-token', (req: Request, res: Response) => {
-  const csrfToken = 'csrf-token-placeholder';
+  const csrfToken = generateToken(req, res);
   res.json({ token: csrfToken });
 });
 

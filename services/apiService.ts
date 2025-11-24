@@ -23,6 +23,7 @@ export const API_BASE_URL = ((): string => {
   return window.location.origin;
 })();
 const AUTH_TOKEN_KEY = 'chihealth_auth_token';
+const CSRF_TOKEN_KEY = 'chihealth_csrf_token';
 
 // --- Token Management ---
 export const getAuthToken = (): string | null => {
@@ -37,17 +38,59 @@ export const clearAuthToken = (): void => {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 };
 
+// --- CSRF Token Management ---
+let csrfToken: string | null = null;
+
+export const getCsrfToken = (): string | null => {
+  return csrfToken || localStorage.getItem(CSRF_TOKEN_KEY);
+};
+
+export const fetchCsrfToken = async (): Promise<string> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/csrf-token`, {
+      credentials: 'include', // Important: send cookies
+    });
+    const data = await response.json();
+    const token = data.token;
+    if (!token) {
+      throw new Error('No CSRF token received from server');
+    }
+    csrfToken = token;
+    localStorage.setItem(CSRF_TOKEN_KEY, token);
+    return token;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    throw error;
+  }
+};
+
+// Initialize CSRF token on app load
+fetchCsrfToken().catch(() => {
+  console.warn('Could not fetch CSRF token on initialization');
+});
+
 // --- API Fetch Wrapper ---
 const apiFetch = async (url: string, options: RequestInit = {}) => {
   try {
     const token = getAuthToken();
+    const csrf = getCsrfToken();
+    const method = options.method?.toUpperCase() || 'GET';
+    
+    // Include CSRF token for state-changing operations
+    const needsCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(needsCsrf && csrf ? { 'x-csrf-token': csrf } : {}),
     };
 
-  const response = await fetch(`${API_BASE_URL}/api${url}`, { ...options, headers });
+  const response = await fetch(`${API_BASE_URL}/api${url}`, { 
+      ...options, 
+      headers,
+      credentials: 'include', // Important: send cookies for CSRF
+    });
 
     // Read text first to avoid calling response.json() on empty bodies
     const raw = await response.text().catch(() => '');
