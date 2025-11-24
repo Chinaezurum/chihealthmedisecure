@@ -107,6 +107,8 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // Validate trust proxy - we're behind Cloud Run's proxy
+  validate: { trustProxy: false },
 });
 
 // Apply rate limiter to all API routes
@@ -118,6 +120,8 @@ const authLimiter = rateLimit({
   max: 5, // Limit each IP to 5 requests per windowMs
   message: 'Too many login attempts, please try again later.',
   skipSuccessfulRequests: true,
+  // Validate trust proxy - we're behind Cloud Run's proxy
+  validate: { trustProxy: false },
 });
 
 app.use(express.json());
@@ -1035,11 +1039,26 @@ const distPath = path.join(__dirname, '..', '..', 'dist');
 const distExists = fs.existsSync(distPath);
 
 if (distExists) {
-  app.use(express.static(distPath));
+  // Serve static assets with cache control
+  app.use(express.static(distPath, {
+    maxAge: '1h', // Cache assets for 1 hour
+    etag: true,
+    setHeaders: (res, filePath) => {
+      // Don't cache service worker or manifest
+      if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+      // Cache-bust HTML files
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+    }
+  }));
 
   // The "catchall" handler: for any request that doesn't
   // match one above, send back React's index.html file from the build directory.
   app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.sendFile(path.join(distPath, 'index.html'));
   });
 } else {
