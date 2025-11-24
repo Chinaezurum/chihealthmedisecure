@@ -521,6 +521,120 @@ npx prisma db pull
 
 ---
 
+## PWA Cache Issues
+
+### Symptoms
+- "Cannot read properties of undefined (reading 'createContext')" error
+- White screen after deployment
+- Old JavaScript bundle references in console (e.g., `accountant-dashboard-DC03t1V7.js`)
+- App not showing latest changes
+
+### Root Cause
+Browser's service worker is caching old JavaScript bundles from previous builds. Even though new bundles are deployed, the cached service worker serves stale files.
+
+### User-Side Fix (Immediate)
+
+**Option 1: Hard Refresh**
+```
+Windows: Ctrl + Shift + R
+Mac: Cmd + Shift + R
+```
+
+**Option 2: Clear Service Worker (Recommended)**
+1. Open Chrome DevTools (F12)
+2. Go to **Application** tab
+3. Click **Service Workers** in left sidebar
+4. Click **Unregister** next to chihealth service worker
+5. Go to **Storage** section (left sidebar)
+6. Click **Clear site data** button at top
+7. Refresh page normally (F5)
+
+**Option 3: Clear Browser Cache**
+```
+Chrome: Ctrl + Shift + Delete
+Select "Cached images and files"
+Clear data
+```
+
+### Developer Troubleshooting
+
+**Check Current Deployment:**
+```powershell
+# Get current revision
+gcloud run services describe chihealth-medisecure --region=us-west1 --project=numeric-skill-379315 --format="value(status.latestReadyRevisionName)"
+
+# Check recent builds
+gcloud builds list --region=us-west1 --limit=3 --project=numeric-skill-379315
+```
+
+**Verify Bundle Hashes:**
+```powershell
+# Check what's in production
+Get-Content dist\index.html | Select-String "accountant-dashboard"
+
+# Example output:
+# <link rel="modulepreload" href="/assets/accountant-dashboard-DC03t1V7.js">
+```
+
+**Check Service Worker:**
+```powershell
+# View service worker content
+Get-Content dist\sw.js | Select-String "accountant-dashboard"
+
+# Check for revision tracking
+Get-Content dist\sw.js | Select-String "revision"
+```
+
+**Monitor Deployment Logs:**
+```powershell
+# Watch logs in real-time
+gcloud run services logs read chihealth-medisecure --region=us-west1 --project=numeric-skill-379315 --limit=50
+
+# Check for errors
+gcloud run services logs read chihealth-medisecure --region=us-west1 --project=numeric-skill-379315 --limit=50 | Select-String "error"
+```
+
+### Prevention Strategy
+
+**Cache-Control Headers (Already Implemented):**
+- Service worker (`sw.js`): `no-cache, no-store, must-revalidate`
+- HTML files: `no-cache, must-revalidate`
+- Hashed assets: `max-age=1h` with ETag
+
+**PWA Configuration (Already Implemented):**
+```typescript
+// vite.config.ts
+VitePWA({
+  registerType: 'autoUpdate',
+  workbox: {
+    skipWaiting: true,        // Activate new SW immediately
+    clientsClaim: true,       // Take control of all pages
+    cleanupOutdatedCaches: true  // Remove old caches
+  }
+})
+```
+
+**Post-Deployment Verification:**
+1. Visit production URL: `https://chihealth-medisecure-143169311675.us-west1.run.app`
+2. Open DevTools → Network tab
+3. Hard refresh (Ctrl+Shift+R)
+4. Verify all JS bundles load successfully (200 status)
+5. Check Console for errors
+6. Test login flow to ensure React is working
+
+### When to Escalate
+If after clearing cache you still see:
+- Same error message
+- References to old bundle hashes
+- Network 404 errors for JS files
+
+**Then investigate:**
+1. Cloud Run deployment status (revision may not have rolled out)
+2. Cloud CDN cache (may need manual invalidation)
+3. Build artifacts (verify `dist/` contains correct hashes)
+
+---
+
 ## Deployment
 
 ### Production Build

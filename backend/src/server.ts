@@ -27,7 +27,7 @@ import { Storage } from '@google-cloud/storage';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import process from 'process';
-import * as db from './database.js';
+import * as db from './db.js';
 import * as auth from './auth/auth.js';
 import * as rbac from './rbac.js';
 import * as validators from './validators.js';
@@ -175,9 +175,9 @@ const clients = new Map<string, WebSocket>();
 const validate = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    res.status(400).json({ 
-      message: 'Validation failed', 
-      errors: errors.array() 
+    res.status(400).json({
+      message: 'Validation failed',
+      errors: errors.array()
     });
     return;
   }

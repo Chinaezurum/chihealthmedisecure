@@ -46,6 +46,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Force service worker to activate immediately on new builds
+        skipWaiting: true,
+        clientsClaim: true,
+        // Clean up outdated caches automatically
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./i,
