@@ -31,14 +31,36 @@ jobs:
           IMAGE=us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/chihealthmedisecure:${{ github.sha }}
           echo "Building and pushing image $IMAGE"
           
-          # Submit build synchronously (waits for completion)
-          gcloud builds submit \
+          # Submit build asynchronously and get build ID
+          BUILD_ID=$(gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=_COMMIT_SHA="${{ github.sha }}" \
-            --timeout=40m \
-            --region=us-west1
+            --region=us-west1 \
+            --async \
+            --format="value(id)")
           
-          echo "Build completed successfully!"
+          echo "Build ID: $BUILD_ID"
+          echo "Build URL: https://console.cloud.google.com/cloud-build/builds;region=us-west1/$BUILD_ID?project=${{ secrets.GCP_PROJECT_ID }}"
+          
+          # Poll for build completion
+          for i in {1..120}; do
+            STATUS=$(gcloud builds describe $BUILD_ID --region=us-west1 --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+            echo "Build status: $STATUS"
+            
+            if [ "$STATUS" = "SUCCESS" ]; then
+              echo "Build completed successfully!"
+              break
+            elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
+              echo "Build failed with status: $STATUS"
+              gcloud builds log $BUILD_ID --region=us-west1 || true
+              exit 1
+            elif [ "$STATUS" = "UNKNOWN" ] && [ $i -eq 120 ]; then
+              echo "Timeout waiting for build"
+              exit 1
+            fi
+            
+            sleep 20
+          done
 
       # Deploy to Cloud Run from the built image
       - name: Deploy to Cloud Run (from image)
