@@ -2,7 +2,7 @@
 # This builds a container image using npm install (instead of npm ci) to avoid lockfile sync issues
 
 substitutions:
-  _IMAGE_TAG: '${COMMIT_SHA:-$BUILD_ID}'
+  _IMAGE_TAG: '${_COMMIT_SHA:-$BUILD_ID}'
 
 steps:
   # Build the container image using Docker
