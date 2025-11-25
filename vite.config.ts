@@ -112,8 +112,9 @@ export default defineConfig({
             }
             return 'vendor';
           }
-          // Bundle contexts with react-vendor to ensure React is available
-          if (id.includes('/contexts/')) {
+          // Bundle contexts and hooks with react-vendor to ensure React is available
+          // and avoid circular dependencies with ui-components
+          if (id.includes('/contexts/') || id.includes('/hooks/')) {
             return 'react-vendor';
           }
           // Dashboard chunks - split heavy dashboards into separate bundles
