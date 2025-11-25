@@ -113,7 +113,7 @@ export default defineConfig({
             return 'vendor';
           }
           // Bundle contexts and hooks with react-vendor to ensure React is available
-          // and avoid circular dependencies with ui-components
+          // and avoid circular dependencies
           if (id.includes('/contexts/') || id.includes('/hooks/')) {
             return 'react-vendor';
           }
@@ -130,10 +130,8 @@ export default defineConfig({
           if (id.includes('/pages/command-center/CommandCenterDashboard')) {
             return 'command-center-dashboard';
           }
-          // UI components chunk
-          if (id.includes('/components/common/')) {
-            return 'ui-components';
-          }
+          // Don't manually chunk UI components - let Vite handle it automatically
+          // to avoid circular dependency issues
           // Services chunk
           if (id.includes('/services/')) {
             return 'services';
