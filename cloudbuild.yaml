@@ -1,6 +1,9 @@
 # Cloud Build configuration for ChiHealth MediSecure
 # This builds a container image using npm install (instead of npm ci) to avoid lockfile sync issues
 
+substitutions:
+  _IMAGE_TAG: '${COMMIT_SHA:-$BUILD_ID}'
+
 steps:
   # Build the container image using Docker
   - name: 'gcr.io/cloud-builders/docker'
@@ -9,7 +12,7 @@ steps:
       - '--build-arg'
       - 'VITE_API_BASE_URL=https://chihealth-medisecure-143169311675.us-west1.run.app'
       - '-t'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:$BUILD_ID'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
       - '-t'
       - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:latest'
       - '-f'
@@ -21,7 +24,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:$BUILD_ID'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
     timeout: 600s
 
   # Deploy to Cloud Run
@@ -32,7 +35,7 @@ steps:
       - 'deploy'
       - 'chihealth-medisecure'
       - '--image'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:$BUILD_ID'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
       - '--region'
       - 'us-west1'
       - '--platform'
@@ -58,7 +61,7 @@ steps:
 
 # Image to be pushed
 images:
-  - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:$BUILD_ID'
+  - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
   - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:latest'
 
 # Increase build timeout
