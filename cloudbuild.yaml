@@ -3,7 +3,6 @@
 
 substitutions:
   _COMMIT_SHA: '$BUILD_ID'
-  _IMAGE_TAG: '${_COMMIT_SHA}'
 
 steps:
   # Build the container image using Docker
@@ -13,7 +12,7 @@ steps:
       - '--build-arg'
       - 'VITE_API_BASE_URL=https://chihealth-medisecure-143169311675.us-west1.run.app'
       - '-t'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_COMMIT_SHA}'
       - '-t'
       - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:latest'
       - '-f'
@@ -25,7 +24,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_COMMIT_SHA}'
     timeout: 600s
 
   # Deploy to Cloud Run
@@ -36,7 +35,7 @@ steps:
       - 'deploy'
       - 'chihealth-medisecure'
       - '--image'
-      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_COMMIT_SHA}'
       - '--region'
       - 'us-west1'
       - '--platform'
@@ -62,7 +61,7 @@ steps:
 
 # Image to be pushed
 images:
-  - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_IMAGE_TAG}'
+  - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:${_COMMIT_SHA}'
   - 'us-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/chihealthmedisecure:latest'
 
 # Increase build timeout
