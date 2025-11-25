@@ -132,9 +132,10 @@ app.use(passport.initialize());
 const csrfProtection = doubleCsrf({
   getSecret: () => process.env.JWT_SECRET || 'csrf-secret',
   getSessionIdentifier: (req) => req.ip || 'anonymous',
-  cookieName: '__Host-psifi.x-csrf-token',
+  // Use __Host- prefix only in production (requires HTTPS)
+  cookieName: process.env.NODE_ENV === 'production' ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-token',
   cookieOptions: {
-    sameSite: 'lax', // Changed from 'strict' to 'lax' for development
+    sameSite: 'lax',
     path: '/',
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
