@@ -125,8 +125,12 @@ export default defineConfig({
           if (id.includes('/pages/command-center/CommandCenterDashboard')) {
             return 'command-center-dashboard';
           }
+          // Contexts chunk - separate from UI components to avoid circular deps
+          if (id.includes('/contexts/')) {
+            return 'contexts';
+          }
           // UI components chunk
-          if (id.includes('/components/common/') || id.includes('/contexts/')) {
+          if (id.includes('/components/common/')) {
             return 'ui-components';
           }
           // Services chunk
