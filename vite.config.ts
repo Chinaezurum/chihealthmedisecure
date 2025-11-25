@@ -112,6 +112,10 @@ export default defineConfig({
             }
             return 'vendor';
           }
+          // Bundle contexts with react-vendor to ensure React is available
+          if (id.includes('/contexts/')) {
+            return 'react-vendor';
+          }
           // Dashboard chunks - split heavy dashboards into separate bundles
           if (id.includes('/pages/patient/PatientDashboard')) {
             return 'patient-dashboard';
@@ -124,10 +128,6 @@ export default defineConfig({
           }
           if (id.includes('/pages/command-center/CommandCenterDashboard')) {
             return 'command-center-dashboard';
-          }
-          // Contexts chunk - separate from UI components to avoid circular deps
-          if (id.includes('/contexts/')) {
-            return 'contexts';
           }
           // UI components chunk
           if (id.includes('/components/common/')) {
