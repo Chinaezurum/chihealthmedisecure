@@ -8,7 +8,6 @@ import { DashboardHeader } from '../../components/common/DashboardHeader.tsx';
 import { Logo } from '../../components/common/Logo.tsx';
 import { Button } from '../../components/common/Button.tsx';
 import * as Icons from '../../components/icons/index.tsx';
-import { CreditCardIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon, LayoutDashboardIcon, SettingsIcon } from '../../components/icons/index.tsx';
 import { BillGenerationModal } from './BillGenerationModal.tsx';
 import { PaymentModal } from './PaymentModal.tsx';
 import { InsuranceClaimModal } from './InsuranceClaimModal.tsx';
@@ -60,13 +59,13 @@ const Sidebar: React.FC<{
   pendingCounts: PendingCounts;
 }> = ({ activeView, setActiveView, pendingCounts }) => {
   const navItems = [
-    { id: 'overview', label: 'Dashboard', icon: LayoutDashboardIcon, count: 0 },
+    { id: 'overview', label: 'Dashboard', icon: Icons.LayoutDashboardIcon, count: 0 },
     { id: 'encounters', label: 'Pending Encounters', icon: Icons.FileTextIcon, count: pendingCounts.encounters },
     { id: 'bills', label: 'Bills & Invoices', icon: Icons.ReceiptIcon, count: pendingCounts.bills },
-    { id: 'payments', label: 'Process Payments', icon: CreditCardIcon, count: 0 },
+    { id: 'payments', label: 'Process Payments', icon: Icons.CreditCardIcon, count: 0 },
     { id: 'claims', label: 'Insurance Claims', icon: Icons.ShieldCheckIcon, count: pendingCounts.claims },
     { id: 'transactions', label: 'Transactions', icon: Icons.ArrowLeftRightIcon, count: 0 },
-    { id: 'pricing', label: 'Pricing Catalog', icon: DocumentTextIcon, count: 0 },
+    { id: 'pricing', label: 'Pricing Catalog', icon: Icons.DocumentTextIcon, count: 0 },
     { id: 'reports', label: 'Reports & Analytics', icon: Icons.BarChart3Icon, count: 0 },
   ];
 
@@ -99,7 +98,7 @@ const Sidebar: React.FC<{
           onClick={() => setActiveView('settings')} 
           className={`sidebar-link ${activeView === 'settings' ? 'active' : ''}`}
         >
-          <SettingsIcon />
+          <Icons.SettingsIcon />
           <span>Settings</span>
         </button>
       </div>
@@ -216,7 +215,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </div>
               <div className="flex-shrink-0 ml-3">
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shadow-sm">
-                  <CreditCardIcon className="w-6 h-6 text-green-600" />
+                  <Icons.CreditCardIcon className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </div>
@@ -241,7 +240,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </div>
               <div className="flex-shrink-0 ml-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-amber-200 transition-colors">
-                  <ClockIcon className="w-6 h-6 text-amber-600" />
+                  <Icons.ClockIcon className="w-6 h-6 text-amber-600" />
                 </div>
               </div>
             </div>
@@ -266,7 +265,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </div>
               <div className="flex-shrink-0 ml-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-200 transition-colors">
-                  <DocumentTextIcon className="w-6 h-6 text-blue-600" />
+                  <Icons.DocumentTextIcon className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </div>
@@ -291,7 +290,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </div>
               <div className="flex-shrink-0 ml-3">
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-purple-200 transition-colors">
-                  <CheckCircleIcon className="w-6 h-6 text-purple-600" />
+                  <Icons.CheckCircleIcon className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </div>
@@ -346,7 +345,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                 onClick={() => handleViewChange('pricing')}
                 className="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-200"
               >
-                <DocumentTextIcon className="w-8 h-8 text-indigo-600 mb-2" />
+                <Icons.DocumentTextIcon className="w-8 h-8 text-indigo-600 mb-2" />
                 <span className="text-sm font-medium text-indigo-900">Pricing Catalog</span>
               </button>
               <button
@@ -442,7 +441,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No pending encounters</p>
               </div>
             )}
@@ -542,7 +541,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No pending bills</p>
               </div>
             )}
@@ -599,7 +598,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No recent transactions</p>
               </div>
             )}
@@ -780,7 +779,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                           }}
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-xs font-semibold rounded-lg hover:from-green-700 hover:to-green-800 hover:shadow-md transition-all duration-200"
                         >
-                          <CreditCardIcon className="h-4 w-4 mr-1.5" />
+                          <Icons.CreditCardIcon className="h-4 w-4 mr-1.5" />
                           Payment
                         </button>
                         <button
@@ -843,7 +842,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                       }}
                       className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
                     >
-                      <CreditCardIcon className="h-4 w-4 mr-2" />
+                      <Icons.CreditCardIcon className="h-4 w-4 mr-2" />
                       Process Payment
                     </button>
                   </div>
@@ -852,7 +851,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
             </div>
           ) : (
             <div className="py-12 text-center">
-              <CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <Icons.CreditCardIcon className="mx-auto h-12 w-12 text-gray-400" />
               <p className="mt-2 text-sm text-gray-600">No bills available for payment</p>
             </div>
           )}
@@ -897,7 +896,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   {allClaims.filter((c: any) => c.status === 'Approved').length}
                 </p>
               </div>
-              <CheckCircleIcon className="h-8 w-8 text-green-500" />
+              <Icons.CheckCircleIcon className="h-8 w-8 text-green-500" />
             </div>
           </div>
           <div className="bg-white rounded-lg border border-red-200 p-4">
@@ -1237,7 +1236,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               </table>
             ) : (
               <div className="px-6 py-12 text-center">
-                <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <Icons.ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">No transactions found</p>
               </div>
             )}
@@ -1495,7 +1494,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   ₦{data ? (data.stats.pendingRevenue || 0).toLocaleString() : 0}
                 </p>
               </div>
-              <ClockIcon className="h-10 w-10 text-amber-500" />
+              <Icons.ClockIcon className="h-10 w-10 text-amber-500" />
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -1506,7 +1505,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
                   ₦{data ? (data.stats.cashRevenue || 0).toLocaleString() : 0}
                 </p>
               </div>
-              <CheckCircleIcon className="h-10 w-10 text-blue-500" />
+              <Icons.CheckCircleIcon className="h-10 w-10 text-blue-500" />
             </div>
           </div>
         </div>
@@ -1549,7 +1548,7 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
               onClick={generatePaymentReport}
               className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
             >
-              <CreditCardIcon className="h-8 w-8 text-blue-600" />
+              <Icons.CreditCardIcon className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Payment Report</p>
                 <p className="text-xs text-gray-600">Payment transactions summary</p>
