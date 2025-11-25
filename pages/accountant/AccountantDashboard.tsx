@@ -1647,6 +1647,10 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         const patient = data.patients.find(p => p.id === selectedEncounter.patientId);
         if (!patient) {
           console.error('Patient not found for encounter:', selectedEncounter.patientId);
+          // Auto-close modal if patient not found
+          setShowBillModal(false);
+          setSelectedEncounter(null);
+          addToast('Patient data not found', 'error');
           return null;
         }
         return (
@@ -1672,6 +1676,10 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         const patient = data.patients.find(p => p.id === selectedBillForPayment.patientId);
         if (!patient) {
           console.error('Patient not found for bill:', selectedBillForPayment.patientId);
+          // Auto-close modal if patient not found
+          setShowPaymentModal(false);
+          setSelectedBillForPayment(null);
+          addToast('Patient data not found', 'error');
           return null;
         }
         return (
@@ -1696,6 +1704,10 @@ export const AccountantDashboard: React.FC<AccountantDashboardProps> = (props) =
         const patient = data.patients.find(p => p.id === selectedBillForClaim.patientId);
         if (!patient) {
           console.error('Patient not found for claim:', selectedBillForClaim.patientId);
+          // Auto-close modal if patient not found
+          setShowClaimModal(false);
+          setSelectedBillForClaim(null);
+          addToast('Patient data not found', 'error');
           return null;
         }
         return (
