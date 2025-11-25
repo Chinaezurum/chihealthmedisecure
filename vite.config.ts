@@ -117,6 +117,10 @@ export default defineConfig({
           if (id.includes('/contexts/') || id.includes('/hooks/')) {
             return 'react-vendor';
           }
+          // Icons - bundle with react-vendor since they need React and are used everywhere
+          if (id.includes('/components/icons/')) {
+            return 'react-vendor';
+          }
           // Dashboard chunks - split heavy dashboards into separate bundles
           if (id.includes('/pages/patient/PatientDashboard')) {
             return 'patient-dashboard';
