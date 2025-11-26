@@ -5,13 +5,20 @@ interface SSOButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export const SSOButton: React.FC<SSOButtonProps> = ({ children, providerName, isLoading, ...props }) => {
+export const SSOButton: React.FC<SSOButtonProps> = ({ children, providerName, isLoading, onClick, ...props }) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick?.(e);
+  };
+
   return (
     <button
       type="button"
       className="sso-btn"
       aria-label={`Continue with ${providerName}`}
       disabled={isLoading}
+      onClick={handleClick}
       {...props}
     >
       {isLoading ? (
