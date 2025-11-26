@@ -51,7 +51,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
 
     // Probe backend health to show a friendly warning if API proxy is down
     const [backendHealthy, setBackendHealthy] = React.useState<boolean | null>(null);
-    const [oauthConfigured, setOauthConfigured] = React.useState<boolean | null>(null);
+    const [oauthConfigured, setOauthConfigured] = React.useState<boolean | null>(true); // Default to true, disable only if explicitly false
     
     useEffect(() => {
         let mounted = true;
@@ -179,15 +179,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
     const handleSsoLogin = async (provider: 'Google') => {
         setIsSsoLoading(true);
         try {
-            // Check if OAuth is configured
-            const statusResponse = await fetch(`${api.API_BASE_URL}/api/auth/oauth/status`);
-            if (statusResponse.ok) {
-                const status = await statusResponse.json();
-                if (!status.configured) {
-                    throw new Error('OAuth is not configured on this server');
-                }
-            }
-            
             await authService.signInWithSso(provider);
             // The browser will be redirected, so we don't need to do anything else here.
             // The loading state will be reset if the user navigates back.
