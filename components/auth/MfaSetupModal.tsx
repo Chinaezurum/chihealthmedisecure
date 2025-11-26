@@ -13,7 +13,7 @@ interface MfaSetupModalProps {
   onSuccess?: () => void;
 }
 
-type SetupStep = 'method' | 'totp-setup' | 'totp-verify' | 'webauthn-setup' | 'backup-codes' | 'complete';
+type SetupStep = 'method' | 'totp-setup' | 'totp-verify' | 'webauthn-setup' | 'security-questions-setup' | 'backup-codes' | 'complete';
 
 export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, user, onSuccess }) => {
     const [step, setStep] = useState<SetupStep>('method');
@@ -27,16 +27,24 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
     const [error, setError] = useState('');
     const [biometricSupported, setBiometricSupported] = useState(false);
     const [copiedCodes, setCopiedCodes] = useState(false);
+    const [securityQuestions, setSecurityQuestions] = useState<Array<{ questionId: string; answer: string }>>([
+        { questionId: mfaService.SECURITY_QUESTIONS[0].id, answer: '' },
+        { questionId: mfaService.SECURITY_QUESTIONS[1].id, answer: '' },
+        { questionId: mfaService.SECURITY_QUESTIONS[2].id, answer: '' }
+    ]);
 
     useEffect(() => {
         setBiometricSupported(mfaService.isWebAuthnSupported());
     }, []);
 
-    const handleMethodSelect = (method: 'totp' | 'webauthn') => {
+    const handleMethodSelect = (method: 'totp' | 'webauthn' | 'security_questions') => {
         if (method === 'totp') {
             startTotpSetup();
-        } else {
+        } else if (method === 'webauthn') {
             startWebAuthnSetup();
+        } else if (method === 'security_questions') {
+            setStep('security-questions-setup');
+            setError('');
         }
     };
 
@@ -125,6 +133,57 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
         return 'Unknown Device';
     };
 
+    const handleSecurityQuestionChange = (index: number, field: 'questionId' | 'answer', value: string) => {
+        const updated = [...securityQuestions];
+        if (field === 'questionId') {
+            updated[index].questionId = value;
+        } else {
+            updated[index].answer = value;
+        }
+        setSecurityQuestions(updated);
+    };
+
+    const addSecurityQuestion = () => {
+        if (securityQuestions.length < 5) {
+            setSecurityQuestions([...securityQuestions, { questionId: mfaService.SECURITY_QUESTIONS[0].id, answer: '' }]);
+        }
+    };
+
+    const removeSecurityQuestion = (index: number) => {
+        if (securityQuestions.length > 3) {
+            setSecurityQuestions(securityQuestions.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleSecurityQuestionsSetup = async () => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+            // Validate all questions have different IDs and all answers are filled
+            const questionIds = securityQuestions.map(q => q.questionId);
+            const uniqueIds = new Set(questionIds);
+            if (uniqueIds.size !== questionIds.length) {
+                throw new Error('Please select different questions for each answer');
+            }
+
+            if (securityQuestions.some(q => !q.answer.trim())) {
+                throw new Error('Please answer all security questions');
+            }
+
+            // Submit to backend
+            await mfaService.setupSecurityQuestions(user.id, securityQuestions);
+            
+            // Success - no backup codes for security questions
+            setStep('complete');
+        } catch (err) {
+            console.error('Security questions setup error:', err);
+            setError(err instanceof Error ? err.message : 'Failed to setup security questions');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleCopyBackupCodes = () => {
         const codesText = backupCodes.join('\n');
         navigator.clipboard.writeText(codesText);
@@ -143,6 +202,11 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
             setVerificationCode('');
             setBackupCodes([]);
             setCopiedCodes(false);
+            setSecurityQuestions([
+                { questionId: mfaService.SECURITY_QUESTIONS[0].id, answer: '' },
+                { questionId: mfaService.SECURITY_QUESTIONS[1].id, answer: '' },
+                { questionId: mfaService.SECURITY_QUESTIONS[2].id, answer: '' }
+            ]);
         }, 2000);
     };
 
@@ -189,6 +253,22 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
                         </h4>
                         <p className="text-sm text-text-secondary">
                             Use fingerprint, facial recognition, or security keys for passwordless authentication
+                        </p>
+                    </div>
+                </div>
+            </button>
+
+            {/* Security Questions Option */}
+            <button
+                onClick={() => handleMethodSelect('security_questions')}
+                className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-left"
+            >
+                <div className="flex items-start gap-3">
+                    <ShieldCheckIcon className="w-6 h-6 text-primary-600 dark:text-primary-400 flex-shrink-0 mt-1" />
+                    <div>
+                        <h4 className="font-semibold text-text-primary mb-1">Security Questions</h4>
+                        <p className="text-sm text-text-secondary">
+                            Answer 3-5 security questions to verify your identity during login
                         </p>
                     </div>
                 </div>
@@ -289,6 +369,83 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
         </div>
     );
 
+    const renderSecurityQuestionsSetup = () => (
+        <div className="space-y-4">
+            <p className="text-sm text-text-secondary">
+                Select and answer 3-5 security questions. You'll need to answer these during login.
+            </p>
+
+            {securityQuestions.map((sq, index) => (
+                <div key={index} className="space-y-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-text-primary">
+                            Question {index + 1}
+                        </label>
+                        {securityQuestions.length > 3 && (
+                            <button
+                                type="button"
+                                onClick={() => removeSecurityQuestion(index)}
+                                className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                            >
+                                Remove
+                            </button>
+                        )}
+                    </div>
+                    <select
+                        value={sq.questionId}
+                        onChange={(e) => handleSecurityQuestionChange(index, 'questionId', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-text-primary"
+                        required
+                    >
+                        {mfaService.SECURITY_QUESTIONS.map((q) => (
+                            <option key={q.id} value={q.id}>
+                                {q.question}
+                            </option>
+                        ))}
+                    </select>
+                    <Input
+                        label="Your Answer"
+                        name={`answer-${index}`}
+                        value={sq.answer}
+                        onChange={(e) => handleSecurityQuestionChange(index, 'answer', e.target.value)}
+                        placeholder="Enter your answer"
+                        required
+                    />
+                </div>
+            ))}
+
+            {securityQuestions.length < 5 && (
+                <button
+                    type="button"
+                    onClick={addSecurityQuestion}
+                    className="w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-text-secondary hover:border-primary-500 dark:hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                >
+                    + Add Another Question (Optional)
+                </button>
+            )}
+
+            {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+            )}
+
+            <div className="flex gap-2">
+                <Button type="button" onClick={() => setStep('method')} fullWidth>
+                    Back
+                </Button>
+                <Button 
+                    type="button"
+                    onClick={handleSecurityQuestionsSetup} 
+                    isLoading={isLoading} 
+                    fullWidth
+                >
+                    Complete Setup
+                </Button>
+            </div>
+        </div>
+    );
+
     const renderBackupCodes = () => (
         <div className="space-y-4">
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
@@ -353,6 +510,7 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
             case 'totp-setup': return 'Scan QR Code';
             case 'totp-verify': return 'Verify Setup';
             case 'webauthn-setup': return 'Biometric Enrollment';
+            case 'security-questions-setup': return 'Set Up Security Questions';
             case 'backup-codes': return 'Backup Recovery Codes';
             case 'complete': return 'Setup Complete';
             default: return 'MFA Setup';
@@ -381,6 +539,7 @@ export const MfaSetupModal: React.FC<MfaSetupModalProps> = ({ isOpen, onClose, u
             {step === 'totp-setup' && renderTotpSetup()}
             {step === 'totp-verify' && renderTotpVerify()}
             {step === 'webauthn-setup' && renderWebAuthnSetup()}
+            {step === 'security-questions-setup' && renderSecurityQuestionsSetup()}
             {step === 'backup-codes' && renderBackupCodes()}
             {step === 'complete' && renderComplete()}
         </Modal>

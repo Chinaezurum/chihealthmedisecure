@@ -41,7 +41,7 @@ export interface User {
   specialization?: string; // For clinical staff
   // MFA fields
   mfaEnabled?: boolean;
-  mfaMethod?: 'totp' | 'webauthn' | 'both';
+  mfaMethod?: 'totp' | 'webauthn' | 'both' | 'security_questions';
   mfaSecret?: string; // Encrypted TOTP secret
   webAuthnCredentials?: Array<{
     id: string;
@@ -50,6 +50,10 @@ export interface User {
     deviceName?: string;
     createdAt: string;
     lastUsed?: string;
+  }>;
+  securityQuestions?: Array<{
+    questionId: string;
+    hashedAnswer: string;
   }>;
   backupCodes?: string[]; // Hashed backup codes
   mfaEnrolledAt?: string;

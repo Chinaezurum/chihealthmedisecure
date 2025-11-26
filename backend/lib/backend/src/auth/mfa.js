@@ -407,5 +407,88 @@ router.post('/disable', body('userId').not().isEmpty(), body('password').not().i
         return res.status(500).json({ message: 'Failed to disable MFA' });
     }
 });
+/**
+ * Setup security questions for MFA
+ */
+router.post('/setup/security-questions', body('userId').not().isEmpty(), body('answers').isArray({ min: 3, max: 5 }), async (req, res) => {
+    try {
+        const { userId, answers } = req.body;
+        // Validate answer structure
+        for (const answer of answers) {
+            if (!answer.questionId || typeof answer.questionId !== 'string' || !answer.answer) {
+                return res.status(400).json({ message: 'Invalid answer format' });
+            }
+        }
+        // Hash answers (case-insensitive)
+        const hashedQuestions = answers.map((qa) => ({
+            questionId: qa.questionId,
+            hashedAnswer: crypto.createHash('sha256')
+                .update(qa.answer.toLowerCase().trim())
+                .digest('hex')
+        }));
+        // Update user MFA settings
+        await db.updateUserMfa(userId, {
+            mfaEnabled: true,
+            mfaMethod: 'security_questions',
+            securityQuestions: hashedQuestions,
+            mfaEnrolledAt: new Date().toISOString()
+        });
+        return res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Setup security questions error:', error);
+        return res.status(500).json({ message: 'Failed to setup security questions' });
+    }
+});
+/**
+ * Verify security questions for MFA
+ */
+router.post('/verify/security-questions', body('userId').not().isEmpty(), body('answers').isArray({ min: 3, max: 5 }), async (req, res) => {
+    try {
+        const { userId, answers } = req.body;
+        const user = await db.getUserById(userId);
+        if (!user || !user.securityQuestions) {
+            return res.status(404).json({ message: 'User not found or security questions not configured' });
+        }
+        const storedQuestions = user.securityQuestions;
+        // Verify all answers match
+        for (const answer of answers) {
+            const stored = storedQuestions.find(q => q.questionId === answer.questionId);
+            if (!stored) {
+                return res.status(400).json({ message: 'Invalid question ID' });
+            }
+            const hashedAnswer = crypto.createHash('sha256')
+                .update(answer.answer.toLowerCase().trim())
+                .digest('hex');
+            if (hashedAnswer !== stored.hashedAnswer) {
+                return res.status(401).json({ message: 'Incorrect answer' });
+            }
+        }
+        return res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Verify security questions error:', error);
+        return res.status(500).json({ message: 'Failed to verify security questions' });
+    }
+});
+/**
+ * Get user's security question IDs (not the answers)
+ */
+router.get('/security-questions/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await db.getUserById(userId);
+        if (!user || !user.securityQuestions) {
+            return res.status(404).json({ message: 'User not found or security questions not configured' });
+        }
+        const storedQuestions = user.securityQuestions;
+        const questionIds = storedQuestions.map(q => q.questionId);
+        return res.json({ questionIds });
+    }
+    catch (error) {
+        console.error('Get security questions error:', error);
+        return res.status(500).json({ message: 'Failed to get security questions' });
+    }
+});
 export default router;
 //# sourceMappingURL=mfa.js.map

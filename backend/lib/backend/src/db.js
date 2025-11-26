@@ -832,6 +832,8 @@ export const updateUserMfa = async (userId, mfaData) => {
         user.mfaSecret = mfaData.mfaSecret;
     if (mfaData.webAuthnCredentials !== undefined)
         user.webAuthnCredentials = mfaData.webAuthnCredentials;
+    if (mfaData.securityQuestions !== undefined)
+        user.securityQuestions = mfaData.securityQuestions;
     if (mfaData.backupCodes !== undefined)
         user.backupCodes = mfaData.backupCodes;
     if (mfaData.mfaEnrolledAt !== undefined)

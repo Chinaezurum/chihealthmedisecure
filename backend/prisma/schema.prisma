@@ -52,9 +52,10 @@ model User {
   referralsAsDoctor   Referral[] @relation("DoctorReferrals")
   // MFA fields for enhanced security
   mfaEnabled          Boolean? @default(false)
-  mfaMethod           String?  // 'totp' | 'webauthn' | 'both'
+  mfaMethod           String?  // 'totp' | 'webauthn' | 'both' | 'security_questions'
   mfaSecret           String?  // Encrypted TOTP secret
   webAuthnCredentials Json?    // Array of WebAuthn credentials
+  securityQuestions   Json?    // Array of { questionId: number, hashedAnswer: string }
   backupCodes         String[] // Hashed backup recovery codes
   mfaEnrolledAt       DateTime?
   createdAt           DateTime @default(now())

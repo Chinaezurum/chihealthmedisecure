@@ -203,6 +203,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
             setIsSsoLoading(false);
         }
     };
+
+    const handleSsoClick = (e: React.MouseEvent, provider: 'Google') => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSsoLogin(provider);
+    };
     
     return (
         <div className="auth-card">
@@ -244,7 +250,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSsoSuccess: _onSsoSuccess,
             <div className="sso-providers">
                 <SSOButton 
                     providerName="Google" 
-                    onClick={() => handleSsoLogin('Google')} 
+                    onClick={(e) => handleSsoClick(e, 'Google')} 
                     isLoading={isSsoLoading}
                     disabled={oauthConfigured === false}
                 >

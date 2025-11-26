@@ -1,19 +1,41 @@
 /**
  * MFA Service - Multi-Factor Authentication with Biometric Support
- * Supports TOTP, WebAuthn (biometrics, facial recognition), and backup codes
+ * Supports TOTP, WebAuthn (biometrics, facial recognition), backup codes, and security questions
  */
 
 import { User } from '../types';
 import * as apiService from './apiService';
 
-export type MfaMethod = 'totp' | 'webauthn' | 'backup_code';
+export type MfaMethod = 'totp' | 'webauthn' | 'backup_code' | 'security_questions';
 
 export interface MfaSetupResponse {
   secret?: string; // For TOTP
   qrCodeUrl?: string; // For TOTP
   backupCodes?: string[]; // Backup recovery codes
   credentialId?: string; // For WebAuthn
+  securityQuestions?: SecurityQuestion[]; // For security questions
 }
+
+export interface SecurityQuestion {
+  id: string;
+  question: string;
+}
+
+export interface SecurityQuestionAnswer {
+  questionId: string;
+  answer: string;
+}
+
+export const SECURITY_QUESTIONS: SecurityQuestion[] = [
+  { id: 'mother_maiden', question: "What is your mother's maiden name?" },
+  { id: 'first_pet', question: 'What was the name of your first pet?' },
+  { id: 'birth_city', question: 'In what city were you born?' },
+  { id: 'first_school', question: 'What was the name of your first school?' },
+  { id: 'favorite_teacher', question: "What was your favorite teacher's name?" },
+  { id: 'first_car', question: 'What was the make of your first car?' },
+  { id: 'childhood_nickname', question: 'What was your childhood nickname?' },
+  { id: 'first_job', question: 'Where did you work your first job?' },
+];
 
 export interface WebAuthnCredential {
   id: string;
@@ -330,6 +352,46 @@ export const disableMfa = async (
   } catch (error) {
     console.error('Disable MFA error:', error);
     throw new Error('Failed to disable MFA');
+  }
+};
+
+/**
+ * Setup security questions for MFA
+ */
+export const setupSecurityQuestions = async (
+  userId: string,
+  answers: SecurityQuestionAnswer[]
+): Promise<{ success: boolean }> => {
+  try {
+    const response = await apiService.apiRequest<{ success: boolean }>(
+      `/api/mfa/setup/security-questions`,
+      'POST',
+      { userId, answers }
+    );
+    return response;
+  } catch (error) {
+    console.error('Setup security questions error:', error);
+    throw new Error('Failed to setup security questions');
+  }
+};
+
+/**
+ * Verify security questions for MFA
+ */
+export const verifySecurityQuestions = async (
+  userId: string,
+  answers: SecurityQuestionAnswer[]
+): Promise<{ success: boolean }> => {
+  try {
+    const response = await apiService.apiRequest<{ success: boolean }>(
+      `/api/mfa/verify/security-questions`,
+      'POST',
+      { userId, answers }
+    );
+    return response;
+  } catch (error) {
+    console.error('Verify security questions error:', error);
+    throw new Error('Failed to verify security questions');
   }
 };
 

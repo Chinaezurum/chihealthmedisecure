@@ -950,7 +950,7 @@ export const getUserById = async (id: string): Promise<User | undefined> => {
 
 export const updateUserMfa = async (userId: string, mfaData: {
     mfaEnabled?: boolean;
-    mfaMethod?: 'totp' | 'webauthn' | 'both';
+    mfaMethod?: 'totp' | 'webauthn' | 'both' | 'security_questions';
     mfaSecret?: string;
     webAuthnCredentials?: Array<{
         id: string;
@@ -959,6 +959,10 @@ export const updateUserMfa = async (userId: string, mfaData: {
         deviceName?: string;
         createdAt: string;
         lastUsed?: string;
+    }>;
+    securityQuestions?: Array<{
+        questionId: string;
+        hashedAnswer: string;
     }>;
     backupCodes?: string[];
     mfaEnrolledAt?: string;
@@ -973,6 +977,7 @@ export const updateUserMfa = async (userId: string, mfaData: {
     if (mfaData.mfaMethod !== undefined) user.mfaMethod = mfaData.mfaMethod;
     if (mfaData.mfaSecret !== undefined) user.mfaSecret = mfaData.mfaSecret;
     if (mfaData.webAuthnCredentials !== undefined) user.webAuthnCredentials = mfaData.webAuthnCredentials;
+    if (mfaData.securityQuestions !== undefined) user.securityQuestions = mfaData.securityQuestions;
     if (mfaData.backupCodes !== undefined) user.backupCodes = mfaData.backupCodes;
     if (mfaData.mfaEnrolledAt !== undefined) user.mfaEnrolledAt = mfaData.mfaEnrolledAt;
     

@@ -17,21 +17,25 @@ interface MfaVerificationProps {
 }
 
 const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSuccess, onCancel }) => {
-  const [verificationMethod, setVerificationMethod] = useState<'totp' | 'webauthn' | 'backup'>('totp');
+  const [verificationMethod, setVerificationMethod] = useState<'totp' | 'webauthn' | 'backup' | 'security_questions'>('totp');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [user] = useState<User | undefined>(pendingUser);
+  const [securityQuestions, setSecurityQuestions] = useState<Array<{ questionId: string; answer: string }>>([]);
 
   useEffect(() => {
     // Check if biometrics are supported
     setBiometricSupported(mfaService.isWebAuthnSupported());
 
-    // Auto-trigger biometric if available and user prefers it
+    // Auto-trigger appropriate MFA method based on user's preference
     if (user?.mfaMethod === 'webauthn' && mfaService.isWebAuthnSupported()) {
       setVerificationMethod('webauthn');
       handleBiometricAuth();
+    } else if (user?.mfaMethod === 'security_questions') {
+      setVerificationMethod('security_questions');
+      loadSecurityQuestions();
     }
   }, [user]);
 
@@ -73,6 +77,74 @@ const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSucces
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadSecurityQuestions = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Fetch user's configured question IDs
+      const response = await fetch(`${apiService.API_BASE_URL}/api/mfa/security-questions/${user.id}`, {
+        headers: {
+          'x-csrf-token': apiService.getCsrfToken() || '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load security questions');
+      }
+
+      const data = await response.json();
+      
+      // Initialize empty answers for each question
+      setSecurityQuestions(data.questionIds.map((qId: string) => ({
+        questionId: qId,
+        answer: ''
+      })));
+    } catch (err) {
+      console.error('Load security questions error:', err);
+      setError('Failed to load security questions. Please try another method.');
+      setVerificationMethod('backup');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSecurityQuestionsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      setError('User information not available');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await mfaService.verifySecurityQuestions(user.id, securityQuestions);
+      
+      if (result.success) {
+        // Create a mock token - this should come from the backend in production
+        const mockToken = 'mfa-verified-' + Date.now();
+        apiService.setAuthToken(mockToken);
+        onSuccess(user);
+      } else {
+        throw new Error('Incorrect answers');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSecurityAnswerChange = (index: number, value: string) => {
+    const updated = [...securityQuestions];
+    updated[index].answer = value;
+    setSecurityQuestions(updated);
   };
 
   const handleTotpSubmit = async (e: React.FormEvent) => {
@@ -159,7 +231,7 @@ const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSucces
 
         {/* Method Selection */}
         <div className="flex gap-2 mb-6">
-          {(user.mfaMethod === 'totp' || user.mfaMethod === 'both') && (
+          {(user?.mfaMethod === 'totp' || user?.mfaMethod === 'both') && (
             <button
               onClick={() => {
                 setVerificationMethod('totp');
@@ -175,7 +247,7 @@ const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSucces
               Authenticator
             </button>
           )}
-          {biometricSupported && (user.mfaMethod === 'webauthn' || user.mfaMethod === 'both') && (
+          {biometricSupported && (user?.mfaMethod === 'webauthn' || user?.mfaMethod === 'both') && (
             <button
               onClick={() => {
                 setVerificationMethod('webauthn');
@@ -190,6 +262,23 @@ const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSucces
             >
               <FingerprintIcon className="w-5 h-5 inline-block mr-2" />
               Biometric
+            </button>
+          )}
+          {user?.mfaMethod === 'security_questions' && (
+            <button
+              onClick={() => {
+                setVerificationMethod('security_questions');
+                setError('');
+                loadSecurityQuestions();
+              }}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                verificationMethod === 'security_questions'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-text-secondary hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              <ShieldCheckIcon className="w-5 h-5 inline-block mr-2" />
+              Questions
             </button>
           )}
         </div>
@@ -324,6 +413,63 @@ const MfaVerification: React.FC<MfaVerificationProps> = ({ pendingUser, onSucces
                 className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
               >
                 Back to authenticator
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Security Questions Verification */}
+        {verificationMethod === 'security_questions' && (
+          <form onSubmit={handleSecurityQuestionsSubmit} className="space-y-4">
+            <p className="text-sm text-text-secondary mb-4">
+              Please answer your security questions to verify your identity
+            </p>
+
+            {isLoading && securityQuestions.length === 0 ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="text-sm text-text-secondary mt-2">Loading your questions...</p>
+              </div>
+            ) : (
+              securityQuestions.map((sq, index) => {
+                const question = mfaService.SECURITY_QUESTIONS.find(q => q.id === sq.questionId);
+                return (
+                  <div key={index}>
+                    <Input
+                      label={question?.question || `Question ${index + 1}`}
+                      name={`security-answer-${index}`}
+                      type="text"
+                      value={sq.answer}
+                      onChange={(e) => handleSecurityAnswerChange(index, e.target.value)}
+                      placeholder="Your answer"
+                      required
+                      autoFocus={index === 0}
+                    />
+                  </div>
+                );
+              })
+            )}
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            <Button type="submit" fullWidth isLoading={isLoading} disabled={securityQuestions.length === 0}>
+              Verify
+            </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setVerificationMethod('backup');
+                  setError('');
+                }}
+                className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                Use backup code instead
               </button>
             </div>
           </form>
